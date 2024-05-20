@@ -88,7 +88,7 @@ func BasicLoadGen(
 	lg.startDelay = startDelay
 	lg.workBreak = workBreak
 	lg.cpuBreakMs = cpuBreakMs
-	lg.startNum = 1e13
+	lg.startNum = 1e10
 	lg.maxPrimes = maxPrimes
 	lg.memoryMb = memoryMb
 	lg.randomBreak = false
@@ -118,7 +118,7 @@ func (lg LoadGen) Run() {
 		lg.StartWorkload()
 
 		// Sleep for workBreak
-		log.Println("Waiting for ", lg.workBreak, " seconds before starting next loop.")
+		log.Println("Waiting for", lg.workBreak, "seconds before starting next loop.")
 		time.Sleep(time.Duration(lg.workBreak) * time.Second)
 	}
 }
@@ -151,7 +151,8 @@ func main() {
 
 	// Receive output from signalChan.
 	sig := <-signalChan
-	log.Printf("%s signal caught", sig)
+	if sig.String() == "terminated" {log.Println("SIGTERM received")}
+	log.Printf("Signal caught: %s", sig)
 
 	// Add extra handling here to clean up resources, such as flushing logs and
 	// closing any database or Redis connections.
