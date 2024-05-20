@@ -1,0 +1,30 @@
+[project]
+name = "mslarkin-utils"
+version = "1.67"
+description = "Frequently used utilities for Python"
+readme = "README.md"
+keywords = ["mslarkin"]
+requires-python = ">=3.8"
+dependencies = [
+    "requests",
+    "google-cloud-pubsub",
+    "google-cloud-monitoring",
+    "google-cloud-run",
+    "gunicorn",
+    "pytz",
+    "psutil",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.bumpver]
+current_version = "1.67"
+version_pattern = "MAJOR.MINOR"
+commit = false
+tag = false
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
