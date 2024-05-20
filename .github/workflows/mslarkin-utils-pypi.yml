@@ -23,19 +23,19 @@ jobs:
         pip install build bumpver
     - name: Increment version
       run: bumpver update --minor
-      working-directory: ./common/py-mslarkin-utils
+      working-directory: ./py-mslarkin-utils
     - name: Commit version number update 
       uses: EndBug/add-and-commit@v9
       with:
-        add: "./common/py-mslarkin-utils"
+        add: "./py-mslarkin-utils"
     - name: Build package
       run: python -m build
-      working-directory: ./common/py-mslarkin-utils
+      working-directory: ./py-mslarkin-utils
     - name: Store built package
       uses: actions/upload-artifact@v3
       with:
           name: mslarkin-utils-dist
-          path: ./common/py-mslarkin-utils/dist/**
+          path: ./py-mslarkin-utils/dist/**
       
   publish:
     needs: build
