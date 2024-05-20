@@ -8,10 +8,11 @@ import (
 	"syscall"
 	"time"
 	"strconv"
+	"runtime"
+	"math"
 	// "math/rand"
 	// "net/http"
 	// "context"
-	// "runtime"
 )
 
 func Getenv(key, fallback string) string {
@@ -62,6 +63,7 @@ type LoadGen struct {
 	randomBreak bool
 	randomCpu   bool
 	randomMem   bool
+	maxPctLoad float64
 }
 
 func DefaultLoadGen() *LoadGen {
@@ -75,6 +77,7 @@ func DefaultLoadGen() *LoadGen {
 	lg.randomBreak = false
 	lg.randomCpu = false
 	lg.randomMem = false
+	lg.maxPctLoad = 0.4
 	return lg
 }
 
@@ -83,7 +86,8 @@ func BasicLoadGen(
 	workBreak int,
 	cpuBreakMs int,
 	maxPrimes int,
-	memoryMb int) *LoadGen {
+	memoryMb int,
+	maxPctLoad float64) *LoadGen {
 	lg := new(LoadGen)
 	lg.startDelay = startDelay
 	lg.workBreak = workBreak
@@ -94,6 +98,7 @@ func BasicLoadGen(
 	lg.randomBreak = false
 	lg.randomCpu = false
 	lg.randomMem = false
+	lg.maxPctLoad = maxPctLoad
 	return lg
 }
 
@@ -108,14 +113,17 @@ func (lg LoadGen) StartWorkload() {
 func (lg LoadGen) Run() {
 	log.Println("Delaying work loop start for", lg.startDelay, "seconds")
 	time.Sleep(time.Duration(lg.startDelay) * time.Second)
+	numCPU := int(math.Floor(float64(runtime.NumCPU()) * lg.maxPctLoad))
 
 	// Add inifinite for loop here
 	for {
 		// Add in the randomizaion factors here
 		log.Println("Starting work loop: CPU Break (ms):", lg.cpuBreakMs,
-			"| Max Primes:", lg.maxPrimes, "| Memory (MB):", lg.memoryMb)
+			"| Max Primes:", lg.maxPrimes, "| CPU:", numCPU,"(",lg.maxPctLoad,"%)", "| Memory (MB):", lg.memoryMb)
 
-		lg.StartWorkload()
+		for cpu := 0; cpu < numCPU; cpu++ {
+			lg.StartWorkload()
+		}
 
 		// Sleep for workBreak
 		log.Println("Waiting for", lg.workBreak, "seconds before starting next loop.")
@@ -138,8 +146,11 @@ func main() {
 	cpuBreak, _ := strconv.Atoi(Getenv("CPU_BREAK_MS", "1000"))
 	workBreak, _ := strconv.Atoi(Getenv("WORK_BREAK_S", "600"))
 	maxPrimes, _ := strconv.Atoi(Getenv("MAX_PRIMES", "10"))
+	numCPU, _ := strconv.Atoi(Getenv("NUM_CPU", "1"))
 
-	loadGen := BasicLoadGen(0, workBreak, cpuBreak, maxPrimes, 2)
+	log.Printf("Running Worker with %s vCPUs available", strconv.Itoa(runtime.NumCPU()))
+
+	loadGen := BasicLoadGen(0, workBreak, cpuBreak, maxPrimes, 2, numCPU)
 
 	// log.Println("Starting calculation with", startNum)
 	go func() {
