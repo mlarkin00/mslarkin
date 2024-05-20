@@ -1,0 +1,54 @@
+name: Publish mslarkin-utils package to PyPi
+
+on: 
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/py-mslarkin-utils/**'
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest      
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build bumpver
+    - name: Increment version
+      run: bumpver update --minor
+      working-directory: ./common/py-mslarkin-utils
+    - name: Commit version number update 
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: "./common/py-mslarkin-utils"
+    - name: Build package
+      run: python -m build
+      working-directory: ./common/py-mslarkin-utils
+    - name: Store built package
+      uses: actions/upload-artifact@v3
+      with:
+          name: mslarkin-utils-dist
+          path: ./common/py-mslarkin-utils/dist/**
+      
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mslarkin-utils
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: mslarkin-utils-dist
+          path: dist/
+      - name: pypi-publish
+        uses: pypa/gh-action-pypi-publish@release/v1
