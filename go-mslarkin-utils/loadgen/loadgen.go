@@ -116,7 +116,7 @@ func (lg LoadGen) StartWorkload() {
 	}
 	cpuItr := <- cpChan
 	end := time.Now()
-	log.Printf("Workload #%v took %v seconds | CPU Break (ms): %v | Max Primes: %v | Memory (MB): %v", cpuItr, end.Sub(start),  lg.cpuBreakMs,
+	log.Printf("Workload #%v took %v | CPU Break (ms): %v | Max Primes: %v | Memory (MB): %v", cpuItr, end.Sub(start),  lg.cpuBreakMs,
 	 lg.maxPrimes, lg.memoryMb)
 }
 
