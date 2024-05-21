@@ -71,7 +71,7 @@ func DefaultLoadGen() *LoadGen {
 	lg.startDelay = 0
 	lg.workBreak = 600
 	lg.cpuBreakMs = 800
-	lg.startNum = 1e13
+	lg.startNum = 1e5
 	lg.maxPrimes = 5
 	lg.memoryMb = 2
 	lg.randomBreak = false
@@ -92,7 +92,7 @@ func BasicLoadGen(
 	lg.startDelay = startDelay
 	lg.workBreak = workBreak
 	lg.cpuBreakMs = cpuBreakMs
-	lg.startNum = 1e10
+	lg.startNum = 1e5
 	lg.maxPrimes = maxPrimes
 	lg.memoryMb = memoryMb
 	lg.randomBreak = false
@@ -107,16 +107,16 @@ func (lg LoadGen) StartWorkload() {
 	// numCPU := int(math.Floor(float64(runtime.NumCPU()) * lg.maxPctLoad / 2))
 	// loadCPU := int(math.Floor(float64(numCPU) * lg.maxPctLoad))
 	
-	cpChan := make(chan int)
+	cpChan := make(chan int, loadCPU)
 	for cpu := 0; cpu < loadCPU; cpu++ {
 		go func() {
 			computePrimes(lg.cpuBreakMs, lg.startNum, lg.maxPrimes)
-			cpChan <- 1
+			cpChan <- cpu
 		}()
 	}
-	<- cpChan
+	cpuItr := <- cpChan
 	end := time.Now()
-	log.Printf("Workload took %v seconds | CPU Break (ms): %v | Max Primes: %v | Memory (MB): %v", end.Sub(start),  lg.cpuBreakMs,
+	log.Printf("Workload #%v took %v seconds | CPU Break (ms): %v | Max Primes: %v | Memory (MB): %v", cpuItr, end.Sub(start),  lg.cpuBreakMs,
 	 lg.maxPrimes, lg.memoryMb)
 }
 
@@ -128,7 +128,7 @@ func (lg LoadGen) Run() {
 	for {
 		// Add in the randomizaion factors here
 		log.Printf("Starting work loop: CPU Break (ms): %v | Max Primes: %v | CPU: %v (%v%%, %v vCPUs) | Memory (MB):%v", lg.cpuBreakMs,
-			lg.maxPrimes, numCPU, lg.maxPctLoad, loadCPU, lg.memoryMb)
+			lg.maxPrimes, numCPU, lg.maxPctLoad*100, loadCPU, lg.memoryMb)
 
 		lg.StartWorkload()
 
