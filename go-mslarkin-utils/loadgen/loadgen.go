@@ -104,26 +104,33 @@ func BasicLoadGen(
 
 func (lg LoadGen) StartWorkload() {
 	start := time.Now()
-	computePrimes(lg.cpuBreakMs, lg.startNum, lg.maxPrimes)
+	// numCPU := int(math.Floor(float64(runtime.NumCPU()) * lg.maxPctLoad / 2))
+	// loadCPU := int(math.Floor(float64(numCPU) * lg.maxPctLoad))
+	
+	cpChan := make(chan int)
+	for cpu := 0; cpu < loadCPU; cpu++ {
+		go func() {
+			computePrimes(lg.cpuBreakMs, lg.startNum, lg.maxPrimes)
+			cpChan <- 1
+		}()
+	}
+	<- cpChan
 	end := time.Now()
-	log.Println("Workload took", end.Sub(start), "seconds. CPU Break (ms):", lg.cpuBreakMs,
-		"| Max Primes:", lg.maxPrimes, "| Memory (MB):", lg.memoryMb)
+	log.Printf("Workload took %v seconds | CPU Break (ms): %v | Max Primes: %v | Memory (MB): %v", end.Sub(start),  lg.cpuBreakMs,
+	 lg.maxPrimes, lg.memoryMb)
 }
 
 func (lg LoadGen) Run() {
 	log.Println("Delaying work loop start for", lg.startDelay, "seconds")
 	time.Sleep(time.Duration(lg.startDelay) * time.Second)
-	numCPU := int(math.Floor(float64(runtime.NumCPU()) * lg.maxPctLoad))
 
 	// Add inifinite for loop here
 	for {
 		// Add in the randomizaion factors here
-		log.Println("Starting work loop: CPU Break (ms):", lg.cpuBreakMs,
-			"| Max Primes:", lg.maxPrimes, "| CPU:", numCPU,"(",lg.maxPctLoad,"%)", "| Memory (MB):", lg.memoryMb)
+		log.Printf("Starting work loop: CPU Break (ms): %v | Max Primes: %v | CPU: %v (%v%%, %v vCPUs) | Memory (MB):%v", lg.cpuBreakMs,
+			lg.maxPrimes, numCPU, lg.maxPctLoad, loadCPU, lg.memoryMb)
 
-		for cpu := 0; cpu < numCPU; cpu++ {
-			lg.StartWorkload()
-		}
+		lg.StartWorkload()
 
 		// Sleep for workBreak
 		log.Println("Waiting for", lg.workBreak, "seconds before starting next loop.")
@@ -134,30 +141,31 @@ func (lg LoadGen) Run() {
 // Create channel to listen for signals.
 var signalChan chan (os.Signal) = make(chan os.Signal, 1)
 
+// Divide by 2 to account for hyperthreading
+var numCPU = int(math.Floor(float64(runtime.NumCPU()) / 2))
+var loadCPU int
+
 func main() {
 
 	// SIGINT handles Ctrl+C locally.
 	// SIGTERM handles Cloud Run termination signal.
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	// defaultCpuBreakMs := 350
-	// startNum := 1e5 //1e13
-	// defaultMaxPrimes := 25
-	// loadGen := DefaultLoadGen()
+
 	cpuBreak, _ := strconv.Atoi(Getenv("CPU_BREAK_MS", "1000"))
 	workBreak, _ := strconv.Atoi(Getenv("WORK_BREAK_S", "600"))
 	maxPrimes, _ := strconv.Atoi(Getenv("MAX_PRIMES", "10"))
-	numCPU, _ := strconv.Atoi(Getenv("NUM_CPU", "1"))
+	maxPctLoad, _ := strconv.ParseFloat(Getenv("MAX_PCT_LOAD", "0.4"), 64)
 
-	log.Printf("Running Worker with %s vCPUs available", strconv.Itoa(runtime.NumCPU()))
+	log.Printf("Running Worker with %s vCPUs available", strconv.Itoa(numCPU))
 
-	loadGen := BasicLoadGen(0, workBreak, cpuBreak, maxPrimes, 2, numCPU)
+	loadGen := BasicLoadGen(0, workBreak, cpuBreak, maxPrimes, 2, maxPctLoad)
+	loadCPU = int(math.Floor(float64(numCPU) * loadGen.maxPctLoad))
+
 
 	// log.Println("Starting calculation with", startNum)
 	go func() {
 		loadGen.Run()
-		// computePrimes(defaultCpuBreakMs, uint64(startNum), defaultMaxPrimes)
-		// log.Println("Finished calculation with", startNum)
-		os.Exit(0)
+		// os.Exit(0)
 	}()
 
 	// Receive output from signalChan.
