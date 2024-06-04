@@ -7,40 +7,45 @@ import (
 	// goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 )
 
-type Fibonacci struct {
-    num    float64
-    answer float64
-}
+// type Fibonacci struct {
+//     num    float64
+//     answer float64
+// }
 
-func newFibonacci(n float64, sleepMs int) *Fibonacci {
+func newFibonacci(n float64, sleepMs int) float64 {
 
-    f := new(Fibonacci)
-    f.num = n
+    // f := new(Fibonacci)
+    // f.num = n
+	var answer float64
     c1 := make(chan float64)
     c2 := make(chan float64)
 
-    if f.num <= 1 {
-        f.answer = n
+    if n <= 1 {
+        answer = n
     } else {
         go func() {
-            fib1 := newFibonacci(n - 1, sleepMs)
+            answer := newFibonacci(n - 1, sleepMs)
 			time.Sleep(time.Duration(sleepMs) * time.Millisecond)
-            c2 <- fib1.answer
+            c2 <- answer
         }()
         go func() {
-            fib2 := newFibonacci(n - 2, sleepMs)
+            answer := newFibonacci(n - 2, sleepMs)
 			time.Sleep(time.Duration(sleepMs) * time.Millisecond)
-            c1 <- fib2.answer   
+            c1 <- answer   
         }()
 
-        f.answer = <-c2 + <-c1
+        answer = <-c2 + <-c1
     }
     close(c1)
     close(c2)
 
-    return f
+    return answer
 }
 
+//1 vCPU 2GB
+// targetNum: 30, numCycles: 4 | 43s, ~60%CPU, 45%Memory
+// targetNum: 25, numCycles: 6 | 45s, ~70%CPU, 20%Memory
+// targetNum: 31, numCycles: 3 | 52s, ~83%CPU, 60%Memory
 func LoadGen(targetNum float64, numCycles int, sleepMs int) {
 
 	start := time.Now()
