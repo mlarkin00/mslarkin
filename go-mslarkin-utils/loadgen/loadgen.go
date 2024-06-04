@@ -50,5 +50,5 @@ func LoadGen(targetNum float64, numCycles int, sleepMs int) {
 	}
 	end := time.Now()
 	totalTime := end.Sub(start)
-	log.Printf("Complete: Fibonacci #: %v | Cycles: %v | Time: %v | sleepMs: %v", targetNum, numCycles, totalTime, sleepMs)
+	log.Printf("Complete: Fibonacci #: %v | Cycles: %v | sleepMs: %v | Time: %v", targetNum, numCycles, sleepMs, totalTime)
 }
