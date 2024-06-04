@@ -12,7 +12,7 @@ type Fibonacci struct {
     answer float64
 }
 
-func newFibonacci(n float64) *Fibonacci {
+func newFibonacci(n float64, sleepMs int) *Fibonacci {
 
     f := new(Fibonacci)
     f.num = n
@@ -24,10 +24,12 @@ func newFibonacci(n float64) *Fibonacci {
     } else {
         go func() {
             fib1 := newFibonacci(n - 1)
+			time.Sleep(time.Duration(sleepMs) * time.Millisecond)
             c2 <- fib1.answer
         }()
         go func() {
             fib2 := newFibonacci(n - 2)
+			time.Sleep(time.Duration(sleepMs) * time.Millisecond)
             c1 <- fib2.answer   
         }()
 
@@ -44,8 +46,7 @@ func LoadGen(targetNum float64, numCycles int, sleepMs int) {
 	start := time.Now()
 	log.Println("Starting: Fibonacci #:", targetNum, "| Cycles:", numCycles, "| sleepMs:", sleepMs)
 	for i:=0; i < numCycles; i++ {
-		_ = newFibonacci(targetNum)
-		time.Sleep(time.Duration(sleepMs) * time.Millisecond)
+		_ = newFibonacci(targetNum, sleepMs)
 	}
 	end := time.Now()
 	totalTime := end.Sub(start)
