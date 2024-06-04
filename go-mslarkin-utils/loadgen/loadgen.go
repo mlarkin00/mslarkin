@@ -42,7 +42,7 @@ func newFibonacci(n float64) *Fibonacci {
 func LoadGen(targetNum float64, numCycles int, sleepMs int) {
 
 	start := time.Now()
-	log.Println("Starting: Fibonacci #:", targetNum, "| Cycles: ", numCycles, "| sleepMs:", sleepMs)
+	log.Println("Starting: Fibonacci #:", targetNum, "| Cycles:", numCycles, "| sleepMs:", sleepMs)
 	for i:=0; i < numCycles; i++ {
 		_ = newFibonacci(targetNum)
 		time.Sleep(time.Duration(sleepMs) * time.Millisecond)
