@@ -23,12 +23,12 @@ func newFibonacci(n float64, sleepMs int) *Fibonacci {
         f.answer = n
     } else {
         go func() {
-            fib1 := newFibonacci(n - 1)
+            fib1 := newFibonacci(n - 1, sleepMs)
 			time.Sleep(time.Duration(sleepMs) * time.Millisecond)
             c2 <- fib1.answer
         }()
         go func() {
-            fib2 := newFibonacci(n - 2)
+            fib2 := newFibonacci(n - 2, sleepMs)
 			time.Sleep(time.Duration(sleepMs) * time.Millisecond)
             c1 <- fib2.answer   
         }()
