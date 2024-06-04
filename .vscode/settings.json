@@ -1,6 +1,0 @@
-{
-    "go.toolsEnvVars": {
-        "GOENV": "/home/matthewlarkin/.config/go/env",
-        "GOPRIVATE": "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
-    }
-}
