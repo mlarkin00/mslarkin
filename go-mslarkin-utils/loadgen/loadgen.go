@@ -1,17 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"strconv"
-
-	// "math/rand"
-	"net/http"
-	"os"
-
 	// "strconv"
 	"time"
-	goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
+	// goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 )
 
 type Fibonacci struct {
@@ -46,22 +39,15 @@ func newFibonacci(n float64) *Fibonacci {
     return f
 }
 
-func fibHandler(w http.ResponseWriter, r *http.Request) {
-	var f *Fibonacci
-
-	targetNum, _ := strconv.ParseFloat(goutils.GetParam(r, "targetNum", "30"), 64)
-	numCycles, _ := strconv.Atoi(goutils.GetParam(r, "numCycles", "4"))
-	sleepMs, _ := strconv.Atoi(goutils.GetParam(r, "sleepMs", "0"))
+func LoadGen(targetNum float64, numCycles int, sleepMs int) {
 
 	start := time.Now()
-	log.Println("Getting the", targetNum, "th fibonacci number", numCycles,"times.")
+	log.Println("Starting: Fibonacci #:", targetNum, "| Cycles: ", numCycles, "| sleepMs:", sleepMs)
 	for i:=0; i < numCycles; i++ {
-		f = newFibonacci(targetNum)
+		_ = newFibonacci(targetNum)
 		time.Sleep(time.Duration(sleepMs) * time.Millisecond)
-		// fmt.Println("The",targetNum, "Fibonacci number is:",f.answer)
 	}
 	end := time.Now()
 	totalTime := end.Sub(start)
-	log.Printf("The %vth Fibonacci number is %v, and took %v to find %v times", targetNum, f.answer, totalTime, numCycles)
-	fmt.Fprintf(w, "The %vth Fibonacci number is %v, and took %v to find %v times", targetNum, f.answer, totalTime, numCycles)
+	log.Printf("Complete: Fibonacci #: %v | Cycles: %v | Time: %v | sleepMs: %v", targetNum, numCycles, totalTime, sleepMs)
 }
