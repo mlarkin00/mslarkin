@@ -26,14 +26,21 @@ import (
 // Create channel to listen for signals.
 var signalChan chan (os.Signal) = make(chan os.Signal, 1)
 
-// var updateLoad chan (bool) = make(chan bool)
-var updateLoad bool = false
-var targetCpus int
-
 func main() {
 	// SIGINT handles Ctrl+C locally.
 	// SIGTERM handles Cloud Run termination signal.
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// monitoringMetric := "run.googleapis.com/container/instance_count"
+	// service := "SERVICE_NAME"
+	// region := "REGION"
+
+	// metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
+	// 							 " AND resource.labels.service_name =\"%s\"" +
+	// 							 " AND resource.labels.location =\"%s\"",
+	// 					monitoringMetric, service, region)
+
+	// fmt.Println(metricFilter)
 
 	// runService, err = gcputils.GetRunService("go-worker", "mslarkin-ext", "us-central1")
 	// udt := gcputils.GetLastUpdateTs("pubsub-pull-subscriber", "mslarkin-ext", "us-central1")

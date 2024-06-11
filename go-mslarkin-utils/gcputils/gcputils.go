@@ -203,6 +203,22 @@ func getMetricInterval(intervalSeconds int) *monitoringpb.TimeInterval {
 		}
 }
 
+func getServiceFilter(monitoringMetric string, service string, region string) string {
+	metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
+								 " AND resource.labels.service_name =\"%s\"" +
+								 " AND resource.labels.location =\"%s\"",
+						monitoringMetric, service, region)
+	return metricFilter
+}
+
+func getRevisionFilter(monitoringMetric string, revision string, region string) string {
+	metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
+								 " AND resource.labels.revision_name =\"%s\"" +
+								 " AND resource.labels.location =\"%s\"",
+						monitoringMetric, revision, region)
+	return metricFilter
+}
+
 func GetMetricMean(monitoringMetric string, 
 				resourceFilter string, 
 				intervalSeconds int,
@@ -232,12 +248,6 @@ func GetMetricMean(monitoringMetric string,
 		Aggregation: aggregationStruct,
 	}
 
-	// fmt.Println("Metric:", monitoringMetric)
-	// fmt.Println("Filter:", resourceFilter)
-	// fmt.Println("Interval:", intervalSeconds, "Agg:",aggregationSeconds)
-	// fmt.Println("groupBy", groupBy)
-	// fmt.Println("project", projectId)
-
 	// Get the time series data.
 	it := client.ListTimeSeries(ctx, req)
 	var data []monitoringpb.Point
@@ -264,11 +274,7 @@ func GetInstanceCount(service string, projectId string, region string) int {
 	intervalSeconds := 240
 	groupBy := []string{"resource.labels.service_name"}
 
-	metricFilter := "metric.type=\"" + monitoringMetric +
-					 "\" AND resource.labels.service_name =\"" +
-					  service + 
-					  "\" AND resource.labels.location =\"" +
-					  region + "\""
+	metricFilter := getServiceFilter(monitoringMetric, service, region)
 
 	metricData := GetMetricMean(monitoringMetric,
 					metricFilter,
