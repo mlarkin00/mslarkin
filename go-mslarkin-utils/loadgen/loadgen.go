@@ -12,7 +12,7 @@ import (
 //     answer float64
 // }
 
-func newFibonacci(n float64, sleepMs int, stopChan chan bool) float64 {
+func newFibonacci(n float64, sleepMs int, *stopChan chan bool) float64 {
 
 	var answer float64
     c1 := make(chan float64)
@@ -49,7 +49,7 @@ func newFibonacci(n float64, sleepMs int, stopChan chan bool) float64 {
 // targetNum: 30, numCycles: 4 | 43s, ~60%CPU, 45%Memory
 // targetNum: 25, numCycles: 6 | 45s, ~70%CPU, 20%Memory
 // targetNum: 31, numCycles: 3 | 52s, ~83%CPU, 60%Memory
-func LoadGen(targetNum float64, numCycles int, sleepMs int, stopChan chan bool) {
+func LoadGen(targetNum float64, numCycles int, sleepMs int, *stopChan chan bool) {
 	
 	start := time.Now()
 	log.Println("Starting: Fibonacci #:", targetNum, "| Cycles:", numCycles, "| sleepMs:", sleepMs)
