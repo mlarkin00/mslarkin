@@ -10,13 +10,13 @@ import (
 	"time"
 
 	// "google.golang.org/api/pubsub/v1"
-	run "cloud.google.com/go/run/apiv2"
-	runpb "cloud.google.com/go/run/apiv2/runpb"
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	monitoringpb "cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
-	"google.golang.org/api/iterator"
+	run "cloud.google.com/go/run/apiv2"
+	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/api/iterator"
 )
 
 func Helloworld(w http.ResponseWriter, r *http.Request) {
@@ -195,36 +195,36 @@ func GetMetricInterval(intervalSeconds int) *monitoringpb.TimeInterval {
 
 	return &monitoringpb.TimeInterval{
 		StartTime: &timestamp.Timestamp{
-				Seconds: startTime.Unix(),
-			},
+			Seconds: startTime.Unix(),
+		},
 		EndTime: &timestamp.Timestamp{
-				Seconds: endTime.Unix(),
-			},
-		}
+			Seconds: endTime.Unix(),
+		},
+	}
 }
 
 func GetServiceFilter(monitoringMetric string, service string, region string) string {
-	metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
-								 " AND resource.labels.service_name =\"%s\"" +
-								 " AND resource.labels.location =\"%s\"",
-						monitoringMetric, service, region)
+	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
+		" AND resource.labels.service_name =\"%s\""+
+		" AND resource.labels.location =\"%s\"",
+		monitoringMetric, service, region)
 	return metricFilter
 }
 
 func GetRevisionFilter(monitoringMetric string, revision string, region string) string {
-	metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
-								 " AND resource.labels.revision_name =\"%s\"" +
-								 " AND resource.labels.location =\"%s\"",
-						monitoringMetric, revision, region)
+	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
+		" AND resource.labels.revision_name =\"%s\""+
+		" AND resource.labels.location =\"%s\"",
+		monitoringMetric, revision, region)
 	return metricFilter
 }
 
-func GetMetricMean(monitoringMetric string, 
-				resourceFilter string, 
-				intervalSeconds int,
-				aggregationSeconds int,
-				groupBy []string,
-				projectId string) []monitoringpb.Point {
+func GetMetricMean(monitoringMetric string,
+	resourceFilter string,
+	intervalSeconds int,
+	aggregationSeconds int,
+	groupBy []string,
+	projectId string) []monitoringpb.Point {
 	ctx := context.Background()
 	client, err := monitoring.NewMetricClient(ctx)
 	if err != nil {
@@ -242,9 +242,58 @@ func GetMetricMean(monitoringMetric string,
 	}
 
 	req := &monitoringpb.ListTimeSeriesRequest{
-		Name:   "projects/" + projectId,
-		Filter: resourceFilter,
-		Interval: GetMetricInterval(intervalSeconds),
+		Name:        "projects/" + projectId,
+		Filter:      resourceFilter,
+		Interval:    GetMetricInterval(intervalSeconds),
+		Aggregation: aggregationStruct,
+	}
+
+	// Get the time series data.
+	it := client.ListTimeSeries(ctx, req)
+	var data []monitoringpb.Point
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// Handle error.
+			panic(err)
+		}
+		// Use resp.
+		for _, point := range resp.GetPoints() {
+			data = append(data, *point)
+		}
+	}
+	return data
+}
+
+func GetMetricRate(monitoringMetric string,
+	resourceFilter string,
+	intervalSeconds int,
+	aggregationSeconds int,
+	groupBy []string,
+	projectId string) []monitoringpb.Point {
+	ctx := context.Background()
+	client, err := monitoring.NewMetricClient(ctx)
+	if err != nil {
+		panic(err)
+	}
+	defer client.Close()
+
+	aggregationStruct := &monitoringpb.Aggregation{
+		CrossSeriesReducer: monitoringpb.Aggregation_REDUCE_SUM,
+		PerSeriesAligner:   monitoringpb.Aggregation_ALIGN_RATE,
+		GroupByFields:      groupBy,
+		AlignmentPeriod: &duration.Duration{
+			Seconds: int64(aggregationSeconds),
+		},
+	}
+
+	req := &monitoringpb.ListTimeSeriesRequest{
+		Name:        "projects/" + projectId,
+		Filter:      resourceFilter,
+		Interval:    GetMetricInterval(intervalSeconds),
 		Aggregation: aggregationStruct,
 	}
 
@@ -277,11 +326,11 @@ func GetInstanceCount(service string, projectId string, region string) int {
 	metricFilter := GetServiceFilter(monitoringMetric, service, region)
 
 	metricData := GetMetricMean(monitoringMetric,
-					metricFilter,
-					intervalSeconds,
-					aggregationSeconds,
-					groupBy,
-					projectId)
+		metricFilter,
+		intervalSeconds,
+		aggregationSeconds,
+		groupBy,
+		projectId)
 
 	return int(metricData[0].GetValue().GetDoubleValue())
 }
