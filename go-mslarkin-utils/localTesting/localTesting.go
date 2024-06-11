@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"syscall"
 	"time"
-	// gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
+	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
 	// goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 	// loadgen "github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen"
 	// pubsub "google.golang.org/api/pubsub/v1"
@@ -38,7 +38,7 @@ func main() {
 	// runService, err = gcputils.GetRunService("go-worker", "mslarkin-ext", "us-central1")
 	// udt := gcputils.GetLastUpdateTs("pubsub-pull-subscriber", "mslarkin-ext", "us-central1")
 	// fmt.Println(udt)
-	// fmt.Println(gcputils.GetInstanceCount("go-worker", "mslarkin-ext", "us-central1"))
+	fmt.Println(gcputils.GetInstanceCount("go-worker", "mslarkin-ext", "us-central1"))
 	// fmt.Println(gcputils.GetRunService("go-worker", "mslarkin-ext", "us-central1"))
 
 	loadCtx, loadCtxCancel := context.WithCancel(context.Background())
