@@ -11,7 +11,7 @@ require google.golang.org/protobuf v1.34.2 // indirect
 
 require (
 	cloud.google.com/go/pubsub v1.38.0
-	github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20240611194224-45117f6121ee
+	github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20240611221335-9e5cb5736ab9
 )
 
 require (
