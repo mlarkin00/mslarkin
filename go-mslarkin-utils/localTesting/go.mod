@@ -9,8 +9,6 @@ require (
 
 require google.golang.org/protobuf v1.31.0 // indirect
 
-require github.com/mlarkin00/msl-playground/common/go-mslarkin-utils/gcputils v0.0.0-20240516003727-d3ca05c85323
-
 require (
 	cloud.google.com/go v0.110.6 // indirect
 	cloud.google.com/go/compute v1.23.0 // indirect
