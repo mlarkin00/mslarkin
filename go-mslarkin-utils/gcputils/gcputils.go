@@ -238,6 +238,7 @@ func GetMetricMean(monitoringMetric string,
 	// fmt.Println("groupBy", groupBy)
 	// fmt.Println("project", projectId)
 
+	// Get the time series data.
 	it := client.ListTimeSeries(ctx, req)
 	var data []monitoringpb.Point
 	for {
