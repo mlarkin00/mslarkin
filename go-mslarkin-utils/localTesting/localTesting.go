@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	// "context"
 	"fmt"
 	"os"
 
@@ -10,14 +10,14 @@ import (
 	"os/signal"
 	// "runtime"
 	"syscall"
-	"time"
+	// "time"
 
 	// "io"
-	"sync/atomic"
+	// "sync/atomic"
 	// gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
 	// goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 	// loadgen "github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen"
-	pubsub "cloud.google.com/go/pubsub"
+	// pubsub "cloud.google.com/go/pubsub"
 	// run "cloud.google.com/go/run/apiv2"
 	// runpb "cloud.google.com/go/run/apiv2/runpb"
 	// timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -35,18 +35,9 @@ func main() {
 	// SIGTERM handles Cloud Run termination signal.
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	projectId := "mslarkin-ext"
-	subId := "pull-queue-testing"
+	// projectId := "mslarkin-ext"
+	// subId := "pull-queue-testing"
 
-	go func() {
-		for {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			fmt.Println("Waiting for messages")
-			msgCount := pullMsgs(ctx, projectId, subId)
-			fmt.Printf("Handled %d messages\n", msgCount)
-			cancel()
-		}
-	}()
 
 	// monitoringMetric := "run.googleapis.com/container/instance_count"
 	// service := "SERVICE_NAME"
@@ -71,42 +62,3 @@ func main() {
 
 }
 
-func handlePubsubMessage(ctx context.Context, m *pubsub.Message) {
-	// fmt.Printf("Got message: %q\n", m.Data)
-	m.Ack()
-}
-
-func pullMsgs(ctx context.Context, projectId, subId string) int32 {
-
-	client, err := pubsub.NewClient(ctx, projectId)
-	if err != nil {
-		fmt.Printf("pubsub.NewClient: %v", err)
-	}
-	defer client.Close()
-
-	sub := client.Subscription(subId)
-	// Must set ReceiveSettings.Synchronous to false (or leave as default) to enable
-	// concurrency pulling of messages. Otherwise, NumGoroutines will be set to 1.
-	sub.ReceiveSettings.Synchronous = false
-	// NumGoroutines determines the number of goroutines sub.Receive will spawn to pull
-	// messages.
-	sub.ReceiveSettings.NumGoroutines = 4
-	// MaxOutstandingMessages limits the number of concurrent handlers of messages.
-	// In this case, up to 1 unacked messages can be handled concurrently.
-	// Note, even in synchronous mode, messages pulled in a batch can still be handled
-	// concurrently.
-	sub.ReceiveSettings.MaxOutstandingMessages = 1
-
-	var receivedCount int32 = 0
-
-	// Receive blocks until the context is cancelled or an error occurs.
-	err = sub.Receive(ctx, func(_ context.Context, msg *pubsub.Message) {
-		handlePubsubMessage(ctx, msg)
-		atomic.AddInt32(&receivedCount, 1)
-	})
-	if err != nil {
-		fmt.Printf("sub.Receive returned error: %v", err)
-	}
-
-	return receivedCount
-}
