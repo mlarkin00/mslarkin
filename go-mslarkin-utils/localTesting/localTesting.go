@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	// "runtime"
 	"syscall"
-	// "time"
+	"time"
 
 	// "io"
 	"sync/atomic"
@@ -40,7 +40,11 @@ func main() {
 
 	go func() {
 		for {
-			pullMsgs(projectId, subId)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			fmt.Println("Waiting for messages")
+			msgCount := pullMsgs(ctx, projectId, subId)
+			fmt.Printf("Handled %d messages\n", msgCount)
+			cancel()
 		}
 	}()
 
@@ -63,23 +67,20 @@ func main() {
 
 	// Receive output from signalChan.
 	sig := <-signalChan
-	fmt.Printf("%s signal caught", sig)
+	fmt.Printf("%s signal caught\n", sig)
 
 }
 
 func handlePubsubMessage(ctx context.Context, m *pubsub.Message) {
-	fmt.Printf("Got message: %q\n", m.Data)
+	// fmt.Printf("Got message: %q\n", m.Data)
 	m.Ack()
 }
 
-func pullMsgs(projectId, subId string) error {
+func pullMsgs(ctx context.Context, projectId, subId string) int32 {
 
-	// projectID := gcputils.GetProjectId()
-	// subID := "pull-queue-testing"
-	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectId)
 	if err != nil {
-		return fmt.Errorf("pubsub.NewClient: %w", err)
+		fmt.Printf("pubsub.NewClient: %v", err)
 	}
 	defer client.Close()
 
@@ -91,22 +92,21 @@ func pullMsgs(projectId, subId string) error {
 	// messages.
 	sub.ReceiveSettings.NumGoroutines = 4
 	// MaxOutstandingMessages limits the number of concurrent handlers of messages.
-	// In this case, up to 8 unacked messages can be handled concurrently.
+	// In this case, up to 1 unacked messages can be handled concurrently.
 	// Note, even in synchronous mode, messages pulled in a batch can still be handled
 	// concurrently.
 	sub.ReceiveSettings.MaxOutstandingMessages = 1
 
-	var received int32
+	var receivedCount int32 = 0
 
 	// Receive blocks until the context is cancelled or an error occurs.
 	err = sub.Receive(ctx, func(_ context.Context, msg *pubsub.Message) {
 		handlePubsubMessage(ctx, msg)
-		atomic.AddInt32(&received, 1)
+		atomic.AddInt32(&receivedCount, 1)
 	})
 	if err != nil {
-		return fmt.Errorf("sub.Receive returned error: %w", err)
+		fmt.Printf("sub.Receive returned error: %v", err)
 	}
-	fmt.Printf("Received %d messages\n", received)
 
-	return nil
+	return receivedCount
 }
