@@ -189,7 +189,7 @@ func GetLastUpdateTs(service string, projectId string, region string) time.Time 
 	return updateTime.Local()
 }
 
-func getMetricInterval(intervalSeconds int) *monitoringpb.TimeInterval {
+func GetMetricInterval(intervalSeconds int) *monitoringpb.TimeInterval {
 	startTime := time.Now().UTC().Add(time.Second * -time.Duration(intervalSeconds))
 	endTime := time.Now().UTC()
 
@@ -203,7 +203,7 @@ func getMetricInterval(intervalSeconds int) *monitoringpb.TimeInterval {
 		}
 }
 
-func getServiceFilter(monitoringMetric string, service string, region string) string {
+func GetServiceFilter(monitoringMetric string, service string, region string) string {
 	metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
 								 " AND resource.labels.service_name =\"%s\"" +
 								 " AND resource.labels.location =\"%s\"",
@@ -211,7 +211,7 @@ func getServiceFilter(monitoringMetric string, service string, region string) st
 	return metricFilter
 }
 
-func getRevisionFilter(monitoringMetric string, revision string, region string) string {
+func GetRevisionFilter(monitoringMetric string, revision string, region string) string {
 	metricFilter := fmt.Sprintf("metric.type=\"%s\"" +
 								 " AND resource.labels.revision_name =\"%s\"" +
 								 " AND resource.labels.location =\"%s\"",
@@ -244,7 +244,7 @@ func GetMetricMean(monitoringMetric string,
 	req := &monitoringpb.ListTimeSeriesRequest{
 		Name:   "projects/" + projectId,
 		Filter: resourceFilter,
-		Interval: getMetricInterval(intervalSeconds),
+		Interval: GetMetricInterval(intervalSeconds),
 		Aggregation: aggregationStruct,
 	}
 
@@ -274,7 +274,7 @@ func GetInstanceCount(service string, projectId string, region string) int {
 	intervalSeconds := 240
 	groupBy := []string{"resource.labels.service_name"}
 
-	metricFilter := getServiceFilter(monitoringMetric, service, region)
+	metricFilter := GetServiceFilter(monitoringMetric, service, region)
 
 	metricData := GetMetricMean(monitoringMetric,
 					metricFilter,
