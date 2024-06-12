@@ -10,11 +10,11 @@ import (
 	"os/signal"
 	// "runtime"
 	"syscall"
-	"time"
 
 	// "io"
 	// "sync/atomic"
-	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
+	// gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
+	"encoding/json"
 	// goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 	// loadgen "github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen"
 	// pubsub "cloud.google.com/go/pubsub"
@@ -29,21 +29,41 @@ import (
 // Create channel to listen for signals.
 var signalChan chan (os.Signal) = make(chan os.Signal, 1)
 
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+	// expiresIn string `json:"expires_in"`
+	// tokenType string `json:"tokenType"`
+}
+
 func main() {
 	// SIGINT handles Ctrl+C locally.
 	// SIGTERM handles Cloud Run termination signal.
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	projectId := "mslarkin-ext"
-	topicId := "pull-test"
-	// subId := "pull-queue-testing"
+	var token TokenResponse
 
-	go func() {
-		for {
-			getPubsubPublishRate(topicId, projectId)
-			time.Sleep(10 * time.Second)
-		}
-	}()
+	tokenResp := `{
+		"access_token":"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_QtAS08i85nHq39HE3C2LTrCARA",
+		"expires_in":3599,
+		"token_type":"Bearer"
+		}`
+
+	json.Unmarshal([]byte(tokenResp), &token)
+
+	fmt.Println(tokenResp)
+	fmt.Println(token)
+	fmt.Println(token.AccessToken)
+
+	// projectId := "mslarkin-ext"
+	// topicId := "pull-test"
+	// // subId := "pull-queue-testing"
+
+	// go func() {
+	// 	for {
+	// 		getPubsubPublishRate(topicId, projectId)
+	// 		time.Sleep(10 * time.Second)
+	// 	}
+	// }()
 
 	// runService, err = gcputils.GetRunService("go-worker", "mslarkin-ext", "us-central1")
 	// udt := gcputils.GetLastUpdateTs("pubsub-pull-subscriber", "mslarkin-ext", "us-central1")
@@ -52,32 +72,32 @@ func main() {
 	// fmt.Println(gcputils.GetRunService("go-worker", "mslarkin-ext", "us-central1"))
 
 	// Receive output from signalChan.
-	sig := <-signalChan
-	fmt.Printf("%s signal caught\n", sig)
+	// sig := <-signalChan
+	// fmt.Printf("%s signal caught\n", sig)
 
 }
 
-func getPubsubPublishRate(topicId string, projectId string) {
+// func getPubsubPublishRate(topicId string, projectId string) {
 
-	monitoringMetric := "pubsub.googleapis.com/topic/send_request_count"
-	aggregationSeconds := 60
-	intervalSeconds := 240
-	groupBy := []string{"resource.labels.topic_id"}
-	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
-		" AND resource.labels.topic_id =\"%s\"",
-		monitoringMetric, topicId)
-	metricData := gcputils.GetMetricRate(monitoringMetric,
-		metricFilter,
-		intervalSeconds,
-		aggregationSeconds,
-		groupBy,
-		projectId)
+// 	monitoringMetric := "pubsub.googleapis.com/topic/send_request_count"
+// 	aggregationSeconds := 60
+// 	intervalSeconds := 240
+// 	groupBy := []string{"resource.labels.topic_id"}
+// 	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
+// 		" AND resource.labels.topic_id =\"%s\"",
+// 		monitoringMetric, topicId)
+// 	metricData := gcputils.GetMetricRate(monitoringMetric,
+// 		metricFilter,
+// 		intervalSeconds,
+// 		aggregationSeconds,
+// 		groupBy,
+// 		projectId)
 
-	// fmt.Println(metricData)
-	for _, metric := range metricData {
-		fmt.Printf("Timestamp: %v - Rate: %v\n",
-			metric.Interval.StartTime,
-			metric.GetValue().GetDoubleValue())
-	}
+// 	// fmt.Println(metricData)
+// 	for _, metric := range metricData {
+// 		fmt.Printf("Timestamp: %v - Rate: %v\n",
+// 			metric.Interval.StartTime,
+// 			metric.GetValue().GetDoubleValue())
+// 	}
 
-}
+// }
