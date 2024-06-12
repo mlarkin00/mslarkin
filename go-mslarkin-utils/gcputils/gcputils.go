@@ -28,6 +28,32 @@ func parsePath(resource_path string) string {
 	return r.FindStringSubmatch(resource_path)[1]
 }
 
+func GetAccessToken() string {
+	req, err := http.NewRequest(http.MethodGet, "/computeMetadata/v1/instance/service-accounts/default/token", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Metadata-Flavor", "Google")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		bodyString := string(bodyBytes)
+		return bodyString
+	} else {
+		return string(resp.StatusCode)
+	}
+
+}
+
 func GetProjectId() string {
 	req, err := http.NewRequest(http.MethodGet, "http://metadata.google.internal/computeMetadata/v1/project/project-id", nil)
 	if err != nil {
