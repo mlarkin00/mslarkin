@@ -15,7 +15,7 @@ timeout: 300s
 substitutions:
   _LOCATION: 'us-central1'
   _MODULE_PATH: 'github.com/mlarkin00/mslarkin/go-mslarkin-utils/${_MODULE_NAME}'
-  _REPO: 'https://us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo'
+  _REPO: 'us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo'
   _SRC: './go-mslarkin-utils/${_MODULE_NAME}'
   _VERSION: 'v1.0.0'
 
