@@ -16,7 +16,7 @@ substitutions:
   _LOCATION: 'us-central1'
   _MODULE_PATH: 'mslarkin.com/${_MODULE_NAME}'
   _REPO: 'mslarkin-go-repo'
-  _SRC: './${_MODULE_NAME}'
+  _SRC: './go-mslarkin-utils/${_MODULE_NAME}'
   _VERSION: 'v1.0.0'
 
 options:
