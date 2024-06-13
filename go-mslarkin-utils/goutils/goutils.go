@@ -4,6 +4,7 @@ import (
 	// "context"
 	// "fmt"
 	// "io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,9 +26,14 @@ func GetParam(r *http.Request, p string, d string) string {
 }
 
 func GetEnv(key, d string) string {
-    value := os.Getenv(key)
-    if len(value) == 0 {
-        return d
-    }
-    return value
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		return d
+	}
+	return value
+}
+
+func roundFloat(val float64, precision uint) float64 {
+	ratio := math.Pow(10, float64(precision))
+	return math.Round(val*ratio) / ratio
 }
