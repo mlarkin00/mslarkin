@@ -1,0 +1,24 @@
+steps:
+- name: gcr.io/cloud-builders/gcloud
+args:
+- 'artifacts'
+- 'go'
+- 'upload'
+- '--project=$PROJECT_ID'
+- '--location=${_LOCATION}'
+- '--repository=${_REPO}'
+- '--module-path=${_MODULE_PATH}'
+- '--version=$TAG_NAME'
+
+timeout: 300s
+substitutions:
+  _LOCATION: 'us-central1'
+  _MODULE_PATH: 'mslarkin/gcputils'
+  _REPO: 'https://us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo'
+  _SRC: './go-mslarkin-utils/gcputils'
+
+options:
+    dynamic_substitutions: true
+    substitution_option: 'ALLOW_LOOSE'
+    logging: CLOUD_LOGGING_ONLY 
+    # logging: GCS_ONLY 

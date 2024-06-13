@@ -2,16 +2,13 @@ module localTesting
 
 go 1.21.0
 
-require (
-	cloud.google.com/go/run v1.3.7 // indirect
-	google.golang.org/api v0.183.0 // indirect
-)
+require google.golang.org/api v0.183.0
 
-require google.golang.org/protobuf v1.34.2 // indirect
+require google.golang.org/protobuf v1.34.2
 
 require (
-	cloud.google.com/go/pubsub v1.38.0
-	github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20240611221335-9e5cb5736ab9
+	cloud.google.com/go/monitoring v1.19.0
+	cloud.google.com/go/run v1.3.7
 )
 
 require (
@@ -21,7 +18,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.8 // indirect
 	cloud.google.com/go/longrunning v0.5.7 // indirect
-	cloud.google.com/go/monitoring v1.19.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -32,7 +28,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.12.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.52.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
 	go.opentelemetry.io/otel v1.27.0 // indirect
 	go.opentelemetry.io/otel/metric v1.27.0 // indirect
 	go.opentelemetry.io/otel/trace v1.27.0 // indirect
