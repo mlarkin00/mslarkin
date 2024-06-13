@@ -13,9 +13,9 @@ args:
 timeout: 300s
 substitutions:
   _LOCATION: 'us-central1'
-  _MODULE_PATH: 'mslarkin/gcputils'
+  _MODULE_PATH: 'mslarkin/${_MODULE_NAME}'
   _REPO: 'https://us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo'
-  _SRC: './go-mslarkin-utils/gcputils'
+  # _SRC: './go-mslarkin-utils/gcputils'
 
 options:
     dynamic_substitutions: true
