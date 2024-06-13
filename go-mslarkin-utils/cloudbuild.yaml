@@ -17,7 +17,7 @@ substitutions:
   _MODULE_PATH: 'mslarkin.com/${_MODULE_NAME}'
   _REPO: 'mslarkin-go-repo'
   _SRC: './go-mslarkin-utils/${_MODULE_NAME}'
-  _VERSION: 'v$BUILD_ID'
+  _VERSION: 'v$SHORT_SHA'
 
 options:
     dynamic_substitutions: true
