@@ -1,15 +1,15 @@
 steps:
 - name: gcr.io/cloud-builders/gcloud
-args:
-- 'artifacts'
-- 'go'
-- 'upload'
-- '--project=$PROJECT_ID'
-- '--source=${_SRC}'
-- '--location=${_LOCATION}'
-- '--repository=${_REPO}'
-- '--module-path=${_MODULE_PATH}'
-- '--version=$TAG_NAME'
+  args:
+  - 'artifacts'
+  - 'go'
+  - 'upload'
+  - '--project=$PROJECT_ID'
+  - '--source=${_SRC}'
+  - '--location=${_LOCATION}'
+  - '--repository=${_REPO}'
+  - '--module-path=${_MODULE_PATH}'
+  - '--version=$TAG_NAME'
 
 timeout: 300s
 substitutions:
