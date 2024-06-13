@@ -17,7 +17,7 @@ substitutions:
   _MODULE_PATH: 'mslarkin/${_MODULE_NAME}'
   _REPO: 'https://us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo'
   _SRC: './go-mslarkin-utils/${_MODULE_NAME}'
-  _VERSION: '1.0.0'
+  _VERSION: 'v1.0.0'
 
 options:
     dynamic_substitutions: true
