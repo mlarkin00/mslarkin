@@ -5,6 +5,7 @@ args:
 - 'go'
 - 'upload'
 - '--project=$PROJECT_ID'
+- '--source=${_SRC}'
 - '--location=${_LOCATION}'
 - '--repository=${_REPO}'
 - '--module-path=${_MODULE_PATH}'
@@ -15,7 +16,7 @@ substitutions:
   _LOCATION: 'us-central1'
   _MODULE_PATH: 'mslarkin/${_MODULE_NAME}'
   _REPO: 'https://us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo'
-  # _SRC: './go-mslarkin-utils/gcputils'
+  _SRC: './go-mslarkin-utils/${_MODULE_NAME}'
 
 options:
     dynamic_substitutions: true
