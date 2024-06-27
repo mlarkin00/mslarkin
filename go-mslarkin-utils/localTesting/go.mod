@@ -8,6 +8,7 @@ require google.golang.org/protobuf v1.34.2
 
 require (
 	cloud.google.com/go/monitoring v1.19.0
+	cloud.google.com/go/pubsub v1.38.0
 	cloud.google.com/go/run v1.3.7
 )
 

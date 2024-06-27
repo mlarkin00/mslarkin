@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	// "regexp"
 	"math"
 	"os/signal"
+
 	// "runtime"
 	"syscall"
 	"time"
@@ -18,11 +20,12 @@ import (
 	// "encoding/json"
 	// goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 	// loadgen "github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen"
-	// pubsub "cloud.google.com/go/pubsub"
-	// run "cloud.google.com/go/run/apiv2"
-	// runpb "cloud.google.com/go/run/apiv2/runpb"
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	monitoringpb "cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
+
+	// pubsub "cloud.google.com/go/pubsub"
+	run "cloud.google.com/go/run/apiv2"
+	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -30,12 +33,7 @@ import (
 
 // Create channel to listen for signals.
 var signalChan chan (os.Signal) = make(chan os.Signal, 1)
-
-type TokenResponse struct {
-	AccessToken string `json:"access_token"`
-	// expiresIn string `json:"expires_in"`
-	// tokenType string `json:"tokenType"`
-}
+var lastUpdate time.Time
 
 var topicId string = "pull-test"                 //"my-topic"
 var subscriptionId string = "pull-queue-testing" //"my-pull-subscription"
@@ -43,6 +41,10 @@ var projectId string = "mslarkin-ext"            //"my-project-id"
 var projectNum string = "79309377625"
 var subscriberServiceName string = "go-pubsub-subscriber"
 var subscriberRegion string = "us-central1"
+
+var targetMaxAgeS float64 = 5
+var jitterRange = .1   // Allow some range of values without action
+var updateDelayMin = 5 // Time to wait, after a change, before making any other changes
 
 func main() {
 	// SIGINT handles Ctrl+C locally.
@@ -52,16 +54,35 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if len(os.Getenv("JITTER_RANGE")) > 0 {
+		jitterRange, _ = strconv.ParseFloat(os.Getenv("JITTER_RANGE"), 64)
+	}
+
 	go func() {
 		for {
 			publishRate := roundFloat(getPublishRate(ctx, topicId, projectId))
-			publishRateQ := roundFloat(getPublishRateQ(ctx, topicId, projectId))
-			publishRequestRate := roundFloat(getPublishRequestRate(ctx, topicId, projectId))
-			publishRequestRateQ := roundFloat(getPublishRequestRateQ(ctx, topicId, projectId))
 			ackRate := roundFloat(getAckRate(ctx, subscriptionId, projectId))
-			fmt.Printf("Publish Rate: %v (Query: %v), Publish Request Rate: %v (Query: %v), Ack Rate: %v\n",
-				publishRate, publishRateQ, publishRequestRate, publishRequestRateQ, ackRate)
-			time.Sleep(10 * time.Second)
+			pubAckDeltaRate := publishRate - ackRate
+			fmt.Printf("Publish Rate: %v, Ack Rate: %v (Delta: %v)\n", publishRate, ackRate, pubAckDeltaRate)
+
+			ackLatency := roundFloat(getAckLatencyMs(ctx, subscriptionId, projectId))
+			fmt.Printf("Ack Latency: %v\n", ackLatency)
+
+			messageBacklog := getMessageBacklog(ctx, subscriptionId, projectId)
+			maxMessageAge := getMaxMessageAgeS(ctx, subscriptionId, projectId)
+			fmt.Printf("Backlog: %v, Max Age: %v\n", messageBacklog, maxMessageAge)
+
+			subscriberService, _ := getRunService(ctx, subscriberServiceName, projectId, subscriberRegion)
+			configuredInstances := subscriberService.Scaling.MinInstanceCount
+			currentInstances := getInstanceCount(ctx, subscriberServiceName, projectId, subscriberRegion)
+			lastUpdate = subscriberService.UpdateTime.AsTime()
+			fmt.Printf("Service: %s, Instances: Configured: %v | Current: %v (Last Updated: %v)\n",
+				subscriberServiceName, configuredInstances, currentInstances, lastUpdate)
+
+			// Autoscaling logic
+			go scalingCheck(ctx)
+
+			time.Sleep(30 * time.Second)
 		}
 	}()
 
@@ -73,44 +94,198 @@ func main() {
 
 func roundFloat(num float64) float64 { return float64(math.Round(num*100) / 100) }
 
-func getPublishRateQ(ctx context.Context, topicId string, projectId string) float64 {
-	monitoringMetric := "pubsub.googleapis.com/topic/message_sizes"
+/////////////////
+// Autoscaling //
+/////////////////
 
-	groupBy := []string{"resource.topic_id"}
-	metricFilter := fmt.Sprintf("resource.project_id == '%s'"+
-		" && resource.topic_id == '%s'",
-		projectId, topicId)
-
-	mqlQuery := fmt.Sprintf("fetch pubsub_topic"+
-		"| metric '%s'"+
-		"| filter %s"+
-		"| align delta(1m)"+
-		"| every 1m"+
-		"| group_by %s, [value_message_sizes_sum: count(value.message_sizes)]"+
-		"| align rate(1m)"+
-		"| within 1m, -240s",
-		monitoringMetric, metricFilter, groupBy)
-
-	// queryStart := time.Now()
-	// fmt.Printf("Query Start: %v\n", queryStart)
-	metricData := getMetricQuery(ctx, projectId, mqlQuery)
-	// fmt.Println("Metric Length:", len(metricData))
-
-	var metricValues []float64
-	for i := range metricData {
-		// endTime := metricData[i].TimeInterval.EndTime.AsTime()
-		// fmt.Printf("Metric End: %v, Value: %v\n", queryStart.Sub(endTime), metricData[i].GetValues())
-		metricValues = append(metricValues, metricData[i].GetValues()[0].GetDoubleValue())
+func scalingCheck(ctx context.Context) {
+	// Check delta between publish and ack rate
+	publishRate := roundFloat(getPublishRate(ctx, topicId, projectId))
+	ackRate := roundFloat(getAckRate(ctx, subscriptionId, projectId))
+	pubAckDeltaRate := publishRate - ackRate
+	if math.Abs(pubAckDeltaRate) >= (publishRate * jitterRange) {
+		fmt.Printf("Pub / Ack Delta (messages/s): %v (Jitter (%v): +/-%v)\n",
+			pubAckDeltaRate,
+			jitterRange,
+			(publishRate * jitterRange))
 	}
-	// fmt.Printf("Metric Values: %v\n", metricValues)
-	//Return the latest rate datapoint
-	return metricValues[0]
+
+	// ackLatencyMs := roundFloat(getAckLatencyMs(ctx, subscriptionId, projectId))
+	// fmt.Printf("Ack Latency (ms): %v\n", ackLatencyMs)
+
+	// messageBacklog := getMessageBacklog(ctx, subscriptionId, projectId)
+	// fmt.Printf("Backlog (messages): %v\n", messageBacklog)
+
+	maxMessageAgeS := getMaxMessageAgeS(ctx, subscriptionId, projectId)
+	// fmt.Printf("Max Age (s): %v\n", maxMessageAgeS)
+	if math.Abs(targetMaxAgeS-maxMessageAgeS) > (targetMaxAgeS * jitterRange) {
+		fmt.Printf("Delta: %v, Range: +/-%v\n", math.Abs(targetMaxAgeS-maxMessageAgeS), (targetMaxAgeS * jitterRange))
+		currentInstances := getInstanceCount(ctx, subscriberServiceName, projectId, subscriberRegion)
+		recommendedInstances := averageValueRecommendation(maxMessageAgeS, targetMaxAgeS, currentInstances)
+		fmt.Printf("Recommended Instance change: %v --> %v\n", currentInstances, recommendedInstances)
+
+		subscriberService, _ := getRunService(ctx, subscriberServiceName, projectId, subscriberRegion)
+		configuredInstances := subscriberService.Scaling.MinInstanceCount
+		fmt.Printf("Configured: %v | Current: %v\n", configuredInstances, currentInstances)
+
+		// If the recommendation is different than the current configuration, and the change delay has expired
+		fmt.Printf("Time since last change: %v\n", time.Since(subscriberService.UpdateTime.AsTime()))
+		if configuredInstances != recommendedInstances &&
+			time.Since(subscriberService.UpdateTime.AsTime()) > (time.Duration(updateDelayMin)*time.Minute) {
+			fmt.Println("Updating Instances")
+			updateInstanceCount(ctx, subscriberService, recommendedInstances)
+			fmt.Println("Instance count updated")
+		}
+
+	}
+
+}
+
+func averageValueRecommendation(metricValue float64, metricTarget float64, currentInstanceCount int) int32 {
+	recommendedInstances := math.Ceil(float64(currentInstanceCount) * (metricValue / metricTarget))
+	return int32(recommendedInstances)
+}
+
+func targetValueRecommendation(metricValue float64, metricTarget float64, currentInstanceCount int) int32 {
+	recommendedInstances := math.Ceil(float64(currentInstanceCount) * (metricTarget / metricValue))
+	return int32(recommendedInstances)
+}
+
+func instanceCapacityRecommendation(metricValue float64, instanceCapacity float64) int32 {
+	recommendedInstances := math.Ceil(metricValue / instanceCapacity)
+	return int32(recommendedInstances)
+}
+
+//////////////////////////
+// Cloud Run management //
+//////////////////////////
+
+func getInstanceCount(ctx context.Context, service string, projectId string, region string) int {
+	monitoringMetric := "run.googleapis.com/container/instance_count"
+	aggregationSeconds := 60
+	metricDelaySeconds := 180
+	groupBy := []string{"resource.labels.service_name"}
+	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
+		" AND resource.labels.service_name =\"%s\""+
+		" AND resource.labels.location =\"%s\"",
+		monitoringMetric, service, region)
+
+	metricData := getMetricMean(ctx,
+		metricFilter,
+		metricDelaySeconds,
+		aggregationSeconds,
+		groupBy,
+		projectId)
+
+	// fmt.Printf("Instance Metric Delay: %v\n", time.Since(metricData[0].GetInterval().EndTime.AsTime()))
+
+	return int(metricData[0].GetValue().GetDoubleValue())
+}
+
+func getRunService(ctx context.Context,
+	service string,
+	projectId string,
+	region string) (*runpb.Service, error) {
+	client, err := run.NewServicesClient(ctx)
+	if err != nil {
+		fmt.Printf("Error getting client:\n")
+		panic(err)
+	}
+	defer client.Close()
+
+	serviceId := "projects/" + projectId + "/locations/" + region + "/services/" + service
+
+	req := &runpb.GetServiceRequest{Name: serviceId}
+	resp, err := client.GetService(ctx, req)
+	if err != nil {
+		fmt.Printf("Error getting service: %s in %s (Project ID: %s)\n", service, region, projectId)
+		panic(err)
+	}
+	return resp, err
+
+}
+
+func updateInstanceCount(ctx context.Context, service *runpb.Service, desiredMinInstances int32) {
+	// Return if the current min-instances setting is the same as the desired min-instances
+	if service.Scaling.MinInstanceCount == int32(desiredMinInstances) {
+		return
+	}
+
+	client, err := run.NewServicesClient(ctx)
+	if err != nil {
+		fmt.Printf("Error getting client:\n")
+		panic(err)
+	}
+	defer client.Close()
+
+	service.Scaling.MinInstanceCount = desiredMinInstances
+
+	req := &runpb.UpdateServiceRequest{
+		Service: service,
+	}
+	op, err := client.UpdateService(ctx, req)
+	if err != nil {
+		fmt.Printf("Error in update service request:\n")
+		panic(err)
+	}
+
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		fmt.Printf("Error updating service:\n")
+		panic(err)
+	}
+	_ = resp
+}
+
+//////////////////////////////
+// Cloud Monitoring metrics //
+//////////////////////////////
+
+// pubsub.googleapis.com/subscription/sent_message_count (delay: 240s)
+// pubsub.googleapis.com/subscription/delivery_latency_health_score (delay: 360s)
+
+func getMessageBacklog(ctx context.Context, subscriptionId string, projectId string) int {
+	monitoringMetric := "pubsub.googleapis.com/subscription/num_undelivered_messages"
+	aggregationSeconds := 60
+	metricDelaySeconds := 120
+	groupBy := []string{"resource.labels.subscription_id"}
+	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
+		" AND resource.labels.subscription_id =\"%s\"",
+		monitoringMetric, subscriptionId)
+
+	metricData := getMetricMean(ctx,
+		metricFilter,
+		metricDelaySeconds,
+		aggregationSeconds,
+		groupBy,
+		projectId)
+
+	return int(metricData[0].GetValue().GetDoubleValue())
+}
+
+func getMaxMessageAgeS(ctx context.Context, subscriptionId string, projectId string) float64 {
+	monitoringMetric := "pubsub.googleapis.com/subscription/oldest_unacked_message_age"
+	aggregationSeconds := 60
+	metricDelaySeconds := 120
+	groupBy := []string{"resource.labels.subscription_id"}
+	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
+		" AND resource.labels.subscription_id =\"%s\"",
+		monitoringMetric, subscriptionId)
+
+	metricData := getMetricMean(ctx,
+		metricFilter,
+		metricDelaySeconds,
+		aggregationSeconds,
+		groupBy,
+		projectId)
+
+	return metricData[0].GetValue().GetDoubleValue()
 }
 
 func getPublishRate(ctx context.Context, topicId string, projectId string) float64 {
 	monitoringMetric := "pubsub.googleapis.com/topic/message_sizes"
 	aggregationSeconds := 60
-	intervalSeconds := 240
+	metricDelaySeconds := 240
 	groupBy := []string{"resource.labels.topic_id"}
 	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
 		" AND resource.labels.topic_id =\"%s\"",
@@ -118,35 +293,29 @@ func getPublishRate(ctx context.Context, topicId string, projectId string) float
 
 	metricData := getMetricDelta(ctx,
 		metricFilter,
-		intervalSeconds,
+		metricDelaySeconds,
 		aggregationSeconds,
 		groupBy,
 		projectId)
 
-	// for i := range metricData {
-	// 	fmt.Printf("Point: %v\n", metricData[i])
-	// 	// fmt.Printf("Value: %v\n", metricData[i].Value.Value)
-	// 	fmt.Printf("DistributionValue: %v\n", metricData[i].Value.GetDistributionValue())
-	// 	fmt.Printf("Distribution Count: %v\n", metricData[i].Value.GetDistributionValue().Count)
-	// }
 	messagesPerMinute := float64(metricData[0].Value.GetDistributionValue().Count)
 
 	//Return the latest rate datapoint (converted to seconds)
-	return messagesPerMinute/60
+	return messagesPerMinute / 60
 }
 
 func getAckRate(ctx context.Context, subscriptionId string, projectId string) float64 {
 	monitoringMetric := "pubsub.googleapis.com/subscription/ack_message_count"
 	aggregationSeconds := 60
-	intervalSeconds := 240
-	groupBy := []string{"resource.labels.topic_id"}
+	metricDelaySeconds := 240
+	groupBy := []string{"resource.labels.subscription_id"}
 	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
 		" AND resource.labels.subscription_id =\"%s\"",
 		monitoringMetric, subscriptionId)
 
 	metricData := getMetricRate(ctx,
 		metricFilter,
-		intervalSeconds,
+		metricDelaySeconds,
 		aggregationSeconds,
 		groupBy,
 		projectId)
@@ -155,160 +324,30 @@ func getAckRate(ctx context.Context, subscriptionId string, projectId string) fl
 	return float64(metricData[0].GetValue().GetDoubleValue())
 }
 
-func getPublishRequestRate(ctx context.Context, topicId string, projectId string) float64 {
-	monitoringMetric := "pubsub.googleapis.com/topic/send_request_count"
+func getAckLatencyMs(ctx context.Context, subscriptionId string, projectId string) float64 {
+	monitoringMetric := "pubsub.googleapis.com/subscription/ack_latencies"
 	aggregationSeconds := 60
-	intervalSeconds := 120
-	groupBy := []string{"resource.labels.topic_id"}
+	metricDelaySeconds := 240
+	groupBy := []string{"resource.labels.subscription_id"}
 	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
-		" AND resource.labels.topic_id =\"%s\"",
-		monitoringMetric, topicId)
+		" AND resource.labels.subscription_id =\"%s\"",
+		monitoringMetric, subscriptionId)
 
-	metricData := getMetricRate(ctx,
+	//TODO: Implement Distribution metric mean function
+	metricData := getMetricDelta(ctx,
 		metricFilter,
-		intervalSeconds,
+		metricDelaySeconds,
 		aggregationSeconds,
 		groupBy,
 		projectId)
 
 	//Return the latest rate datapoint
-	return float64(metricData[0].GetValue().GetDoubleValue())
-}
-
-func getPublishRequestRateQ(ctx context.Context, topicId string, projectId string) float64 {
-	monitoringMetric := "pubsub.googleapis.com/topic/send_request_count"
-
-	groupBy := []string{"resource.topic_id"}
-	metricFilter := fmt.Sprintf("resource.project_id == '%s'"+
-		" && resource.topic_id == '%s'",
-		projectId, topicId)
-
-	mqlQuery := fmt.Sprintf("fetch pubsub_topic"+
-		"| metric '%s'"+
-		"| filter %s"+
-		"| align rate(1m)"+
-		"| every 1m"+
-		"| group_by %s, [value_send_request_count_aggregate: aggregate(value.send_request_count)]"+
-		"| within 1m, -120s",
-		monitoringMetric, metricFilter, groupBy)
-
-	// fetch pubsub_topic
-	// | metric 'pubsub.googleapis.com/topic/send_request_count'
-	// | filter (resource.topic_id == 'pull-test')
-	// | align rate(1m)
-	// | every 1m
-	// | group_by [],
-	//     [value_send_request_count_aggregate: aggregate(value.send_request_count)]
-
-	metricData := getMetricQuery(ctx, projectId, mqlQuery)
-
-	var metricValues []float64
-	for i := range metricData {
-		metricValues = append(metricValues, metricData[i].GetValues()[0].GetDoubleValue())
-	}
-
-	//Return the latest rate datapoint
-	return metricValues[0]
-}
-
-func getMetricQuery(ctx context.Context, projectId string, mqlQuery string) []*monitoringpb.TimeSeriesData_PointData {
-	c, err := monitoring.NewQueryClient(ctx)
-	if err != nil {
-		panic(err)
-	}
-	defer c.Close()
-
-	req := &monitoringpb.QueryTimeSeriesRequest{
-		Name:  "projects/" + projectId,
-		Query: mqlQuery,
-	}
-	it := c.QueryTimeSeries(ctx, req)
-
-	var point []*monitoringpb.TimeSeriesData_PointData
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-		// fmt.Printf("TimeSeriesData: %v\n", resp)
-		point = resp.GetPointData()
-		// pt := resp.GetPointData()
-		// for i := range pt {
-		// 	fmt.Printf("End: %v, Value: %v\n", pt[i].TimeInterval.EndTime, pt[i].GetValues())
-		// }
-	}
-	return point
-}
-
-func getMetricDelta(ctx context.Context,
-	resourceFilter string,
-	intervalSeconds int,
-	aggregationSeconds int,
-	groupBy []string,
-	projectId string) []monitoringpb.Point {
-	client, err := monitoring.NewMetricClient(ctx)
-	if err != nil {
-		panic(err)
-	}
-	defer client.Close()
-
-	//Configure metric aggregation
-	aggregationStruct := &monitoringpb.Aggregation{
-		// CrossSeriesReducer: monitoringpb.Aggregation_REDUCE_NONE,
-		PerSeriesAligner:   monitoringpb.Aggregation_ALIGN_DELTA,
-		GroupByFields:      groupBy,
-		AlignmentPeriod: &durationpb.Duration{
-			Seconds: int64(aggregationSeconds),
-		},
-	}
-
-	//Configure metric interval
-	startTime := time.Now().UTC().Add(time.Second * -time.Duration(intervalSeconds+aggregationSeconds))
-	endTime := time.Now().UTC().Add(time.Second * -time.Duration(intervalSeconds))
-
-	interval := &monitoringpb.TimeInterval{
-		StartTime: &timestamppb.Timestamp{
-			Seconds: startTime.Unix(),
-		},
-		EndTime: &timestamppb.Timestamp{
-			Seconds: endTime.Unix(),
-		},
-	}
-
-	req := &monitoringpb.ListTimeSeriesRequest{
-		Name:        "projects/" + projectId,
-		Filter:      resourceFilter,
-		Interval:    interval,
-		Aggregation: aggregationStruct,
-		// SecondaryAggregation: secondaryAggregationStruct,
-	}
-
-	// Get the time series data.
-	it := client.ListTimeSeries(ctx, req)
-	var data []monitoringpb.Point
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			// Handle error.
-			panic(err)
-		}
-		// Use resp.
-		for _, point := range resp.GetPoints() {
-			data = append(data, *point)
-		}
-	}
-	return data
+	return float64(metricData[0].GetValue().GetDistributionValue().Mean)
 }
 
 func getMetricRate(ctx context.Context,
 	resourceFilter string,
-	intervalSeconds int,
+	metricDelaySeconds int,
 	aggregationSeconds int,
 	groupBy []string,
 	projectId string) []monitoringpb.Point {
@@ -329,8 +368,8 @@ func getMetricRate(ctx context.Context,
 	}
 
 	//Configure metric interval
-	startTime := time.Now().UTC().Add(time.Second * -time.Duration(intervalSeconds))
-	endTime := time.Now().UTC()
+	startTime := time.Now().UTC().Add(time.Second * -time.Duration(metricDelaySeconds+aggregationSeconds))
+	endTime := time.Now().UTC() //.Add(time.Second * -time.Duration(metricDelaySeconds))
 
 	interval := &monitoringpb.TimeInterval{
 		StartTime: &timestamppb.Timestamp{
@@ -370,7 +409,7 @@ func getMetricRate(ctx context.Context,
 
 func getMetricMean(ctx context.Context,
 	resourceFilter string,
-	intervalSeconds int,
+	metricDelaySeconds int,
 	aggregationSeconds int,
 	groupBy []string,
 	projectId string) []monitoringpb.Point {
@@ -390,9 +429,70 @@ func getMetricMean(ctx context.Context,
 		},
 	}
 
+	///Configure metric interval
+	startTime := time.Now().UTC().Add(time.Second * -time.Duration(metricDelaySeconds+aggregationSeconds))
+	endTime := time.Now().UTC() //.Add(time.Second * -time.Duration(metricDelaySeconds))
+
+	interval := &monitoringpb.TimeInterval{
+		StartTime: &timestamppb.Timestamp{
+			Seconds: startTime.Unix(),
+		},
+		EndTime: &timestamppb.Timestamp{
+			Seconds: endTime.Unix(),
+		},
+	}
+
+	req := &monitoringpb.ListTimeSeriesRequest{
+		Name:        "projects/" + projectId,
+		Filter:      resourceFilter,
+		Interval:    interval,
+		Aggregation: aggregationStruct,
+	}
+
+	// Get the time series data.
+	it := client.ListTimeSeries(ctx, req)
+	var data []monitoringpb.Point
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// Handle error.
+			panic(err)
+		}
+		// Use resp.
+		for _, point := range resp.GetPoints() {
+			data = append(data, *point)
+		}
+	}
+	return data
+}
+
+func getMetricDelta(ctx context.Context,
+	resourceFilter string,
+	metricDelaySeconds int,
+	aggregationSeconds int,
+	groupBy []string,
+	projectId string) []monitoringpb.Point {
+	client, err := monitoring.NewMetricClient(ctx)
+	if err != nil {
+		panic(err)
+	}
+	defer client.Close()
+
+	//Configure metric aggregation
+	aggregationStruct := &monitoringpb.Aggregation{
+		PerSeriesAligner: monitoringpb.Aggregation_ALIGN_DELTA,
+		GroupByFields:    groupBy,
+		AlignmentPeriod: &durationpb.Duration{
+			Seconds: int64(aggregationSeconds),
+		},
+	}
+
 	//Configure metric interval
-	startTime := time.Now().UTC().Add(time.Second * -time.Duration(intervalSeconds))
-	endTime := time.Now().UTC()
+	startTime := time.Now().UTC().Add(time.Second * -time.Duration(metricDelaySeconds+aggregationSeconds))
+	endTime := time.Now().UTC() //.Add(time.Second * -time.Duration(metricDelaySeconds))
 
 	interval := &monitoringpb.TimeInterval{
 		StartTime: &timestamppb.Timestamp{
