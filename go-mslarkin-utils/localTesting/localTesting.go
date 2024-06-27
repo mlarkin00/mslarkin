@@ -38,11 +38,12 @@ var lastUpdate time.Time
 var topicId string = "pull-test"                 //"my-topic"
 var subscriptionId string = "pull-queue-testing" //"my-pull-subscription"
 var projectId string = "mslarkin-ext"            //"my-project-id"
-var projectNum string = "79309377625"
+// var projectNum string = "79309377625"
 var subscriberServiceName string = "go-pubsub-subscriber"
 var subscriberRegion string = "us-central1"
 
 var targetMaxAgeS float64 = 5
+var targetAckLatencyMs float64 = 800
 var jitterRange = .1   // Allow some range of values without action
 var updateDelayMin = 5 // Time to wait, after a change, before making any other changes
 
@@ -60,13 +61,13 @@ func main() {
 
 	go func() {
 		for {
-			publishRate := roundFloat(getPublishRate(ctx, topicId, projectId))
-			ackRate := roundFloat(getAckRate(ctx, subscriptionId, projectId))
-			pubAckDeltaRate := publishRate - ackRate
-			fmt.Printf("Publish Rate: %v, Ack Rate: %v (Delta: %v)\n", publishRate, ackRate, pubAckDeltaRate)
+			// publishRate := roundFloat(getPublishRate(ctx, topicId, projectId))
+			// ackRate := roundFloat(getAckRate(ctx, subscriptionId, projectId))
+			// pubAckDeltaRate := publishRate - ackRate
+			// fmt.Printf("Publish Rate: %v, Ack Rate: %v (Delta: %v)\n", publishRate, ackRate, pubAckDeltaRate)
 
-			ackLatency := roundFloat(getAckLatencyMs(ctx, subscriptionId, projectId))
-			fmt.Printf("Ack Latency: %v\n", ackLatency)
+			// ackLatency := roundFloat(getAckLatencyMs(ctx, subscriptionId, projectId))
+			// fmt.Printf("Ack Latency: %v\n", ackLatency)
 
 			messageBacklog := getMessageBacklog(ctx, subscriptionId, projectId)
 			maxMessageAge := getMaxMessageAgeS(ctx, subscriptionId, projectId)
@@ -99,6 +100,11 @@ func roundFloat(num float64) float64 { return float64(math.Round(num*100) / 100)
 /////////////////
 
 func scalingCheck(ctx context.Context) {
+	var currentInstances int
+	var configuredInstances int32
+	var recommendedInstances int32
+	var subscriberService *runpb.Service
+
 	// Check delta between publish and ack rate
 	publishRate := roundFloat(getPublishRate(ctx, topicId, projectId))
 	ackRate := roundFloat(getAckRate(ctx, subscriptionId, projectId))
@@ -110,33 +116,39 @@ func scalingCheck(ctx context.Context) {
 			(publishRate * jitterRange))
 	}
 
-	// ackLatencyMs := roundFloat(getAckLatencyMs(ctx, subscriptionId, projectId))
-	// fmt.Printf("Ack Latency (ms): %v\n", ackLatencyMs)
+	ackLatencyMs := roundFloat(getAckLatencyMs(ctx, subscriptionId, projectId))
+	fmt.Printf("Ack Latency (ms): %v\n", ackLatencyMs)
+	if math.Abs(targetAckLatencyMs-ackLatencyMs) > (targetAckLatencyMs * jitterRange) {
+		fmt.Printf("Ack Latency Delta: %v, Range: +/-%v\n", math.Abs(targetAckLatencyMs-ackLatencyMs), (targetAckLatencyMs * jitterRange))
+		currentInstances = getInstanceCount(ctx, subscriberServiceName, projectId, subscriberRegion)
+		recommendedInstances = averageValueRecommendation(ackLatencyMs, targetAckLatencyMs, currentInstances)
+		fmt.Printf("Recommended Instance change (Ack Latency): %v --> %v\n", currentInstances, recommendedInstances)
+	}
 
 	// messageBacklog := getMessageBacklog(ctx, subscriptionId, projectId)
 	// fmt.Printf("Backlog (messages): %v\n", messageBacklog)
 
 	maxMessageAgeS := getMaxMessageAgeS(ctx, subscriptionId, projectId)
 	// fmt.Printf("Max Age (s): %v\n", maxMessageAgeS)
-	if math.Abs(targetMaxAgeS-maxMessageAgeS) > (targetMaxAgeS * jitterRange) {
-		fmt.Printf("Delta: %v, Range: +/-%v\n", math.Abs(targetMaxAgeS-maxMessageAgeS), (targetMaxAgeS * jitterRange))
-		currentInstances := getInstanceCount(ctx, subscriberServiceName, projectId, subscriberRegion)
-		recommendedInstances := averageValueRecommendation(maxMessageAgeS, targetMaxAgeS, currentInstances)
-		fmt.Printf("Recommended Instance change: %v --> %v\n", currentInstances, recommendedInstances)
+	// Only using Max Age to scale up
+	if (maxMessageAgeS - targetMaxAgeS) > (targetMaxAgeS * jitterRange) {
+		fmt.Printf("Max Age Delta: %v, Range: +/-%v\n", math.Abs(targetMaxAgeS-maxMessageAgeS), (targetMaxAgeS * jitterRange))
+		// currentInstances := getInstanceCount(ctx, subscriberServiceName, projectId, subscriberRegion)
+		// recommendedInstances := averageValueRecommendation(maxMessageAgeS, targetMaxAgeS, currentInstances)
+		// fmt.Printf("Recommended Instance change (Age): %v --> %v\n", currentInstances, recommendedInstances)
 
-		subscriberService, _ := getRunService(ctx, subscriberServiceName, projectId, subscriberRegion)
-		configuredInstances := subscriberService.Scaling.MinInstanceCount
-		fmt.Printf("Configured: %v | Current: %v\n", configuredInstances, currentInstances)
+		subscriberService, _ = getRunService(ctx, subscriberServiceName, projectId, subscriberRegion)
+		configuredInstances = subscriberService.Scaling.MinInstanceCount
+		// fmt.Printf("Configured: %v | Current: %v\n", configuredInstances, currentInstances)
+	}
 
-		// If the recommendation is different than the current configuration, and the change delay has expired
+	// If the recommendation is different than the current configuration, and the change delay has expired
+	if configuredInstances != recommendedInstances &&
+		time.Since(subscriberService.UpdateTime.AsTime()) > (time.Duration(updateDelayMin)*time.Minute) {
 		fmt.Printf("Time since last change: %v\n", time.Since(subscriberService.UpdateTime.AsTime()))
-		if configuredInstances != recommendedInstances &&
-			time.Since(subscriberService.UpdateTime.AsTime()) > (time.Duration(updateDelayMin)*time.Minute) {
-			fmt.Println("Updating Instances")
-			updateInstanceCount(ctx, subscriberService, recommendedInstances)
-			fmt.Println("Instance count updated")
-		}
-
+		// fmt.Println("Updating Instances...")
+		// updateInstanceCount(ctx, subscriberService, recommendedInstances)
+		// fmt.Println("Instance count updated")
 	}
 
 }
