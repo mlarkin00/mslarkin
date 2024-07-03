@@ -1,14 +1,14 @@
 package loadgen
 
 import (
-	"log"
-	"fmt"
-	"time"
 	"context"
-	"runtime"
-	"net/http"
-	"strconv"
+	"fmt"
 	goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
+	"log"
+	"net/http"
+	"runtime"
+	"strconv"
+	"time"
 )
 
 func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
@@ -42,6 +42,14 @@ func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
 	log.Println("Ending Loadgen...")
 }
 
+// ////////////////////////////////////////////////////
+// Trigger time-bound load with request
+// Request params
+// targetCpuPct - the % load to generate
+// durationS - the duration of the load
+// Env Var
+// NUM_CPU - the number of available/configured CPUs
+// /////////////////////////////////////////////////////
 func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
