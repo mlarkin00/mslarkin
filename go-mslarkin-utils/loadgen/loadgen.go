@@ -66,6 +66,5 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct*100, " Duration (s):", durationS)
 
 	go CpuLoadGen(loadCtx, configCpus, targetCpuPct)
-	// log.Println("Ending Request Load")
 	fmt.Fprintf(w, "Request Load triggered\n")
 }
