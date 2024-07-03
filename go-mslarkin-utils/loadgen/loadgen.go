@@ -56,7 +56,7 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	r = r.WithContext(ctx)
 
-	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "40"), 64)
+	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "0.25"), 64)
 	durationS, _ := strconv.Atoi(goutils.GetParam(r, "durationS", "60"))
 	configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
 
