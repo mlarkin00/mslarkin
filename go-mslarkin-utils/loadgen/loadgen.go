@@ -40,7 +40,7 @@ func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
 		}()
 	}
 	<-ctx.Done()
-	log.Println("Ending Loadgen...")
+	log.Println("Ending Loadgen")
 }
 
 // ////////////////////////////////////////////////////
