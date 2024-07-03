@@ -11,7 +11,7 @@ import (
 	goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 )
 
-func cpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
+func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
 	log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
 
 	timeUnitMs := float64(100)
@@ -42,7 +42,7 @@ func cpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
 	log.Println("Ending Loadgen...")
 }
 
-func cpuLoadHandler(w http.ResponseWriter, r *http.Request) {
+func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	r = r.WithContext(ctx)
@@ -55,7 +55,7 @@ func cpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration:", durationS)
 
-	go cpuLoadGen(loadCtx, configCpus, targetCpuPct)
+	go CpuLoadGen(loadCtx, configCpus, targetCpuPct)
 	// log.Println("Ending Request Load")
 	fmt.Fprintf(w, "Request Load triggered\n")
 }
