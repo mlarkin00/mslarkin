@@ -12,7 +12,7 @@ import (
 )
 
 func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
-	log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
+	log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct*100)
 
 	// Break down the loadgen into 100ms segments, and load for a % of each segment
 	timeUnitMs := float64(100)
@@ -63,7 +63,7 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	// Use background context to enable request to trigger loadgen without waiting to return response
 	loadCtx, _ := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
 
-	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration:", durationS)
+	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct*100, " Duration:", durationS)
 
 	go CpuLoadGen(loadCtx, configCpus, targetCpuPct)
 	// log.Println("Ending Request Load")
