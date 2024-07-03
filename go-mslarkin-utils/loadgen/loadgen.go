@@ -14,6 +14,7 @@ import (
 func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
 	log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
 
+	// Break down the loadgen into 100ms segments, and load for a % of each segment
 	timeUnitMs := float64(100)
 	runtimeMs := timeUnitMs * targetPct
 	sleepMs := timeUnitMs - runtimeMs
