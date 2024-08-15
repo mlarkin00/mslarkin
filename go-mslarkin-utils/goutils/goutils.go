@@ -25,6 +25,13 @@ func GetParam(r *http.Request, p string, d string) string {
 	}
 }
 
+func GetAllParams(r *http.Request) map[string][]string {
+
+	params, _ := url.ParseQuery(r.URL.RawQuery)
+	return params
+
+}
+
 func GetEnv(key, d string) string {
 	value := os.Getenv(key)
 	if len(value) == 0 {
