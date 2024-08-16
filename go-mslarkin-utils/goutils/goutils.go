@@ -32,6 +32,26 @@ func GetAllParams(r *http.Request) map[string][]string {
 
 }
 
+func GetAllHeaders(r *http.Request) map[string][]string {
+
+	headers := r.Header
+	return headers
+
+}
+
+func GetHeader(r *http.Request, p string, d string) string {
+
+	headers := r.Header
+	value := headers.Get(p)
+	if len(value) > 0 {
+		return value
+	} else {
+		return d
+	}
+}
+
+
+
 func GetEnv(key, d string) string {
 	value := os.Getenv(key)
 	if len(value) == 0 {
