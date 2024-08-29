@@ -65,6 +65,24 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
+	CpuLoadGen(loadCtx, configCpus, targetCpuPct)
+	fmt.Fprintf(w, "Request Load complete\n")
+}
+
+func AsyncCpuLoadHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "5"), 64)
+	durationS, _ := strconv.Atoi(goutils.GetParam(r, "durationS", "1"))
+	configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+
+	// Use background context to enable request to trigger loadgen without waiting to return response
+	loadCtx, _ := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
+
+	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
+
 	go CpuLoadGen(loadCtx, configCpus, targetCpuPct)
 	fmt.Fprintf(w, "Request Load triggered\n")
 }
