@@ -56,8 +56,8 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	r = r.WithContext(ctx)
 
-	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "25"), 64)
-	durationS, _ := strconv.Atoi(goutils.GetParam(r, "durationS", "60"))
+	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "5"), 64)
+	durationS, _ := strconv.Atoi(goutils.GetParam(r, "durationS", "1"))
 	configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
 
 	// Use background context to enable request to trigger loadgen without waiting to return response
