@@ -11,12 +11,14 @@ import (
 	"time"
 )
 
-func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
-	// log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
+func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64, showLogs bool) {
+	if showLogs {
+		log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
+	}
 
 	// Break down the loadgen into 100ms segments, and load for a % of each segment
 	timeUnitMs := float64(100)
-	runtimeMs := timeUnitMs * (targetPct/100)
+	runtimeMs := timeUnitMs * (targetPct / 100)
 	sleepMs := timeUnitMs - runtimeMs
 	for i := 0; i < availableCpus; i++ {
 		go func() {
@@ -40,7 +42,9 @@ func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64) {
 		}()
 	}
 	<-ctx.Done()
-	// log.Println("Ending Loadgen")
+	if showLogs {
+		log.Println("Ending Loadgen")
+	}
 }
 
 // ////////////////////////////////////////////////////
@@ -65,7 +69,7 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
-	CpuLoadGen(loadCtx, configCpus, targetCpuPct)
+	CpuLoadGen(loadCtx, configCpus, targetCpuPct, true)
 	fmt.Fprintf(w, "Request Load complete\n")
 }
 
@@ -83,6 +87,6 @@ func AsyncCpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
-	go CpuLoadGen(loadCtx, configCpus, targetCpuPct)
+	go CpuLoadGen(loadCtx, configCpus, targetCpuPct, true)
 	fmt.Fprintf(w, "Request Load triggered\n")
 }
