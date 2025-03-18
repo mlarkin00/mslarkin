@@ -12,6 +12,9 @@ import (
 )
 
 func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64, showLogs bool) {
+	// *****
+	// TODO: Try reading /sys/fs/cgroup/* to get number of CPUs
+	// *****
 	if showLogs {
 		log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
 	}
