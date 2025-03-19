@@ -5,16 +5,33 @@ import (
 	"fmt"
 	goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
 	"log"
+	"math"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 )
 
-func CpuLoadGen(ctx context.Context, availableCpus int, targetPct float64, showLogs bool) {
-	// *****
-	// TODO: Try reading /sys/fs/cgroup/* to get number of CPUs
-	// *****
+func getCpus() int {
+
+	cgroupMax, _ := os.ReadFile("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
+	cgroupPeriod, _ := os.ReadFile("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
+	cpuLimitRaw := strings.TrimSpace(string(cgroupMax))
+	periodRaw := strings.TrimSpace(string(cgroupPeriod))
+	// fmt.Printf("Raw CPU Limit: %s, Period: %s\n", cpuLimitRaw, periodRaw)
+	cpuLimit, _ := strconv.ParseFloat(cpuLimitRaw, 32)
+	period, _ := strconv.ParseFloat(periodRaw, 32)
+	// fmt.Printf("CPU Limit: %v, Period: %v\n", cpuLimit, period)
+	vcpus := math.Ceil(cpuLimit / period)
+	// fmt.Printf("vCPUs: %v\n", vcpus)
+	return int(vcpus)
+}
+
+func CpuLoadGen(ctx context.Context, targetPct float64, showLogs bool) {
+
+	availableCpus := getCpus()
 	if showLogs {
 		log.Printf("Loading %v CPUs at %v%%\n", availableCpus, targetPct)
 	}
@@ -65,14 +82,15 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 
 	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "5"), 64)
 	durationS, _ := strconv.Atoi(goutils.GetParam(r, "durationS", "1"))
-	configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+	// configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+	configCpus := getCpus()
 
 	// Use background context to enable request to trigger loadgen without waiting to return response
 	loadCtx, _ := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
-	CpuLoadGen(loadCtx, configCpus, targetCpuPct, true)
+	CpuLoadGen(loadCtx, targetCpuPct, true)
 	fmt.Fprintf(w, "Request Load complete\n")
 }
 
@@ -83,13 +101,14 @@ func AsyncCpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 
 	targetCpuPct, _ := strconv.ParseFloat(goutils.GetParam(r, "targetCpuPct", "5"), 64)
 	durationS, _ := strconv.Atoi(goutils.GetParam(r, "durationS", "1"))
-	configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+	// configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+	configCpus := getCpus()
 
 	// Use background context to enable request to trigger loadgen without waiting to return response
 	loadCtx, _ := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
-	go CpuLoadGen(loadCtx, configCpus, targetCpuPct, true)
+	go CpuLoadGen(loadCtx, targetCpuPct, true)
 	fmt.Fprintf(w, "Request Load triggered\n")
 }
