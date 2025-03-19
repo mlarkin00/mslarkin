@@ -86,7 +86,8 @@ func CpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	configCpus := getCpus()
 
 	// Use background context to enable request to trigger loadgen without waiting to return response
-	loadCtx, _ := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
+	loadCtx, loadCtxCancel := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
+	defer loadCtxCancel()
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
@@ -105,7 +106,8 @@ func AsyncCpuLoadHandler(w http.ResponseWriter, r *http.Request) {
 	configCpus := getCpus()
 
 	// Use background context to enable request to trigger loadgen without waiting to return response
-	loadCtx, _ := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
+	loadCtx, loadCtxCancel := context.WithTimeout(context.Background(), time.Duration(durationS)*time.Second)
+	defer loadCtxCancel()
 
 	log.Println("Starting Request Load - CPUs:", configCpus, " Pct:", targetCpuPct, " Duration (s):", durationS)
 
