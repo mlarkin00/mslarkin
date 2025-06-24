@@ -1,3 +1,6 @@
+// Package main implements a simple web server that provides a form to configure
+// load generation parameters. The configuration is then saved to a Firestore
+// database.
 package main
 
 import (
@@ -13,18 +16,30 @@ import (
 )
 
 // ConfigParams holds the configuration parameters from the user input.
+// These parameters are used to define a load generation test.
 type ConfigParams struct {
-	TargetURL   string `firestore:"targetUrl"`
-	TargetCPU   int    `firestore:"targetCpu,omitempty"`
-	QPS         int    `firestore:"qps,omitempty"`
-	Duration    int    `firestore:"duration,omitempty"`
+	// TargetURL is the URL of the service to be tested.
+	TargetURL string `firestore:"targetUrl"`
+	// TargetCPU is the target CPU utilization percentage for the load test.
+	TargetCPU int `firestore:"targetCpu,omitempty"`
+	// QPS is the number of queries per second to be sent to the target URL.
+	QPS int `firestore:"qps,omitempty"`
+	// Duration is the duration of the load test in seconds.
+	Duration int `firestore:"duration,omitempty"`
+	// FirestoreID is the document ID of the configuration in Firestore.
+	// It is not stored in Firestore itself, but used to reference the document.
 	FirestoreID string `firestore:"-"` // Used to store document ID, not stored in Firestore fields
 }
 
+// projectIDEnv is the environment variable that contains the Google Cloud project ID.
 const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
+
+// collectionName is the name of the Firestore collection where the load generation
+// configurations are stored.
 const collectionName = "loadgen-configs"
 
 var (
+	// tmpl is the HTML template for the configuration form.
 	tmpl = template.Must(template.New("form").Parse(`
 <!DOCTYPE html>
 <html>
@@ -51,9 +66,12 @@ var (
 </body>
 </html>
 `))
+	// firestoreClient is the client used to interact with Firestore.
 	firestoreClient *firestore.Client
 )
 
+// main is the entry point of the application. It initializes the Firestore client,
+// sets up the HTTP server and handlers, and starts listening for requests.
 func main() {
 	ctx := context.Background()
 	projectID := os.Getenv(projectIDEnv)
@@ -83,6 +101,8 @@ func main() {
 	}
 }
 
+// handleForm handles the GET request to the root URL ("/"). It displays the
+// configuration form to the user.
 func handleForm(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
@@ -94,6 +114,8 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleSubmit handles the POST request to the "/submit" URL. It parses the
+// form data, validates it, and saves it to Firestore.
 func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
