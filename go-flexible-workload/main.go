@@ -47,9 +47,7 @@ func main() {
 	entrypointMux.HandleFunc("/startupcheck", startupCheckHandler)
 	entrypointMux.HandleFunc("/healthcheck", healthCheckHandler)
 
-
 	go http.ListenAndServe(":"+ingressPort, entrypointMux)
-
 
 	// Start background load, if configured
 	if goutils.GetEnv("BG_LOAD", "False") == "True" {
@@ -60,7 +58,7 @@ func main() {
 			log.Printf("Starting background CPU loadgen (CPUs: %v, Pct: %v%%)", configCpus, loadCpuPct)
 			loadCtx, loadCtxCancel := context.WithCancel(context.Background())
 			defer loadCtxCancel()
-			go loadgen.CpuLoadGen(loadCtx, configCpus, loadCpuPct)
+			go loadgen.CpuLoadGen(loadCtx, loadCpuPct, false)
 		}
 	}
 
