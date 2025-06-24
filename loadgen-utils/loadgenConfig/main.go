@@ -14,11 +14,11 @@ import (
 
 // ConfigParams holds the configuration parameters from the user input.
 type ConfigParams struct {
-	TargetURL     string `firestore:"targetUrl"`
-	TargetCPU     int    `firestore:"targetCpu,omitempty"`
-	QPS           int    `firestore:"qps,omitempty"`
-	Duration      int    `firestore:"duration,omitempty"`
-	FirestoreID   string `firestore:"-"` // Used to store document ID, not stored in Firestore fields
+	TargetURL   string `firestore:"targetUrl"`
+	TargetCPU   int    `firestore:"targetCpu,omitempty"`
+	QPS         int    `firestore:"qps,omitempty"`
+	Duration    int    `firestore:"duration,omitempty"`
+	FirestoreID string `firestore:"-"` // Used to store document ID, not stored in Firestore fields
 }
 
 const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
@@ -62,7 +62,7 @@ func main() {
 	}
 
 	var err error
-	firestoreClient, err = firestore.NewClient(ctx, projectID)
+	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
 	if err != nil {
 		log.Fatalf("Failed to create Firestore client: %v", err)
 	}
@@ -138,7 +138,6 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		config.QPS = 1
 	}
 
-
 	if durStr := r.FormValue("duration"); durStr != "" {
 		config.Duration, err = strconv.Atoi(durStr)
 		if err != nil {
@@ -151,7 +150,6 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	if config.Duration < 1 { // Ensure duration is at least 1
 		config.Duration = 1
 	}
-
 
 	ctx := r.Context()
 	docRef, _, err := firestoreClient.Collection(collectionName).Add(ctx, config)
