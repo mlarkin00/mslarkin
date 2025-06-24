@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#####
+# Add this command to the end of .bashrc 
+# source ~/msl-playground/config/mslarkin_bash_config
+# .bashrc runs every time the terminal is opened
+#####
+
+echo "Running mslarkin_bash_config (new shell)"
+
+# Set up GCP Project environment
+gcloud config set project mslarkin-ext
+gcloud config set run/region us-west1
+gcloud config set account matthewlarkin@google.com
+gcloud config set builds/region us-west1
+gcloud config set builds/region us-west1
+gcloud config set compute/region us-west1
+
+# export GIT_REPO=projects/mslarkin-ext/locations/us-central1/connections/msl-playground/repositories/msl-playground
+
+alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
+# alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
+# alias hey='~/local_tools/hey_linux_amd64'
+
+# alias kafka_docker='docker run -it --rm bitnami/kafka:latest'
+# KAFKA_HOST=34.41.234.97
+
+export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
+# export GOPRIVATE=github.com/mlarkin00/msl-playground
+# export GOPROXY=https://us-central1-go.pkg.dev/mslarkin-ext/mslarkin-go-repo,https://proxy.golang.org,direct
+# export GONOSUMDB=mslarkin.com/*
+# export GONOPROXY=github.com/GoogleCloudPlatform/artifact-registry-go-tools
+alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'

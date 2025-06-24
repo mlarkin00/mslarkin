@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#####
+# Add this command to the end of .profile or .bash_profile 
+# source ~/msl-playground/config/mslarkin_bash_profile
+# Profile only runs on login
+#####
+
+echo "Running mslarkin_bash_profile (login)"
+
+###
+# Set up Git
+###
+git config --global user.email "matthewlarkin@google.com"
+git config --global user.name "Matt Larkin"
+
+################
+# Install Docker
+################
+#  bash <(curl -s https://get.docker.com)
+
+################
+# Install Hey
+################
+# mkdir ~/local_tools
+# curl https://hey-release.s3.us-east-2.amazonaws.com/hey_linux_amd64 --output ~/local_tools/hey_linux_amd64
+# alias hey='~/local_tools/hey_linux_amd64'
+
+#############
+# Install Conda (Python env manager)
+#############
+# mkdir -p ~/miniconda3
+# wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+# bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+# rm -rf ~/miniconda3/miniconda.sh
+# ~/miniconda3/bin/conda init bash
+
+################
+# Set up Go repo
+################
+
+#   GOPROXY=proxy.golang.org \
+#       go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 \
+#       add-locations --locations=us-central1

@@ -1,0 +1,18 @@
+config:
+    target: "https://cr-config-example-53yrwzpakq-uc.a.run.app"
+    phases:
+        - duration: 5
+          arrivalRate: 2
+          name: Warm-up
+        - duration: 10
+          arrivalRate: 10
+          name: Body
+    defaults:
+        headers:
+            Authorization: "Bearer {{ $processEnvironment.ID_TOKEN }}  "
+scenarios:
+  - flow:
+      - get:
+          url: "/"
+          # headers:
+          #   Authorization: "Bearer $(gcloud auth print-identity-token)"
