@@ -8,21 +8,17 @@
 
 echo "Running mslarkin_bash_config (new shell)"
 
-# Set up GCP Project environment
-if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
-  gcloud config set project mslarkin-ext
-fi
-gcloud config set run/region us-west1
-gcloud config set account matthewlarkin@google.com
-gcloud config set builds/region us-west1
-gcloud config set compute/region us-west1
+# # Set up GCP Project environment
+# if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
+#   gcloud config set project mslarkin-ext
+# fi
+# gcloud config set run/region us-west1
+# gcloud config set account matthewlarkin@google.com
+# gcloud config set builds/region us-west1
+# gcloud config set compute/region us-west1
 
-alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
-# alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
-# alias hey='~/local_tools/hey_linux_amd64'
+# # Set Gemini API key
+# export GEMINI_API_KEY="AIzaSyAQzwmAMXAJV6eKZMaeYhLjLAGN-HFg4Ho"
 
-# Set Gemini API key
-export GEMINI_API_KEY="AIzaSyAQzwmAMXAJV6eKZMaeYhLjLAGN-HFg4Ho"
-
-export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
-alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
+# export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
+# alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
