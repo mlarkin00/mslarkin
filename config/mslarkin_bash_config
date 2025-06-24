@@ -30,7 +30,7 @@ fi
 alias hey='~/local_tools/hey_linux_amd64'
 
 ################
-# Install Node Version Manager (NVM)
+# Install Node Version Manager (NVM) & Node.js
 ################
 if [ ! -d "$HOME/.config/nvm" ]; then
     echo "NVM not found, installing..."
@@ -41,15 +41,15 @@ fi
 ################
 # Set up GCP Project environment
 ################
-echo off
+
 if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
-  gcloud config set project mslarkin-ext
+  gcloud config set project mslarkin-ext > /dev/null
 fi
-gcloud config set run/region us-west1
-gcloud config set account matthewlarkin@google.com
-gcloud config set builds/region us-west1
-gcloud config set compute/region us-west1
-echo on
+gcloud config set run/region us-west1 > /dev/null
+gcloud config set account matthewlarkin@google.com > /dev/null
+gcloud config set builds/region us-west1 > /dev/null
+gcloud config set compute/region us-west1 > /dev/null
+
 gcloud config list
 
 # Set Gemini API key
