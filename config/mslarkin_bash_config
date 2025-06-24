@@ -9,7 +9,9 @@
 echo "Running mslarkin_bash_config (new shell)"
 
 # Set up GCP Project environment
-gcloud config set project mslarkin-ext
+if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
+  gcloud config set project mslarkin-ext
+fi
 gcloud config set run/region us-west1
 gcloud config set account matthewlarkin@google.com
 gcloud config set builds/region us-west1
