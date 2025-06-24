@@ -41,14 +41,16 @@ fi
 ################
 # Set up GCP Project environment
 ################
-
+gcloud config set core/user_output_enabled False
 if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
-  gcloud config set project mslarkin-ext > /dev/null
+  gcloud config set project mslarkin-ext 
 fi
-gcloud config set run/region us-west1 > /dev/null
-gcloud config set account matthewlarkin@google.com > /dev/null
-gcloud config set builds/region us-west1 > /dev/null
-gcloud config set compute/region us-west1 > /dev/null
+gcloud config set run/region us-west1 
+gcloud config set account matthewlarkin@google.com 
+gcloud config set builds/region us-west1 
+gcloud config set compute/region us-west1 
+
+gcloud config set core/user_output_enabled True
 
 gcloud config list
 
@@ -61,3 +63,4 @@ export GEMINI_API_KEY="AIzaSyAQzwmAMXAJV6eKZMaeYhLjLAGN-HFg4Ho"
 alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
 # alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
+alias gemini='npx @gemini-cli/cli@dogfood'
