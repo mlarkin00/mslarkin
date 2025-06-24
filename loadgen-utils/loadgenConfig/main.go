@@ -5,14 +5,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 )
 
 // ConfigParams holds the configuration parameters from the user input.
@@ -29,6 +32,12 @@ type ConfigParams struct {
 	// FirestoreID is the document ID of the configuration in Firestore.
 	// It is not stored in Firestore itself, but used to reference the document.
 	FirestoreID string `firestore:"-"` // Used to store document ID, not stored in Firestore fields
+}
+
+// PageData holds the data to be passed to the HTML template.
+type PageData struct {
+	Configs []ConfigParams
+	Message string
 }
 
 // projectIDEnv is the environment variable that contains the Google Cloud project ID.
@@ -63,6 +72,35 @@ var (
 
         <input type="submit" value="Submit">
     </form>
+
+    <h2>Existing Configs</h2>
+    <table border="1">
+        <tr>
+            <th>Target URL</th>
+            <th>Target CPU</th>
+            <th>QPS</th>
+            <th>Duration</th>
+            <th>Actions</th>
+        </tr>
+        {{range .Configs}}
+        <form method="POST">
+        <tr>
+            <input type="hidden" name="id" value="{{.FirestoreID}}">
+            <td><input type="text" name="targetURL" value="{{.TargetURL}}"></td>
+            <td><input type="number" name="targetCPU" value="{{.TargetCPU}}"></td>
+            <td><input type="number" name="qps" value="{{.QPS}}"></td>
+            <td><input type="number" name="duration" value="{{.Duration}}"></td>
+            <td>
+                <button type="submit" formaction="/update">Update</button>
+                <button type="submit" formaction="/delete">Delete</button>
+            </td>
+        </tr>
+        </form>
+        {{end}}
+    </table>
+    {{if .Message}}
+    <p>{{.Message}}</p>
+    {{end}}
 </body>
 </html>
 `))
@@ -89,6 +127,9 @@ func main() {
 
 	http.HandleFunc("/", handleForm)
 	http.HandleFunc("/submit", handleSubmit)
+	http.HandleFunc("/delete", handleDelete)
+	http.HandleFunc("/update", handleUpdate)
+	http.HandleFunc("/get_config", handleGetConfig)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -109,10 +150,101 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	err := tmpl.Execute(w, nil)
+
+	ctx := context.Background()
+	iter := firestoreClient.Collection(collectionName).Documents(ctx)
+	var configs []ConfigParams
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("Failed to iterate configs: %v", err)
+			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+			return
+		}
+		var config ConfigParams
+		if err := doc.DataTo(&config); err != nil {
+			log.Printf("Failed to decode config: %v", err)
+			continue
+		}
+		config.FirestoreID = doc.Ref.ID
+		configs = append(configs, config)
+	}
+
+	message := r.URL.Query().Get("message")
+	pageData := PageData{
+		Configs: configs,
+		Message: message,
+	}
+
+	err := tmpl.Execute(w, &pageData)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error executing template: %v", err), http.StatusInternalServerError)
 	}
+}
+
+// handleDelete handles the POST request to the "/delete" URL. It deletes a
+// configuration from Firestore.
+func handleDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.FormValue("id")
+	if id == "" {
+		http.Error(w, "Missing config ID", http.StatusBadRequest)
+		return
+	}
+	targetURL := r.FormValue("targetURL")
+
+	ctx := context.Background()
+	_, err := firestoreClient.Collection(collectionName).Doc(id).Delete(ctx)
+	if err != nil {
+		log.Printf("Failed to delete config %s: %v", id, err)
+		message := fmt.Sprintf("Failed to delete config for %s: %v", targetURL, err)
+		http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+		return
+	}
+
+	log.Printf("Deleted config %s", id)
+	message := fmt.Sprintf("Successfully deleted config for %s", targetURL)
+	http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+}
+
+// handleGetConfig handles the GET request to the "/get_config" URL. It returns
+// a configuration as JSON.
+func handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "Missing config ID", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	doc, err := firestoreClient.Collection(collectionName).Doc(id).Get(ctx)
+	if err != nil {
+		log.Printf("Failed to get config %s: %v", id, err)
+		http.Error(w, "Failed to get config", http.StatusInternalServerError)
+		return
+	}
+
+	var config ConfigParams
+	if err := doc.DataTo(&config); err != nil {
+		log.Printf("Failed to decode config: %v", err)
+		http.Error(w, "Failed to decode config", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(config)
 }
 
 // handleSubmit handles the POST request to the "/submit" URL. It parses the
@@ -178,12 +310,95 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	docRef, _, err := firestoreClient.Collection(collectionName).Add(ctx, config)
 	if err != nil {
 		log.Printf("Error adding document to Firestore: %v", err)
-		http.Error(w, "Error saving configuration to database", http.StatusInternalServerError)
+		message := fmt.Sprintf("Error saving configuration for %s: %v", config.TargetURL, err)
+		http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
 		return
 	}
 
 	log.Printf("Configuration saved with ID: %s. TargetURL: %s, QPS: %d, Duration: %d, TargetCPU: %d",
 		docRef.ID, config.TargetURL, config.QPS, config.Duration, config.TargetCPU)
 
-	fmt.Fprintf(w, "Configuration saved successfully! Document ID: %s", docRef.ID)
+	message := fmt.Sprintf("Successfully added config for %s", config.TargetURL)
+	http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+}
+
+// handleUpdate handles the POST request to the "/update" URL. It parses the
+// form data, validates it, and updates it in Firestore.
+func handleUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing form: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	id := r.FormValue("id")
+	if id == "" {
+		http.Error(w, "Missing config ID", http.StatusBadRequest)
+		return
+	}
+
+	config := ConfigParams{
+		TargetURL: r.FormValue("targetURL"),
+	}
+
+	if config.TargetURL == "" {
+		http.Error(w, "Target URL is required", http.StatusBadRequest)
+		return
+	}
+
+	var err error
+	if cpuStr := r.FormValue("targetCPU"); cpuStr != "" {
+		config.TargetCPU, err = strconv.Atoi(cpuStr)
+		if err != nil {
+			http.Error(w, "Invalid Target CPU value", http.StatusBadRequest)
+			return
+		}
+	} else {
+		config.TargetCPU = 0 // Default
+	}
+
+	if qpsStr := r.FormValue("qps"); qpsStr != "" {
+		config.QPS, err = strconv.Atoi(qpsStr)
+		if err != nil {
+			http.Error(w, "Invalid QPS value", http.StatusBadRequest)
+			return
+		}
+	} else {
+		config.QPS = 1 // Default
+	}
+	if config.QPS < 1 {
+		config.QPS = 1
+	}
+
+	if durStr := r.FormValue("duration"); durStr != "" {
+		config.Duration, err = strconv.Atoi(durStr)
+		if err != nil {
+			http.Error(w, "Invalid Duration value", http.StatusBadRequest)
+			return
+		}
+	} else {
+		config.Duration = 1 // Default
+	}
+	if config.Duration < 1 {
+		config.Duration = 1
+	}
+
+	ctx := r.Context()
+	_, err = firestoreClient.Collection(collectionName).Doc(id).Set(ctx, config)
+	if err != nil {
+		log.Printf("Error updating document in Firestore: %v", err)
+		message := fmt.Sprintf("Error updating configuration for %s: %v", config.TargetURL, err)
+		http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+		return
+	}
+
+	log.Printf("Configuration updated with ID: %s. TargetURL: %s, QPS: %d, Duration: %d, TargetCPU: %d",
+		id, config.TargetURL, config.QPS, config.Duration, config.TargetCPU)
+
+	message := fmt.Sprintf("Successfully updated config for %s", config.TargetURL)
+	http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
 }
