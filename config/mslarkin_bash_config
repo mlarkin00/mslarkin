@@ -41,7 +41,7 @@ fi
 ################
 # Set up GCP Project environment
 ################
-gcloud config set core/user_output_enabled False
+gcloud config set core/user_output_enabled False &> /dev/null
 if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
   gcloud config set project mslarkin-ext 
 fi
