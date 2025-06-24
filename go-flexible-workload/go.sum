@@ -1,0 +1,4 @@
+github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils v0.0.0-20250624193554-1b66ac6dc36c h1:mq5qGMiloiKJSKgL/eEoHCiqR8vkKXS9nh1xb1yQi4g=
+github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils v0.0.0-20250624193554-1b66ac6dc36c/go.mod h1:ATq06rRGCjt17xW+m8nF/X4ZIRKdOcYjA9GswAxmpb8=
+github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen v0.0.0-20250624193554-1b66ac6dc36c h1:BZRdcNECUZU22toOptPQ37X1hUxIuMR7H1xbpt6mRD0=
+github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen v0.0.0-20250624193554-1b66ac6dc36c/go.mod h1:zUWF+y8PWTF3dKk+V4Y2MUvivZMq80im2uQGWCVJeLI=
