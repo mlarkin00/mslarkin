@@ -20,5 +20,8 @@ alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-tok
 # alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 # alias hey='~/local_tools/hey_linux_amd64'
 
+# Set Gemini API key
+export GEMINI_API_KEY="AIzaSyAQzwmAMXAJV6eKZMaeYhLjLAGN-HFg4Ho"
+
 export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
