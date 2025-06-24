@@ -13,7 +13,6 @@ gcloud config set project mslarkin-ext
 gcloud config set run/region us-west1
 gcloud config set account matthewlarkin@google.com
 gcloud config set builds/region us-west1
-gcloud config set builds/region us-west1
 gcloud config set compute/region us-west1
 
 alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
