@@ -50,7 +50,7 @@ gcloud config set account matthewlarkin@google.com
 gcloud config set builds/region us-west1 
 gcloud config set compute/region us-west1 
 
-gcloud config set core/user_output_enabled True
+gcloud config unset core/user_output_enabled
 
 gcloud config list
 
