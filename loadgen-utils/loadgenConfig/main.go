@@ -76,7 +76,8 @@ func main() {
 	ctx := context.Background()
 	projectID := os.Getenv(projectIDEnv)
 	if projectID == "" {
-		log.Fatalf("Environment variable %s must be set.", projectIDEnv)
+		projectID = "mslarkin-ext" // Default project ID
+		// log.Fatalf("Environment variable %s must be set.", projectIDEnv)
 	}
 
 	var err error
