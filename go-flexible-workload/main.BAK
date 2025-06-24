@@ -1,0 +1,116 @@
+// An HTTP service with a configurable cold start and warm request latency.
+//
+// The latencies are configured through the following environment variables:
+//   - COLD_START_TIME_SECONDS: The number of seconds to sleep during the cold start.
+//   - LATENCY_DISTRIBUTION: The probability distribution to use to sample warm request latency.
+//     Supported distributions are:
+//     CONSTANT: Always use the same latency.
+//     EXPONENTIAL: Sample latency from an exponential distribution.
+//   - AVERAGE_LATENCY_MS: The average warm latency, in milliseconds, to use to parameterize the
+//     warm latency probability distribution. Note that if the latency distribution is CONSTANT,
+//     all requests will have latency equal to AVERAGE_LATENCY_MS.
+package main
+
+import (
+	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+)
+
+func parseIntEnvVarOrDie(envVar string) int {
+	value, err := strconv.Atoi(os.Getenv(envVar))
+	if err != nil {
+		log.Fatalf("Failed to parse environment variable %s=%q to an int.", envVar, os.Getenv(envVar))
+	}
+	return value
+}
+
+// Return the warm latency value for a request.
+type latencyProvider func() time.Duration
+
+func makeConstantLatencyProvider(latency time.Duration) latencyProvider {
+	return func() time.Duration {
+		return latency
+	}
+}
+
+func makeExponentialLatencyProvider(avgLatency time.Duration) latencyProvider {
+	return func() time.Duration {
+		// rand.ExpFloat64 returns a float in (0, +math.MaxFloat64] with rate parameter (lambda) 1 and
+		// mean 1/lambda = 1. We want mean = avgLatency, so we divide by 1/avgLatency which is
+		// equivalent to multiplying by avgLatency.
+		return time.Duration(
+			rand.ExpFloat64() * float64(avgLatency.Milliseconds()) * float64(time.Millisecond))
+	}
+}
+
+func makeLatencyProvider(avgLatency time.Duration) (latencyProvider, error) {
+	dist := os.Getenv("LATENCY_DISTRIBUTION")
+	log.Printf("Using LATENCY_DISTRIBUTION=%q", dist)
+	switch dist {
+	case "CONSTANT":
+		return makeConstantLatencyProvider(avgLatency), nil
+	case "EXPONENTIAL":
+		return makeExponentialLatencyProvider(avgLatency), nil
+	default:
+		return nil, fmt.Errorf("Unknown value for env var LATENCY_DISTRIBUTION=%q", dist)
+	}
+}
+
+func makeWaitThenRespondHandler(sleepTimeProvider latencyProvider) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		sleepTime := sleepTimeProvider()
+		log.Printf("Sleeping for %v", sleepTime)
+		time.Sleep(sleepTime)
+		log.Printf("Done waiting.")
+		name := os.Getenv("NAME")
+		if name == "" {
+			name = "World"
+		}
+		fmt.Fprintf(w, "Hello %s!\n", name)
+		log.Printf("Returning response.")
+	}
+}
+
+func main() {
+	coldStartTime := time.Duration(parseIntEnvVarOrDie("COLD_START_TIME_SECONDS")) * time.Second
+	avgLatency := time.Duration(parseIntEnvVarOrDie("AVERAGE_LATENCY_MS")) * time.Millisecond
+	log.Printf("Using cold start time = %v", coldStartTime)
+	log.Printf("Using average latency = %v", avgLatency)
+	sleepTimeProvider, err := makeLatencyProvider(avgLatency)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Print("Starting server...")
+	http.HandleFunc("/", makeWaitThenRespondHandler(sleepTimeProvider))
+
+	// Determine port for HTTP service.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		log.Printf("Defaulting to port %s", port)
+	}
+
+	time.Sleep(coldStartTime)
+
+	if os.Getenv("LIFETIME_SECONDS") != "" {
+		go func() {
+			lifetime := time.Duration(parseIntEnvVarOrDie("LIFETIME_SECONDS")) * time.Second
+			log.Printf("Waiting for %v before exiting", lifetime)
+			time.Sleep(lifetime)
+			log.Printf("Exiting after %v.", lifetime)
+			os.Exit(0)
+		}()
+	}
+
+	// Start HTTP server.
+	log.Printf("Listening on port %s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatal(err)
+	}
+}

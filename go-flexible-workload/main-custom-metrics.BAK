@@ -1,0 +1,239 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
+	"strconv"
+	"syscall"
+	"time"
+
+	goutils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/goutils"
+	loadgen "github.com/mlarkin00/mslarkin/go-mslarkin-utils/loadgen"
+
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
+	otelsdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+
+	// semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+)
+
+// Create channel to listen for signals.
+var signalChan chan (os.Signal) = make(chan os.Signal, 1)
+
+// ////////////////////////////////
+// ///////// OTLP Metrics /////////
+// ////////////////////////////////
+// Counter for OTLP metric
+var counter otelmetric.Int64Counter
+
+/// END OTLP Metrics /////////////
+
+//////////////////////////////////
+/////////// GMP Metrics //////////
+//////////////////////////////////
+
+var totalRequests int64 = 0
+
+// Collector that contains the descriptors for the metrics from the app.
+// Foo is a gauge with no labels. Bar is a counter with no labels.
+type gmpMetricsCollector struct {
+	// fooMetric *prometheus.Desc
+	// barMetric *prometheus.Desc
+	requestCountMetric  *prometheus.Desc
+	numGoroutinesMetric *prometheus.Desc
+	memoryUsageMBMetric *prometheus.Desc
+}
+
+func newGMPMetricsCollector() *gmpMetricsCollector {
+	return &gmpMetricsCollector{
+		// fooMetric: prometheus.NewDesc("foo_metric",
+		// 	"A foo event has occurred",
+		// 	nil, nil,
+		// ),
+		// barMetric: prometheus.NewDesc("bar_metric",
+		// 	"A bar event has occured",
+		// 	nil, nil,
+		// ),
+		requestCountMetric: prometheus.NewDesc("request_count",
+			"Number of requests received",
+			nil, nil),
+		numGoroutinesMetric: prometheus.NewDesc("goroutines_current",
+			"Number of current Goroutines",
+			nil, nil),
+		memoryUsageMBMetric: prometheus.NewDesc("memory_usage_mb",
+			"Current memory allocation in MB",
+			nil, nil),
+	}
+}
+
+// Each and every collector must implement the Describe function.
+// It essentially writes all descriptors to the prometheus desc channel.
+func (collector *gmpMetricsCollector) Describe(ch chan<- *prometheus.Desc) {
+
+	//Update this section with the each metric you create for a given collector
+	// ch <- collector.fooMetric
+	// ch <- collector.barMetric
+	ch <- collector.requestCountMetric
+	ch <- collector.numGoroutinesMetric
+	ch <- collector.memoryUsageMBMetric
+}
+
+// Collect implements required collect function for all prometheus collectors
+func (collector *gmpMetricsCollector) Collect(ch chan<- prometheus.Metric) {
+	// m1 := prometheus.MustNewConstMetric(collector.fooMetric, prometheus.GaugeValue, float64(time.Now().Unix()))
+	// m2 := prometheus.MustNewConstMetric(collector.barMetric, prometheus.CounterValue, float64(time.Now().Unix()))
+	// ch <- m1
+	// ch <- m2
+	requestCount := prometheus.MustNewConstMetric(collector.requestCountMetric, prometheus.CounterValue, float64(totalRequests))
+	ch <- requestCount
+	numGoroutines := prometheus.MustNewConstMetric(collector.numGoroutinesMetric, prometheus.GaugeValue, float64(runtime.NumGoroutine()))
+	ch <- numGoroutines
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	memoryUsageMB := prometheus.MustNewConstMetric(collector.memoryUsageMBMetric, prometheus.GaugeValue, float64(m.Alloc)/1e6)
+	ch <- memoryUsageMB
+}
+
+/// END GMP Metrics ///////////////
+
+func main() {
+
+	var promMux *http.ServeMux
+	var entrypointMux *http.ServeMux
+
+	ingressPort := os.Getenv("PORT")
+	if ingressPort == "" {
+		ingressPort = "8080"
+		log.Printf("defaulting to port %s", ingressPort)
+	} else {
+		log.Printf("Listening o port %s", ingressPort)
+	}
+
+	// SIGINT handles Ctrl+C locally.
+	// SIGTERM handles Cloud Run termination signal.
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	if goutils.GetEnv("USE_OTLP_METRICS", "False") == "True" {
+		log.Printf("Setting up OTLP metrics\n")
+		ctx := context.Background()
+		shutdown := setupOTLPCounter(ctx)
+		defer shutdown(ctx)
+	}
+
+	if goutils.GetEnv("USE_GMP_METRICS", "False") == "True" {
+		// Setup GMP metrics
+		log.Printf("Setting up GMP metrics\n")
+		gmpCollector := newGMPMetricsCollector()
+		prometheus.MustRegister(gmpCollector)
+		promMux = http.NewServeMux()
+		promMux.Handle("/metrics", promhttp.Handler())
+		// ingressPort = "8000" //switch ingress to use 8080 for prometheus
+	}
+
+	// Set up ingress handlers
+	entrypointMux = http.NewServeMux()
+	entrypointMux.HandleFunc("/", helloHandler)
+	entrypointMux.HandleFunc("/hello", helloHandler)
+	entrypointMux.HandleFunc("/loadgen", loadgen.CpuLoadHandler)
+	entrypointMux.HandleFunc("/startupcheck", startupCheckHandler)
+	entrypointMux.HandleFunc("/healthcheck", healthCheckHandler)
+	entrypointMux.HandleFunc("/otlp-counter", otlpCounterHandler)
+	entrypointMux.HandleFunc("/gmp-counter", gmpCounterHandler)
+
+	// go func() {
+	go http.ListenAndServe(":"+ingressPort, entrypointMux)
+	if goutils.GetEnv("USE_GMP_METRICS", "False") == "True" {
+		go http.ListenAndServe(":8080", promMux)
+	}
+	// }()
+
+	// Start background load, if configured
+	if goutils.GetEnv("BG_LOAD", "False") == "True" {
+		loadCpuPct, _ := strconv.ParseFloat(goutils.GetEnv("LOAD_CPU_PCT", "25"), 64)
+		configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+
+		if configCpus > 0 && loadCpuPct > 0 {
+			log.Printf("Starting background CPU loadgen (CPUs: %v, Pct: %v%%)", configCpus, loadCpuPct)
+			loadCtx, loadCtxCancel := context.WithCancel(context.Background())
+			defer loadCtxCancel()
+			go loadgen.CpuLoadGen(loadCtx, configCpus, loadCpuPct)
+		}
+	}
+
+	sig := <-signalChan
+	log.Printf("%s signal caught", sig)
+}
+
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello\n")
+}
+
+func startupCheckHandler(w http.ResponseWriter, r *http.Request) {
+	startDelay, _ := strconv.Atoi(goutils.GetEnv("COLD_START_DELAY_S", "0"))
+	fmt.Printf("Delaying startup by %vs\n", startDelay)
+	time.Sleep(time.Duration(startDelay) * time.Second)
+	fmt.Fprintf(w, "Startup complete\n")
+}
+
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Healthcheck complete\n")
+}
+
+func gmpCounterHandler(w http.ResponseWriter, r *http.Request) {
+	totalRequests += 1
+	fmt.Fprintf(w, "Request counted with GMP metric\n")
+}
+
+func otlpCounterHandler(w http.ResponseWriter, r *http.Request) {
+	counter.Add(context.Background(), 100)
+	fmt.Fprintln(w, "Incremented sidecar_otel_counter metric!")
+}
+
+func setupOTLPCounter(ctx context.Context) func(context.Context) error {
+	serviceName := os.Getenv("K_SERVICE")
+	if serviceName == "" {
+		serviceName = "unk-cloud-run-service"
+	}
+	// revisionName := os.Getenv("K_REVISION")
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(serviceName),
+			// semconv.ServiceVersion(revisionName),
+		),
+	)
+	if err != nil {
+		log.Fatalf("Error creating resource: %s", err)
+	}
+
+	exporter, err := otlpmetricgrpc.New(ctx,
+		otlpmetricgrpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("Error creating exporter: %s", err)
+	}
+	provider := otelsdkmetric.NewMeterProvider(
+		otelsdkmetric.WithReader(otelsdkmetric.NewPeriodicReader(exporter)),
+		otelsdkmetric.WithResource(r),
+	)
+
+	meter := provider.Meter("example.com/metrics")
+	counter, err = meter.Int64Counter("sidecar-otel-counter")
+	if err != nil {
+		log.Fatalf("Error creating counter: %s", err)
+	}
+
+	log.Printf("Listening for OTLP metrics...\n")
+	return provider.Shutdown
+}
