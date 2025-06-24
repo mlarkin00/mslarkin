@@ -1,0 +1,22 @@
+{
+  "folders": [
+	{
+		"name": "mslarkin-public",
+		"path": "../mslarkin-public"
+	},
+	{
+		"name": "mslarkin",
+		"path": "."
+	}
+],
+  "settings": {
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.project.explorer.showNonJavaResources": false,
+    "maven.view": "flat",
+    "go.toolsEnvVars": {
+      "GOENV": "/home/matthewlarkin/.config/go/env",
+      "GOPRIVATE": "github.com/mlarkin00/mslarkin"
+    }
+  }
+}

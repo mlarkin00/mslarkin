@@ -1,0 +1,68 @@
+<script setup>
+import { ref } from 'vue'
+import { useGlobalStore } from '@/stores/global'
+const store = useGlobalStore()
+
+let isLoading = ref(true)
+let services = ref({})
+async function init() {
+    let response = await fetch('/api/services')
+    let jsonData = await response.json()
+    services.value = jsonData
+    
+    if (jsonData) {
+        let firstServiceKey = Object.keys(jsonData)[0];
+        select(firstServiceKey)
+    }
+    isLoading.value = false
+}
+init()
+
+function select(key) {
+    store.selectService(key)
+}
+
+</script>
+
+<template>
+    <span v-if="isLoading">...</span>
+    <ul v-else>
+        <template v-for="service in services">
+            <li v-if="service.service_key == store.serviceKey" class="highlight">
+                {{ service.title }}
+            </li>
+            <li v-else @click="select(service.service_key)">
+                {{ service.title }}
+            </li>
+        </template>
+    </ul>
+    <p v-if="services && services[store.serviceKey]">
+        {{ services[store.serviceKey].description }}
+        <a :href="services[store.serviceKey].href">Link</a>
+    </p>
+</template>
+
+<style scoped>
+li.highlight {
+    background-color: #8AB4F8;
+}
+li span {
+    cursor: pointer;
+}
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 0px 5px;
+  cursor: pointer;  
+}
+
+li:hover {
+  background-color: #669DF6;
+}
+</style>
