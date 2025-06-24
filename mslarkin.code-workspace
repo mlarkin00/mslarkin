@@ -1,14 +1,14 @@
 {
   "folders": [
-	{
-		"name": "mslarkin-public",
-		"path": "../mslarkin-public"
-	},
-	{
-		"name": "mslarkin",
-		"path": "."
-	}
-],
+    {
+      "name": "mslarkin",
+      "path": "."
+    },
+    {
+      "name": "mslarkin-public",
+      "path": "../mslarkin-public"
+    }
+  ],
   "settings": {
     "java.compile.nullAnalysis.mode": "automatic",
     "java.configuration.updateBuildConfiguration": "automatic",
