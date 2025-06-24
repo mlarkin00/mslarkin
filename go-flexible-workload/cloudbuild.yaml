@@ -14,7 +14,7 @@ steps:
 
 timeout: 300s
 substitutions:
-  _REPO: 'us-central1-docker.pkg.dev/mslarkin-ext/mslarkin-utils'
+  _REPO: 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-utils'
   _SRC: './go-flexible-workload'
   _IMAGE: go-flexible-workload
 
