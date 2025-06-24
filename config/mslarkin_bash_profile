@@ -24,7 +24,7 @@ fi
 ################
 # Install Hey
 ################
-if [ ! -d "$HOME/.config/nvm" ]; then
+if [ ! -d "$HOME/local_tools" ]; then
     mkdir -p ~/local_tools
 fi
 if [ ! -f ~/local_tools/hey_linux_amd64 ]; then
@@ -40,4 +40,5 @@ alias hey='~/local_tools/hey_linux_amd64'
 if [ ! -d "$HOME/.config/nvm" ]; then
     echo "NVM not found, installing..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    nvm install --lts
 fi
