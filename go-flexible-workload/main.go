@@ -52,10 +52,11 @@ func main() {
 	// Start background load, if configured
 	if goutils.GetEnv("BG_LOAD", "False") == "True" {
 		loadCpuPct, _ := strconv.ParseFloat(goutils.GetEnv("LOAD_CPU_PCT", "25"), 64)
-		configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
+		// configCpus, _ := strconv.Atoi(goutils.GetEnv("NUM_CPU", "1"))
 
-		if configCpus > 0 && loadCpuPct > 0 {
-			log.Printf("Starting background CPU loadgen (CPUs: %v, Pct: %v%%)", configCpus, loadCpuPct)
+		if loadCpuPct > 0 {
+			// if configCpus > 0 && loadCpuPct > 0 {
+			log.Printf("Starting background CPU loadgen (Pct: %v%%)", loadCpuPct)
 			loadCtx, loadCtxCancel := context.WithCancel(context.Background())
 			defer loadCtxCancel()
 			go loadgen.CpuLoadGen(loadCtx, loadCpuPct, false)
