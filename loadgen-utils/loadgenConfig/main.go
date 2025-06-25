@@ -88,7 +88,6 @@ func main() {
 	http.HandleFunc("/delete", handleDelete)
 	http.HandleFunc("/update", handleUpdate)
 	http.HandleFunc("/get-config", handleGetConfig)
-	http.HandleFunc("/refresh", refreshData)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -220,8 +219,6 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	htmx_handler = htmx_app.NewHandler(w, r)
-
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, fmt.Sprintf("Error parsing form: %v", err), http.StatusBadRequest)
 		return
@@ -289,9 +286,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pageData.Message = fmt.Sprintf("Error updating configuration for %s: %v", config.TargetURL, err)
-		// htmx_handler.Render(w, r, "form.html", pageData)
-		// htmx_handler.Render(r.Context(), htmx_form)
-		html_template.ExecuteTemplate(w, "index.html", pageData)
+		html_template.ExecuteTemplate(w, "configs", pageData)
 		return
 	}
 
@@ -304,9 +299,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageData.Message = fmt.Sprintf("Successfully updated config for %s", config.TargetURL)
-	// htmx_handler.Render(w, r, "form.html", pageData)
-	// htmx_handler.Render(r.Context(), htmx_form)
-	html_template.ExecuteTemplate(w, "index.html", pageData)
+	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
 // handleDelete handles the POST request to the "/delete" URL. It deletes a
@@ -316,8 +309,6 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	htmx_handler = htmx_app.NewHandler(w, r)
 
 	id := r.FormValue("id")
 	if id == "" {
@@ -337,7 +328,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
 		// htmx_handler.Render(w, r, "form.html", pageData)
 		// htmx_handler.Render(r.Context(), htmx_form)
-		html_template.ExecuteTemplate(w, "index.html", pageData)
+		html_template.ExecuteTemplate(w, "configs", pageData)
 		return
 	}
 
@@ -350,7 +341,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
 	// htmx_handler.Render(w, r, "form.html", pageData)
 	// htmx_handler.Render(r.Context(), htmx_form)
-	html_template.ExecuteTemplate(w, "index.html", pageData)
+	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
 // handleGetConfig handles the GET request to the "/get_config" URL. It returns
@@ -360,8 +351,6 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	// htmx_handler = htmx_app.NewHandler(w, r)
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
@@ -386,23 +375,6 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(config)
-}
-
-func refreshData(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	htmx_handler = htmx_app.NewHandler(w, r)
-
-	pageData, err := getPageData(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
-		return
-	}
-
-	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
 func getPageData(ctx context.Context) (*PageData, error) {
