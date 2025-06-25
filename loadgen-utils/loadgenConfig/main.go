@@ -69,11 +69,7 @@ func main() {
 		projectID = "mslarkin-ext" // Default project ID
 	}
 
-	htmx_app = htmx.New()
-	// html_template, err = template.ParseGlob("templates/*")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// htmx_app = htmx.New()
 	html_template = template.Must(template.New("").ParseFS(templatesFS, "templates/*"))
 	log.Printf("Templates: %v", html_template.DefinedTemplates())
 
@@ -109,7 +105,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	htmx_handler = htmx_app.NewHandler(w, r)
+	// htmx_handler = htmx_app.NewHandler(w, r)
 
 	pageData, err := getPageData(r.Context())
 	if err != nil {
@@ -177,9 +173,6 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	} else {
 		config.Duration = 1 // Default
 	}
-	if config.Duration < 1 { // Ensure duration is at least 1
-		config.Duration = 1
-	}
 
 	ctx := r.Context()
 	docRef, _, err := firestoreClient.Collection(collectionName).Add(ctx, config)
@@ -191,8 +184,7 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pageData.Message = fmt.Sprintf("Error saving configuration for %s: %v", config.TargetURL, err)
-		// htmx_handler.Render(w, r, "form.html", pageData)
-		// htmx_handler.Render(r.Context(), htmx_form)
+
 		html_template.ExecuteTemplate(w, "configs", pageData)
 		return
 	}
@@ -206,8 +198,7 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageData.Message = fmt.Sprintf("Successfully added config for %s", config.TargetURL)
-	// htmx_handler.Render(w, r, "form.html", pageData)
-	// htmx_handler.Render(r.Context(), htmx_form)
+
 	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
@@ -326,8 +317,6 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
-		// htmx_handler.Render(w, r, "form.html", pageData)
-		// htmx_handler.Render(r.Context(), htmx_form)
 		html_template.ExecuteTemplate(w, "configs", pageData)
 		return
 	}
@@ -339,8 +328,6 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
-	// htmx_handler.Render(w, r, "form.html", pageData)
-	// htmx_handler.Render(r.Context(), htmx_form)
 	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
