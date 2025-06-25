@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -49,14 +50,39 @@ const collectionName = "loadgen-configs"
 var (
 	// firestoreClient is the client used to interact with Firestore.
 	firestoreClient *firestore.Client
-	htmx_app	*htmx.HTMX
+	htmx_app        *htmx.HTMX
 	htmx_handler    *htmx.Handler
-	htmx_form	*htmx.Component
+	html_template   *template.Template
 )
+
+func getPageData(ctx context.Context) (*PageData, error) {
+	iter := firestoreClient.Collection(collectionName).Documents(ctx)
+	var configs []ConfigParams
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("Failed to iterate configs: %v", err)
+			return nil, err
+		}
+		var config ConfigParams
+		if err := doc.DataTo(&config); err != nil {
+			log.Printf("Failed to decode config: %v", err)
+			continue
+		}
+		config.FirestoreID = doc.Ref.ID
+		configs = append(configs, config)
+	}
+
+	return &PageData{Configs: configs}, nil
+}
 
 // main is the entry point of the application. It initializes the Firestore client,
 // sets up the HTTP server and handlers, and starts listening for requests.
 func main() {
+	var err error
 	ctx := context.Background()
 	projectID := os.Getenv(projectIDEnv)
 	if projectID == "" {
@@ -64,9 +90,12 @@ func main() {
 	}
 
 	htmx_app = htmx.New()
-	htmx_form = htmx.NewComponent("templates/form.html")
+	html_template, err = template.ParseGlob("templates/*")
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Templates: %v", html_template.DefinedTemplates())
 
-	var err error
 	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
 	if err != nil {
 		log.Fatalf("Failed to create Firestore client: %v", err)
@@ -98,16 +127,17 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	htmx_handler = htmx_app.NewHandler(w, r)
 
-	// pageData, err := getPageData(r.Context())
-	// if err != nil {
-	// 	http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
-	// 	return
-	// }
+	pageData, err := getPageData(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
+	}
 
-	htmx_handler.Render(r.Context(), htmx_form)
+	html_template.ExecuteTemplate(w, "form.html", pageData)
+	// htmx_handler.Render(r.Context(), htmx_form)
 	// htmx_handler.Render(w, r, "form.html", pageData)
 }
 
@@ -138,7 +168,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		}
 		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
 		// htmx_handler.Render(w, r, "form.html", pageData)
-		htmx_handler.Render(r.Context(), htmx_form)
+		// htmx_handler.Render(r.Context(), htmx_form)
+		html_template.ExecuteTemplate(w, "form.html", pageData)
 		return
 	}
 
@@ -150,7 +181,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
 	// htmx_handler.Render(w, r, "form.html", pageData)
-	htmx_handler.Render(r.Context(), htmx_form)
+	// htmx_handler.Render(r.Context(), htmx_form)
+	html_template.ExecuteTemplate(w, "form.html", pageData)
 }
 
 // handleGetConfig handles the GET request to the "/get_config" URL. It returns
@@ -260,7 +292,8 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		pageData.Message = fmt.Sprintf("Error saving configuration for %s: %v", config.TargetURL, err)
 		// htmx_handler.Render(w, r, "form.html", pageData)
-		htmx_handler.Render(r.Context(), htmx_form)
+		// htmx_handler.Render(r.Context(), htmx_form)
+		html_template.ExecuteTemplate(w, "form.html", pageData)
 		return
 	}
 
@@ -274,11 +307,12 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	pageData.Message = fmt.Sprintf("Successfully added config for %s", config.TargetURL)
 	// htmx_handler.Render(w, r, "form.html", pageData)
-	htmx_handler.Render(r.Context(), htmx_form)
+	// htmx_handler.Render(r.Context(), htmx_form)
+	html_template.ExecuteTemplate(w, "form.html", pageData)
 }
 
-// handleUpdate handles the POST request to the "/update" URL. It parses the
-// form data, validates it, and updates it in Firestore.
+// // handleUpdate handles the POST request to the "/update" URL. It parses the
+// // form data, validates it, and updates it in Firestore.
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -355,7 +389,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		pageData.Message = fmt.Sprintf("Error updating configuration for %s: %v", config.TargetURL, err)
 		// htmx_handler.Render(w, r, "form.html", pageData)
-		htmx_handler.Render(r.Context(), htmx_form)
+		// htmx_handler.Render(r.Context(), htmx_form)
+		html_template.ExecuteTemplate(w, "form.html", pageData)
 		return
 	}
 
@@ -369,29 +404,6 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	pageData.Message = fmt.Sprintf("Successfully updated config for %s", config.TargetURL)
 	// htmx_handler.Render(w, r, "form.html", pageData)
-	htmx_handler.Render(r.Context(), htmx_form)
-}
-
-func getPageData(ctx context.Context) (*PageData, error) {
-	iter := firestoreClient.Collection(collectionName).Documents(ctx)
-	var configs []ConfigParams
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Printf("Failed to iterate configs: %v", err)
-			return nil, err
-		}
-		var config ConfigParams
-		if err := doc.DataTo(&config); err != nil {
-			log.Printf("Failed to decode config: %v", err)
-			continue
-		}
-		config.FirestoreID = doc.Ref.ID
-		configs = append(configs, config)
-	}
-
-	return &PageData{Configs: configs}, nil
+	// htmx_handler.Render(r.Context(), htmx_form)
+	html_template.ExecuteTemplate(w, "form.html", pageData)
 }

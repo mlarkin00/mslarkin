@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loadgen Config</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <h2>Add new load generation config</h2>
+    <div id="config-form">
+        {{template "form" .}}
+    </div>
+    <h2>Manage existing configs</h2>
+    <div id="configs-table">
+        {{template "configs" .}}
+    </div>
+</body>
+</html>
