@@ -7,14 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 
 	"cloud.google.com/go/firestore"
+	"github.com/donseba/go-htmx"
 	"google.golang.org/api/iterator"
 )
 
@@ -48,64 +47,9 @@ const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
 const collectionName = "loadgen-configs"
 
 var (
-	// tmpl is the HTML template for the configuration form.
-	tmpl = template.Must(template.New("form").Parse(`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Loadgen Config</title>
-</head>
-<body>
-    <h2>Configure Load Generation</h2>
-    <form method="POST" action="/submit">
-        <label for="targetURL">Target URL (required):</label><br>
-        <input type="text" id="targetURL" name="targetURL" required><br><br>
-
-        <label for="targetCPU">Target CPU Utilization % (optional, default 0):</label><br>
-        <input type="number" id="targetCPU" name="targetCPU" min="0" max="100" value="0"><br><br>
-
-        <label for="qps">QPS (Queries Per Second, optional, default 1):</label><br>
-        <input type="number" id="qps" name="qps" min="1" value="1"><br><br>
-
-        <label for="duration">Duration in seconds (optional, default 1):</label><br>
-        <input type="number" id="duration" name="duration" min="1" value="1"><br><br>
-
-        <input type="submit" value="Submit">
-    </form>
-
-    <h2>Existing Configs</h2>
-    <table border="1">
-        <tr>
-            <th>Target URL</th>
-            <th>Target CPU</th>
-            <th>QPS</th>
-            <th>Duration</th>
-            <th>Actions</th>
-        </tr>
-        {{range .Configs}}
-        <form method="POST">
-        <tr>
-            <input type="hidden" name="id" value="{{.FirestoreID}}">
-            <td><input type="text" name="targetURL" value="{{.TargetURL}}"></td>
-            <td><input type="number" name="targetCPU" value="{{.TargetCPU}}"></td>
-            <td><input type="number" name="qps" value="{{.QPS}}"></td>
-            <td><input type="number" name="duration" value="{{.Duration}}"></td>
-            <td>
-                <button type="submit" formaction="/update">Update</button>
-                <button type="submit" formaction="/delete">Delete</button>
-            </td>
-        </tr>
-        </form>
-        {{end}}
-    </table>
-    {{if .Message}}
-    <p>{{.Message}}</p>
-    {{end}}
-</body>
-</html>
-`))
 	// firestoreClient is the client used to interact with Firestore.
 	firestoreClient *firestore.Client
+	htmx_handler    *htmx.Handler
 )
 
 // main is the entry point of the application. It initializes the Firestore client,
@@ -115,8 +59,9 @@ func main() {
 	projectID := os.Getenv(projectIDEnv)
 	if projectID == "" {
 		projectID = "mslarkin-ext" // Default project ID
-		// log.Fatalf("Environment variable %s must be set.", projectIDEnv)
 	}
+
+	// htmx_handler = htmx.New()
 
 	var err error
 	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
@@ -151,38 +96,14 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := context.Background()
-	iter := firestoreClient.Collection(collectionName).Documents(ctx)
-	var configs []ConfigParams
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Printf("Failed to iterate configs: %v", err)
-			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
-			return
-		}
-		var config ConfigParams
-		if err := doc.DataTo(&config); err != nil {
-			log.Printf("Failed to decode config: %v", err)
-			continue
-		}
-		config.FirestoreID = doc.Ref.ID
-		configs = append(configs, config)
-	}
-
-	message := r.URL.Query().Get("message")
-	pageData := PageData{
-		Configs: configs,
-		Message: message,
-	}
-
-	err := tmpl.Execute(w, &pageData)
+	pageData, err := getPageData(r.Context())
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error executing template: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
 	}
+
+	htmx_handler.Render(r.Context(), pageData)
+	// htmx_handler.Render(w, r, "form.html", pageData)
 }
 
 // handleDelete handles the POST request to the "/delete" URL. It deletes a
@@ -198,20 +119,29 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing config ID", http.StatusBadRequest)
 		return
 	}
-	targetURL := r.FormValue("targetURL")
 
 	ctx := context.Background()
 	_, err := firestoreClient.Collection(collectionName).Doc(id).Delete(ctx)
 	if err != nil {
 		log.Printf("Failed to delete config %s: %v", id, err)
-		message := fmt.Sprintf("Failed to delete config for %s: %v", targetURL, err)
-		http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+		pageData, err := getPageData(r.Context())
+		if err != nil {
+			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+			return
+		}
+		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
+		htmx_handler.Render(w, r, "form.html", pageData)
 		return
 	}
 
 	log.Printf("Deleted config %s", id)
-	message := fmt.Sprintf("Successfully deleted config for %s", targetURL)
-	http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+	pageData, err := getPageData(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
+	}
+	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
+	htmx_handler.Render(w, r, "form.html", pageData)
 }
 
 // handleGetConfig handles the GET request to the "/get_config" URL. It returns
@@ -310,16 +240,26 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	docRef, _, err := firestoreClient.Collection(collectionName).Add(ctx, config)
 	if err != nil {
 		log.Printf("Error adding document to Firestore: %v", err)
-		message := fmt.Sprintf("Error saving configuration for %s: %v", config.TargetURL, err)
-		http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+		pageData, err := getPageData(r.Context())
+		if err != nil {
+			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+			return
+		}
+		pageData.Message = fmt.Sprintf("Error saving configuration for %s: %v", config.TargetURL, err)
+		htmx_handler.Render(w, r, "form.html", pageData)
 		return
 	}
 
 	log.Printf("Configuration saved with ID: %s. TargetURL: %s, QPS: %d, Duration: %d, TargetCPU: %d",
 		docRef.ID, config.TargetURL, config.QPS, config.Duration, config.TargetCPU)
 
-	message := fmt.Sprintf("Successfully added config for %s", config.TargetURL)
-	http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+	pageData, err := getPageData(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
+	}
+	pageData.Message = fmt.Sprintf("Successfully added config for %s", config.TargetURL)
+	htmx_handler.Render(w, r, "form.html", pageData)
 }
 
 // handleUpdate handles the POST request to the "/update" URL. It parses the
@@ -391,14 +331,48 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	_, err = firestoreClient.Collection(collectionName).Doc(id).Set(ctx, config)
 	if err != nil {
 		log.Printf("Error updating document in Firestore: %v", err)
-		message := fmt.Sprintf("Error updating configuration for %s: %v", config.TargetURL, err)
-		http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+		pageData, err := getPageData(r.Context())
+		if err != nil {
+			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+			return
+		}
+		pageData.Message = fmt.Sprintf("Error updating configuration for %s: %v", config.TargetURL, err)
+		htmx_handler.Render(w, r, "form.html", pageData)
 		return
 	}
 
 	log.Printf("Configuration updated with ID: %s. TargetURL: %s, QPS: %d, Duration: %d, TargetCPU: %d",
 		id, config.TargetURL, config.QPS, config.Duration, config.TargetCPU)
 
-	message := fmt.Sprintf("Successfully updated config for %s", config.TargetURL)
-	http.Redirect(w, r, "/?message="+url.QueryEscape(message), http.StatusFound)
+	pageData, err := getPageData(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
+	}
+	pageData.Message = fmt.Sprintf("Successfully updated config for %s", config.TargetURL)
+	htmx_handler.Render(w, r, "form.html", pageData)
+}
+
+func getPageData(ctx context.Context) (*PageData, error) {
+	iter := firestoreClient.Collection(collectionName).Documents(ctx)
+	var configs []ConfigParams
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("Failed to iterate configs: %v", err)
+			return nil, err
+		}
+		var config ConfigParams
+		if err := doc.DataTo(&config); err != nil {
+			log.Printf("Failed to decode config: %v", err)
+			continue
+		}
+		config.FirestoreID = doc.Ref.ID
+		configs = append(configs, config)
+	}
+
+	return &PageData{Configs: configs}, nil
 }

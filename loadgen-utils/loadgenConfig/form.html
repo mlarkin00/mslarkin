@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loadgen Config</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <h2>Configure Load Generation</h2>
+    <form hx-post="/submit" hx-target="#configs-table" hx-swap="innerHTML">
+        <label for="targetURL">Target URL (required):</label><br>
+        <input type="text" id="targetURL" name="targetURL" required><br><br>
+
+        <label for="targetCPU">Target CPU Utilization % (optional, default 0):</label><br>
+        <input type="number" id="targetCPU" name="targetCPU" min="0" max="100" value="0"><br><br>
+
+        <label for="qps">QPS (Queries Per Second, optional, default 1):</label><br>
+        <input type="number" id="qps" name="qps" min="1" value="1"><br><br>
+
+        <label for="duration">Duration in seconds (optional, default 1):</label><br>
+        <input type="number" id="duration" name="duration" min="1" value="1"><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+
+    <h2>Existing Configs</h2>
+    <div id="configs-table">
+        {{template "configs" .}}
+    </div>
+</body>
+</html>
+
+{{define "configs"}}
+<table border="1">
+    <tr>
+        <th>Target URL</th>
+        <th>Target CPU</th>
+        <th>QPS</th>
+        <th>Duration</th>
+        <th>Actions</th>
+    </tr>
+    {{range .Configs}}
+    <tr>
+        <td><input type="text" name="targetURL" value="{{.TargetURL}}"></td>
+        <td><input type="number" name="targetCPU" value="{{.TargetCPU}}"></td>
+        <td><input type="number" name="qps" value="{{.QPS}}"></td>
+        <td><input type="number" name="duration" value="{{.Duration}}"></td>
+        <td>
+            <button hx-post="/update" hx-include="closest tr" hx-target="#configs-table" hx-swap="innerHTML">Update</button>
+            <button hx-post="/delete" hx-include="closest tr" hx-target="#configs-table" hx-swap="innerHTML">Delete</button>
+        </td>
+    </tr>
+    {{end}}
+</table>
+{{if .Message}}
+<p>{{.Message}}</p>
+{{end}}
+{{end}}
