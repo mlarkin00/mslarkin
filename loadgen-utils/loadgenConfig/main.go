@@ -49,7 +49,9 @@ const collectionName = "loadgen-configs"
 var (
 	// firestoreClient is the client used to interact with Firestore.
 	firestoreClient *firestore.Client
+	htmx_app	*htmx.HTMX
 	htmx_handler    *htmx.Handler
+	htmx_form	*htmx.Component
 )
 
 // main is the entry point of the application. It initializes the Firestore client,
@@ -61,7 +63,8 @@ func main() {
 		projectID = "mslarkin-ext" // Default project ID
 	}
 
-	// htmx_handler = htmx.New()
+	htmx_app = htmx.New()
+	htmx_form = htmx.NewComponent("templates/form.html")
 
 	var err error
 	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
@@ -95,14 +98,16 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	
+	htmx_handler = htmx_app.NewHandler(w, r)
 
-	pageData, err := getPageData(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
-		return
-	}
+	// pageData, err := getPageData(r.Context())
+	// if err != nil {
+	// 	http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	htmx_handler.Render(r.Context(), pageData)
+	htmx_handler.Render(r.Context(), htmx_form)
 	// htmx_handler.Render(w, r, "form.html", pageData)
 }
 
@@ -113,6 +118,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	htmx_handler = htmx_app.NewHandler(w, r)
 
 	id := r.FormValue("id")
 	if id == "" {
@@ -130,7 +137,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
-		htmx_handler.Render(w, r, "form.html", pageData)
+		// htmx_handler.Render(w, r, "form.html", pageData)
+		htmx_handler.Render(r.Context(), htmx_form)
 		return
 	}
 
@@ -141,7 +149,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
-	htmx_handler.Render(w, r, "form.html", pageData)
+	// htmx_handler.Render(w, r, "form.html", pageData)
+	htmx_handler.Render(r.Context(), htmx_form)
 }
 
 // handleGetConfig handles the GET request to the "/get_config" URL. It returns
@@ -151,6 +160,8 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// htmx_handler = htmx_app.NewHandler(w, r)
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
@@ -184,6 +195,8 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	htmx_handler = htmx_app.NewHandler(w, r)
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, fmt.Sprintf("Error parsing form: %v", err), http.StatusBadRequest)
@@ -246,7 +259,8 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pageData.Message = fmt.Sprintf("Error saving configuration for %s: %v", config.TargetURL, err)
-		htmx_handler.Render(w, r, "form.html", pageData)
+		// htmx_handler.Render(w, r, "form.html", pageData)
+		htmx_handler.Render(r.Context(), htmx_form)
 		return
 	}
 
@@ -259,7 +273,8 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageData.Message = fmt.Sprintf("Successfully added config for %s", config.TargetURL)
-	htmx_handler.Render(w, r, "form.html", pageData)
+	// htmx_handler.Render(w, r, "form.html", pageData)
+	htmx_handler.Render(r.Context(), htmx_form)
 }
 
 // handleUpdate handles the POST request to the "/update" URL. It parses the
@@ -269,6 +284,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	htmx_handler = htmx_app.NewHandler(w, r)
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, fmt.Sprintf("Error parsing form: %v", err), http.StatusBadRequest)
@@ -337,7 +354,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pageData.Message = fmt.Sprintf("Error updating configuration for %s: %v", config.TargetURL, err)
-		htmx_handler.Render(w, r, "form.html", pageData)
+		// htmx_handler.Render(w, r, "form.html", pageData)
+		htmx_handler.Render(r.Context(), htmx_form)
 		return
 	}
 
@@ -350,7 +368,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pageData.Message = fmt.Sprintf("Successfully updated config for %s", config.TargetURL)
-	htmx_handler.Render(w, r, "form.html", pageData)
+	// htmx_handler.Render(w, r, "form.html", pageData)
+	htmx_handler.Render(r.Context(), htmx_form)
 }
 
 func getPageData(ctx context.Context) (*PageData, error) {
