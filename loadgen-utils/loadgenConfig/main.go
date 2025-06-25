@@ -83,11 +83,12 @@ func main() {
 	}
 	defer firestoreClient.Close()
 
-	http.HandleFunc("/", handleForm)
+	http.HandleFunc("/", handleIndex)
 	http.HandleFunc("/submit", handleSubmit)
 	http.HandleFunc("/delete", handleDelete)
 	http.HandleFunc("/update", handleUpdate)
-	http.HandleFunc("/get_config", handleGetConfig)
+	http.HandleFunc("/get-config", handleGetConfig)
+	http.HandleFunc("/refresh", refreshData)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -103,7 +104,7 @@ func main() {
 
 // handleForm handles the GET request to the root URL ("/"). It displays the
 // configuration form to the user.
-func handleForm(w http.ResponseWriter, r *http.Request) {
+func handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
 		return
@@ -120,85 +121,6 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 	html_template.ExecuteTemplate(w, "index.html", pageData)
 	// htmx_handler.Render(r.Context(), htmx_form)
 	// htmx_handler.Render(w, r, "form.html", pageData)
-}
-
-// handleDelete handles the POST request to the "/delete" URL. It deletes a
-// configuration from Firestore.
-func handleDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	htmx_handler = htmx_app.NewHandler(w, r)
-
-	id := r.FormValue("id")
-	if id == "" {
-		http.Error(w, "Missing config ID", http.StatusBadRequest)
-		return
-	}
-
-	ctx := context.Background()
-	_, err := firestoreClient.Collection(collectionName).Doc(id).Delete(ctx)
-	if err != nil {
-		log.Printf("Failed to delete config %s: %v", id, err)
-		pageData, err := getPageData(r.Context())
-		if err != nil {
-			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
-			return
-		}
-		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
-		// htmx_handler.Render(w, r, "form.html", pageData)
-		// htmx_handler.Render(r.Context(), htmx_form)
-		html_template.ExecuteTemplate(w, "index.html", pageData)
-		return
-	}
-
-	log.Printf("Deleted config %s", id)
-	pageData, err := getPageData(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
-		return
-	}
-	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
-	// htmx_handler.Render(w, r, "form.html", pageData)
-	// htmx_handler.Render(r.Context(), htmx_form)
-	html_template.ExecuteTemplate(w, "index.html", pageData)
-}
-
-// handleGetConfig handles the GET request to the "/get_config" URL. It returns
-// a configuration as JSON.
-func handleGetConfig(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// htmx_handler = htmx_app.NewHandler(w, r)
-
-	id := r.URL.Query().Get("id")
-	if id == "" {
-		http.Error(w, "Missing config ID", http.StatusBadRequest)
-		return
-	}
-
-	ctx := context.Background()
-	doc, err := firestoreClient.Collection(collectionName).Doc(id).Get(ctx)
-	if err != nil {
-		log.Printf("Failed to get config %s: %v", id, err)
-		http.Error(w, "Failed to get config", http.StatusInternalServerError)
-		return
-	}
-
-	var config ConfigParams
-	if err := doc.DataTo(&config); err != nil {
-		log.Printf("Failed to decode config: %v", err)
-		http.Error(w, "Failed to decode config", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(config)
 }
 
 // handleSubmit handles the POST request to the "/submit" URL. It parses the
@@ -208,8 +130,6 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	htmx_handler = htmx_app.NewHandler(w, r)
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, fmt.Sprintf("Error parsing form: %v", err), http.StatusBadRequest)
@@ -289,7 +209,7 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	pageData.Message = fmt.Sprintf("Successfully added config for %s", config.TargetURL)
 	// htmx_handler.Render(w, r, "form.html", pageData)
 	// htmx_handler.Render(r.Context(), htmx_form)
-	html_template.ExecuteTemplate(w, "index.html", pageData)
+	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
 // // handleUpdate handles the POST request to the "/update" URL. It parses the
@@ -387,6 +307,102 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	// htmx_handler.Render(w, r, "form.html", pageData)
 	// htmx_handler.Render(r.Context(), htmx_form)
 	html_template.ExecuteTemplate(w, "index.html", pageData)
+}
+
+// handleDelete handles the POST request to the "/delete" URL. It deletes a
+// configuration from Firestore.
+func handleDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	htmx_handler = htmx_app.NewHandler(w, r)
+
+	id := r.FormValue("id")
+	if id == "" {
+		http.Error(w, "Missing config ID", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	_, err := firestoreClient.Collection(collectionName).Doc(id).Delete(ctx)
+	if err != nil {
+		log.Printf("Failed to delete config %s: %v", id, err)
+		pageData, err := getPageData(r.Context())
+		if err != nil {
+			http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+			return
+		}
+		pageData.Message = fmt.Sprintf("Failed to delete config for %s: %v", r.FormValue("targetURL"), err)
+		// htmx_handler.Render(w, r, "form.html", pageData)
+		// htmx_handler.Render(r.Context(), htmx_form)
+		html_template.ExecuteTemplate(w, "index.html", pageData)
+		return
+	}
+
+	log.Printf("Deleted config %s", id)
+	pageData, err := getPageData(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
+	}
+	pageData.Message = fmt.Sprintf("Successfully deleted config for %s", r.FormValue("targetURL"))
+	// htmx_handler.Render(w, r, "form.html", pageData)
+	// htmx_handler.Render(r.Context(), htmx_form)
+	html_template.ExecuteTemplate(w, "index.html", pageData)
+}
+
+// handleGetConfig handles the GET request to the "/get_config" URL. It returns
+// a configuration as JSON.
+func handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// htmx_handler = htmx_app.NewHandler(w, r)
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "Missing config ID", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	doc, err := firestoreClient.Collection(collectionName).Doc(id).Get(ctx)
+	if err != nil {
+		log.Printf("Failed to get config %s: %v", id, err)
+		http.Error(w, "Failed to get config", http.StatusInternalServerError)
+		return
+	}
+
+	var config ConfigParams
+	if err := doc.DataTo(&config); err != nil {
+		log.Printf("Failed to decode config: %v", err)
+		http.Error(w, "Failed to decode config", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(config)
+}
+
+func refreshData(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	htmx_handler = htmx_app.NewHandler(w, r)
+
+	pageData, err := getPageData(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve configs", http.StatusInternalServerError)
+		return
+	}
+
+	html_template.ExecuteTemplate(w, "configs", pageData)
 }
 
 func getPageData(ctx context.Context) (*PageData, error) {

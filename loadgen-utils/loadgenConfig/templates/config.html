@@ -1,26 +1,40 @@
 {{define "configs"}}
-<table border="1">
+<div hx-get="/refresh" hx-trigger="every 10s" hx-swap="innerHTML">
+  <div id="message">{{template "message" .}}</div>
+  <table border="1">
     <tr>
-        <th>Target URL</th>
-        <th>Target CPU</th>
-        <th>QPS</th>
-        <th>Duration</th>
-        <th>Actions</th>
+      <th>Target URL</th>
+      <th>Target CPU</th>
+      <th>QPS</th>
+      <th>Duration</th>
+      <th>Actions</th>
     </tr>
     {{range .Configs}}
     <tr>
-        <td><input type="text" name="targetURL" value="{{.TargetURL}}"></td>
-        <td><input type="number" name="targetCPU" value="{{.TargetCPU}}"></td>
-        <td><input type="number" name="qps" value="{{.QPS}}"></td>
-        <td><input type="number" name="duration" value="{{.Duration}}"></td>
-        <td>
-            <button hx-post="/update" hx-include="closest tr" hx-target="#configs-table" hx-swap="innerHTML">Update</button>
-            <button hx-post="/delete" hx-include="closest tr" hx-target="#configs-table" hx-swap="innerHTML">Delete</button>
-        </td>
+      <td><input type="text" name="targetURL" value="{{.TargetURL}}" /></td>
+      <td><input type="number" name="targetCPU" value="{{.TargetCPU}}" /></td>
+      <td><input type="number" name="qps" value="{{.QPS}}" /></td>
+      <td><input type="number" name="duration" value="{{.Duration}}" /></td>
+      <td>
+        <button
+          hx-post="/update"
+          hx-include="closest tr"
+          hx-target="#configs-table"
+          hx-swap="innerHTML"
+        >
+          Update
+        </button>
+        <button
+          hx-post="/delete"
+          hx-include="closest tr"
+          hx-target="#configs-table"
+          hx-swap="innerHTML"
+        >
+          Delete
+        </button>
+      </td>
     </tr>
     {{end}}
-</table>
-{{if .Message}}
-<p>{{.Message}}</p>
-{{end}}
+  </table>
+</div>
 {{end}}

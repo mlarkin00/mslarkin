@@ -11,20 +11,13 @@
     name="targetCPU"
     min="0"
     max="100"
-    value="0"
   /><br /><br />
 
   <label for="qps">QPS (Queries Per Second, optional, default 1):</label><br />
-  <input type="number" id="qps" name="qps" min="1" value="1" /><br /><br />
+  <input type="number" id="qps" name="qps" min="1" /><br /><br />
 
   <label for="duration">Duration in seconds (optional, default 1):</label><br />
-  <input
-    type="number"
-    id="duration"
-    name="duration"
-    min="1"
-    value="1"
-  /><br /><br />
+  <input type="number" id="duration" name="duration" min="-1" /><br /><br />
 
   <input type="submit" value="Submit" />
 </form>
