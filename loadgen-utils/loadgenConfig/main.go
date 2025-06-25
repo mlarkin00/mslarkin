@@ -268,6 +268,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	log.Printf("Updating config with ID: %s. TargetURL: %s, QPS: %d, Duration: %d, TargetCPU: %d",
+		config.FirestoreID, config.TargetURL, config.QPS, config.Duration, config.TargetCPU)
 	_, err = firestoreClient.Collection(collectionName).Doc(id).Set(ctx, config)
 	if err != nil {
 		log.Printf("Error updating document in Firestore: %v", err)
@@ -280,6 +282,8 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		html_template.ExecuteTemplate(w, "configs", pageData)
 		return
 	}
+	docsnap, _ := firestoreClient.Collection(collectionName).Doc(id).Get(ctx)
+	log.Printf("Post-Update Record: %v\n", docsnap.Data())
 
 	log.Printf("Configuration updated with ID: %s. TargetURL: %s, QPS: %d, Duration: %d, TargetCPU: %d",
 		id, config.TargetURL, config.QPS, config.Duration, config.TargetCPU)
