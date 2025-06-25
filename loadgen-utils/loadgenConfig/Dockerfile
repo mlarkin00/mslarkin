@@ -25,6 +25,6 @@ FROM alpine:3
 RUN apk add --no-cache ca-certificates
 # Copy the binary to the production image from the builder stage.
 COPY --from=builder /app/workload /workload
-COPY --from=builder /app/templates /templates
+# COPY --from=builder /app/templates /templates
 # Run the web service on container startup.
 ENTRYPOINT ["/workload"]

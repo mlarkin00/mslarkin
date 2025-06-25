@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"html/template"
 	"log"
@@ -18,14 +19,12 @@ var (
 	html_template *template.Template
 )
 
+//go:embed templates/*
+var templatesFS embed.FS
+
 func main() {
-	var err error
 	htmx_app = htmx.New()
-	html_template, err = template.ParseGlob("templates/*.html")
-	if err != nil {
-		panic(err)
-	}
-	// htmx_index = htmx.NewComponent(index_template)
+	html_template = template.Must(template.New("").ParseFS(templatesFS, "templates/*"))
 	log.Printf("Templates: %v", html_template.DefinedTemplates())
 
 	http.HandleFunc("/", handleIndex)
