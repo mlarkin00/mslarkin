@@ -1,21 +1,59 @@
 {{define "configs"}}
-<!-- <div hx-get="/refresh" hx-trigger="every 30s" hx-swap="innerHTML"> -->
-<div id="message">{{template "message" .}}</div>
-<table border="1">
-  <tr>
-    <th>Target URL</th>
-    <th>Target CPU</th>
-    <th>QPS</th>
-    <th>Duration</th>
-    <th>Actions</th>
+<table class="w-element">
+  <tr
+    class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml cupq3rr cd71ihq c57idyp"
+  >
+    <th
+      class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+    >
+      Target URL
+    </th>
+    <th
+      class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+    >
+      QPS
+    </th>
+    <th
+      class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+    >
+      Duration
+    </th>
+    <th
+      class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+    >
+      Target CPU
+    </th>
+    <th class="w-element"></th>
   </tr>
-  {{range .Configs}}
-  <tr>
-    <td><input type="text" name="targetURL" value="{{.TargetURL}}" /></td>
-    <td><input type="number" name="targetCPU" value="{{.TargetCPU}}" /></td>
-    <td><input type="number" name="qps" value="{{.QPS}}" /></td>
-    <td><input type="number" name="duration" value="{{.Duration}}" /></td>
-    <td>
+  <tr class="w-element ck3af4j c15zn2dl">
+    <td class="w-element">
+      <input
+        type="url"
+        class="w-element cauqto8"
+        name="targetURL"
+        value="{{.TargetURL}}"
+      />
+    </td>
+    <td class="w-element">
+      <input type="number" class="w-element" name="qps" value="{{.QPS}}" />
+    </td>
+    <td class="w-element">
+      <input
+        type="number"
+        class="w-element"
+        name="duration"
+        value="{{.Duration}}"
+      />
+    </td>
+    <td class="w-element">
+      <input
+        type="number"
+        class="w-element"
+        name="targetCPU"
+        value="{{.TargetCPU}}"
+      />
+    </td>
+    <td class="w-element">
       <button
         hx-post="/update"
         hx-include="closest tr"
@@ -36,5 +74,4 @@
   </tr>
   {{end}}
 </table>
-<!-- </div> -->
 {{end}}

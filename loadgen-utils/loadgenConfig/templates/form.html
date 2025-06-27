@@ -1,24 +1,82 @@
 {{define "form"}}
-<form hx-post="/submit" hx-target="#configs-table" hx-swap="innerHTML">
-  <label for="targetURL">Target URL (required):</label><br />
-  <input type="text" id="targetURL" name="targetURL" required /><br /><br />
-
-  <label for="targetCPU">Target CPU Utilization % (optional, default 0):</label
-  ><br />
-  <input
-    type="number"
-    id="targetCPU"
-    name="targetCPU"
-    min="0"
-    max="100"
-  /><br /><br />
-
-  <label for="qps">QPS (Queries Per Second, optional, default 1):</label><br />
-  <input type="number" id="qps" name="qps" min="1" /><br /><br />
-
-  <label for="duration">Duration in seconds (optional, default 1):</label><br />
-  <input type="number" id="duration" name="duration" min="-1" /><br /><br />
-
-  <input type="submit" value="Submit" />
+<form id="inputFormWH" class="w-webhook-form" hx-post="/submit" hx-target="#configs-table" hx-swap="innerHTML">
+  <div class="w-element">
+    <h2 class="w-element">Add New Target</h2>
+    <div
+      class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 cqeb86t c47o47j cw5izhw c1482uel"
+    >
+      <label for="inputTargetURL" class="w-label cl7jefz c1cb3y4c"
+        >Target URL</label
+      ><input
+        placeholder="https://target-url"
+        required=""
+        id="inputTargetURL"
+        autofocus=""
+        type="url"
+        class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+        name="targetURL"
+      />
+    </div>
+    <div
+      class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 cqeb86t c1482uel"
+    >
+      <label for="inputQPS" class="w-label cl7jefz c1cb3y4c">QPS</label
+      ><input
+        placeholder="Desired QPS"
+        id="inputQPS"
+        class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+        name="QPS"
+        min="1"
+      />
+    </div>
+    <div
+      class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 clv8gve c1482uel"
+    >
+      <label for="inputDuration" class="w-label cl7jefz c1cb3y4c"
+        >Duration</label
+      ><input
+        placeholder="Duration in seconds (-1 for indefinite)"
+        type="number"
+        id="inputDuration"
+        class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+        name="duration"
+        min="-1"
+      />
+    </div>
+    <div
+      class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 clv8gve c1482uel"
+    >
+      <label for="inputTargetCPU" class="w-label cl7jefz c1cb3y4c"
+        >Target CPU %</label
+      ><input
+        placeholder="Target CPU % (as integer)"
+        type="number"
+        id="inputTargetCPU"
+        class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c5m8ase cqeb86t cauqto8 cblpe2z c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+        name="targetCPU"
+        min="0"
+        max="100"
+      />
+    </div>
+    <div
+      class="w-box cry9bxc c1lxiyww c1z0l37u c1ml0hr7 c1fhkm63 cqeb86t c47o47j cw5izhw cupq3rr"
+    >
+      <button
+        type="submit"
+        id="buttonSubmit"
+        form="inputForm"
+        class="w-button cnrz8fp cl8m66n cihfpxt cb4vmi8 c1j33arz c1r2vfc1 cgl7u82 crlid6h caoqbwa c1aguln c135vpv5 cl7jefz c1cb3y4c csru8nn c16xs6ny ct02u4h c1md20bl c1e892th c1qom380 c1vamubz c1c9nyn co9inq6 c18nx7en c13zjl4p c1x4yn0w c1lndx7l codg43x cl60rel c1ib9cr2 cqz2rm8 chtpy1z c1qtvx9w c5h5y5y chgk7uj c1xf7czk"
+      >
+        Submit</button
+      ><button
+        type="reset"
+        id="buttonClear"
+        form="inputForm"
+        class="w-button cnrz8fp cl8m66n cihfpxt cb4vmi8 c1j33arz c1r2vfc1 cgl7u82 crlid6h caoqbwa c1aguln c135vpv5 cl7jefz c1cb3y4c csru8nn c1c2j90z ct02u4h c1md20bl c1e892th c1qom380 c1vamubz c1c9nyn co9inq6 c18nx7en c13zjl4p c9ylysu c1lndx7l c653p2c codg43x cl60rel c1ib9cr2 cqz2rm8 chtpy1z c1qtvx9w c5h5y5y chgk7uj c1xf7czk"
+      >
+        Clear
+      </button>
+    </div>
+  </div>
 </form>
 {{end}}

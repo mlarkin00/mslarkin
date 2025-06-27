@@ -56,7 +56,7 @@ var (
 	html_template   *template.Template
 )
 
-//go:embed templates/*
+//go:embed templates
 var templatesFS embed.FS
 
 // main is the entry point of the application. It initializes the Firestore client,

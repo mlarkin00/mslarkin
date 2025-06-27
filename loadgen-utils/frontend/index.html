@@ -1,11 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html
   lang="en-US"
   data-ws-project="6bc98619-d382-47f2-ac5d-65b8c8495067"
   data-ws-last-published="2025-06-27T22:33:54.551Z"
 >
   <head>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link
       rel="stylesheet"
       type="text/css"
@@ -42,6 +41,9 @@
     >
       <div style="display: contents">
         <div style="display: contents">
+          <div class="w-html-embed">
+            <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+          </div>
           <div class="w-html-embed">
             <style>
               /* So we don't need to add a token to every paragraph to remove margin. */
@@ -348,10 +350,155 @@
           <div
             class="w-box c1357293 c9jnjeu c11gzs80 c1fd0kk1 czr2pxy c155uc7w cry9bxc c1lfjoq7 c1778y6x c1wt8a7g c1s46o9r cdczzub c4dazpy c1fhkm63"
           >
-            <div id="config-form">{{template "form" .}}</div>
+            <form id="inputFormWH" class="w-webhook-form" action="action">
+              <div class="w-element">
+                <h2 class="w-element">Add New Target</h2>
+                <div
+                  class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 cqeb86t c47o47j cw5izhw c1482uel"
+                >
+                  <label for="inputTargetURL" class="w-label cl7jefz c1cb3y4c"
+                    >Target url</label
+                  ><input
+                    placeholder="https://target-url"
+                    required=""
+                    id="inputTargetURL"
+                    autofocus=""
+                    type="url"
+                    class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+                    name="targetURL"
+                    value="https://www.google.com"
+                  />
+                </div>
+                <div
+                  class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 cqeb86t c1482uel"
+                >
+                  <label for="inputQPS" class="w-label cl7jefz c1cb3y4c"
+                    >QPS</label
+                  ><input
+                    placeholder="Desired QPS"
+                    required=""
+                    id="inputQPS"
+                    class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+                    name="QPS"
+                    value="1"
+                  />
+                </div>
+                <div
+                  class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 clv8gve c1482uel"
+                >
+                  <label for="inputDuration" class="w-label cl7jefz c1cb3y4c"
+                    >Duration</label
+                  ><input
+                    placeholder="Duration in seconds (-1 for indefinite)"
+                    required=""
+                    type="number"
+                    id="inputDuration"
+                    class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+                    name="duration"
+                    value="60"
+                  />
+                </div>
+                <div
+                  class="w-box cry9bxc c1778y6x c1wt8a7g c1lfjoq7 c1md20bl c1e892th c1fhkm63 clv8gve c1482uel"
+                >
+                  <label for="inputTargetCPU" class="w-label cl7jefz c1cb3y4c"
+                    >Target CPU %</label
+                  ><input
+                    placeholder="Target CPU % (as integer)"
+                    type="number"
+                    id="inputTargetCPU"
+                    class="w-text-input c1b2tb9q c1xm4ef6 c1nj04wn c1nitjp7 c195lvp6 c1hr6a6t c1fptsc4 cnrz8fp c122t6uk c1a8d7ts c5m8ase cqeb86t cauqto8 cblpe2z c557ax3 cl60rel c2zsigv c1rqinhn c11rjnbe"
+                    name="targetCPU"
+                    value="0"
+                  />
+                </div>
+                <div
+                  class="w-box cry9bxc c1lxiyww c1z0l37u c1ml0hr7 c1fhkm63 cqeb86t c47o47j cw5izhw cupq3rr"
+                >
+                  <button
+                    type="submit"
+                    id="buttonSubmit"
+                    form="inputForm"
+                    class="w-button cnrz8fp cl8m66n cihfpxt cb4vmi8 c1j33arz c1r2vfc1 cgl7u82 crlid6h caoqbwa c1aguln c135vpv5 cl7jefz c1cb3y4c csru8nn c16xs6ny ct02u4h c1md20bl c1e892th c1qom380 c1vamubz c1c9nyn co9inq6 c18nx7en c13zjl4p c1x4yn0w c1lndx7l codg43x cl60rel c1ib9cr2 cqz2rm8 chtpy1z c1qtvx9w c5h5y5y chgk7uj c1xf7czk"
+                  >
+                    Submit</button
+                  ><button
+                    type="reset"
+                    id="buttonClear"
+                    class="w-button cnrz8fp cl8m66n cihfpxt cb4vmi8 c1j33arz c1r2vfc1 cgl7u82 crlid6h caoqbwa c1aguln c135vpv5 cl7jefz c1cb3y4c csru8nn c1c2j90z ct02u4h c1md20bl c1e892th c1qom380 c1vamubz c1c9nyn co9inq6 c18nx7en c13zjl4p c9ylysu c1lndx7l c653p2c codg43x cl60rel c1ib9cr2 cqz2rm8 chtpy1z c1qtvx9w c5h5y5y chgk7uj c1xf7czk"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </form>
             <div id="sectionExistingConfigs" class="w-element">
               <h2 id="" class="w-element">Existing Targets</h2>
-              <div id="configs-table">{{template "configs" .}}</div>
+              <table class="w-element">
+                <tr
+                  class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml cupq3rr cd71ihq c57idyp"
+                >
+                  <th
+                    class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+                  >
+                    Target URL
+                  </th>
+                  <th
+                    class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+                  >
+                    QPS
+                  </th>
+                  <th
+                    class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+                  >
+                    Duration
+                  </th>
+                  <th
+                    class="w-element ck3af4j ch288gs cfww425 c1mlcr0z c4ag0yh c1sq7em5 c8rahv5 c1vh3ir4 chru9m2 c1irr0ja chpwraf cw4fys8 c1lxiyww c16xs6ny c1wt8a7g c1kz4bsi cy8j7mm c1hwbdwo c10mz0pn cx27rqy cbvffy can94pj c15zn2dl c1lj92by c1qom380 crsj15 c196h8ml crmfta2"
+                  >
+                    Target CPU
+                  </th>
+                  <th class="w-element"></th>
+                </tr>
+                <tr class="w-element ck3af4j c15zn2dl">
+                  <td class="w-element">
+                    <input
+                      type="url"
+                      class="w-element cauqto8"
+                      name="targetURL"
+                      value="https://www.google.com"
+                    />
+                  </td>
+                  <td class="w-element">
+                    <input
+                      type="number"
+                      class="w-element"
+                      name="qps"
+                      value="1"
+                    />
+                  </td>
+                  <td class="w-element">
+                    <input
+                      type="number"
+                      class="w-element"
+                      name="duration"
+                      value="60"
+                    />
+                  </td>
+                  <td class="w-element">
+                    <input
+                      type="number"
+                      class="w-element"
+                      name="targetCPU"
+                      value="0"
+                    />
+                  </td>
+                  <td class="w-element">
+                    <button class="w-element">Button</button
+                    ><button class="w-element">Button</button>
+                  </td>
+                </tr>
+              </table>
             </div>
           </div>
         </div>
