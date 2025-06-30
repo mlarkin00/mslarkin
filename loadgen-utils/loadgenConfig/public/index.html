@@ -1,46 +1,59 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loadgen Config</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <style>
-        body { font-family: sans-serif; }
-        .container { max-width: 500px; margin: 2em auto; }
-        .form-group { margin-bottom: 1em; }
-        label { display: block; margin-bottom: 0.5em; }
-        input { width: 100%; padding: 0.5em; box-sizing: border-box; }
-        button { padding: 0.5em 1em; }
-    </style>
 </head>
+
 <body>
-    <div id="app">
-        <div class="container">
-            <h1>Loadgen Config</h1>
-            <form @submit.prevent="submitForm">
-                <div class="form-group">
-                    <label for="targetURL">Target URL (required)</label>
-                    <input type="text" id="targetURL" v-model="config.targetUrl" required>
-                </div>
-                <div class="form-group">
-                    <label for="qps">QPS</label>
-                    <input type="number" id="qps" v-model.number="config.qps">
-                </div>
-                <div class="form-group">
-                    <label for="duration">Duration (seconds)</label>
-                    <input type="number" id="duration" v-model.number="config.duration">
-                </div>
-                <div class="form-group">
-                    <label for="targetCPU">Target CPU (%)</label>
-                    <input type="number" id="targetCPU" v-model.number="config.targetCpu">
-                </div>
-                <button type="submit">Create Config</button>
-            </form>
-            <p v-if="message">{{ message }}</p>
-        </div>
+    <div id="app" class="container">
+        <h1>Loadgen Config</h1>
+        <form @submit.prevent="submitForm">
+            <div class="form-group">
+                <label for="targetUrl">Target URL</label>
+                <input type="text" class="form-control" id="targetUrl" v-model="config.targetUrl" required>
+            </div>
+            <div class="form-group">
+                <label for="targetCpu">Target CPU (%)</label>
+                <input type="number" class="form-control" id="targetCpu" v-model.number="config.targetCpu">
+            </div>
+            <div class="form-group">
+                <label for="qps">QPS</label>
+                <input type="number" class="form-control" id="qps" v-model.number="config.qps">
+            </div>
+            <div class="form-group">
+                <label for="duration">Duration (seconds)</label>
+                <input type="number" class="form-control" id="duration" v-model.number="config.duration">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+        <div v-if="message" class="alert mt-3" :class="{'alert-success': !error, 'alert-danger': error}">{{ message }}</div>
+
+        <h2 class="mt-5">Existing Configurations</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Target URL</th>
+                    <th>Target CPU</th>
+                    <th>QPS</th>
+                    <th>Duration</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="config in configs">
+                    <td>{{ config.targetUrl }}</td>
+                    <td>{{ config.targetCpu }}</td>
+                    <td>{{ config.qps }}</td>
+                    <td>{{ config.duration }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @click="editConfig(config)">Update</button>
+                        <button class="btn btn-sm btn-danger" @click="deleteConfig(config.id)">Delete</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <script src="/js/main.js"></script>
+    <script src="js/main.js"></script>
 </body>
+
 </html>

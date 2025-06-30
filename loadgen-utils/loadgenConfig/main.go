@@ -1,6 +1,3 @@
-// Package main implements a simple web server that provides a form to configure
-// load generation parameters. The configuration is then saved to a Firestore
-// database.
 package main
 
 import (
@@ -14,11 +11,13 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 )
 
 // ConfigParams holds the configuration parameters from the user input.
 // These parameters are used to define a load generation test.
 type ConfigParams struct {
+	ID          string `firestore:"-" json:"id"`
 	// TargetURL is the URL of the service to be tested.
 	TargetURL string `firestore:"targetUrl" json:"targetUrl"`
 	// TargetCPU is the target CPU utilization percentage for the load test.
@@ -67,6 +66,9 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.FS(fs)))
 	http.HandleFunc("/api/submit", handleSubmit)
+	http.HandleFunc("/api/configs", handleGetConfigs)
+	http.HandleFunc("/api/delete/", handleDeleteConfig)
+	http.HandleFunc("/api/update/", handleUpdateConfig)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -77,6 +79,43 @@ func main() {
 	log.Printf("Listening on port %s", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+// handleGetConfigs handles the GET request to the "/api/configs" URL. It fetches
+// all the configurations from Firestore and returns them as a JSON array.
+func handleGetConfigs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+	var configs []ConfigParams
+	iter := firestoreClient.Collection(collectionName).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("Error iterating documents: %v", err)
+			http.Error(w, "Failed to retrieve configurations", http.StatusInternalServerError)
+			return
+		}
+		var config ConfigParams
+		if err := doc.DataTo(&config); err != nil {
+			log.Printf("Error converting document data: %v", err)
+			continue
+		}
+		config.ID = doc.Ref.ID
+		configs = append(configs, config)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(configs); err != nil {
+		log.Printf("Error encoding configs to JSON: %v", err)
+		http.Error(w, "Failed to encode configurations", http.StatusInternalServerError)
 	}
 }
 
@@ -115,4 +154,54 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration saved successfully"})
+}
+
+// handleDeleteConfig handles the DELETE request to the "/api/delete/{id}" URL.
+// It deletes the specified configuration from Firestore.
+func handleDeleteConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Only DELETE method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Path[len("/api/delete/"):]
+	ctx := r.Context()
+	_, err := firestoreClient.Collection(collectionName).Doc(id).Delete(ctx)
+	if err != nil {
+		log.Printf("Error deleting document: %v", err)
+		http.Error(w, "Failed to delete configuration", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration deleted successfully"})
+}
+
+// handleUpdateConfig handles the PUT request to the "/api/update/{id}" URL.
+// It updates the specified configuration in Firestore.
+func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Only PUT method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Path[len("/api/update/"):]
+	var config ConfigParams
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		http.Error(w, fmt.Sprintf("Error decoding request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	_, err := firestoreClient.Collection(collectionName).Doc(id).Set(ctx, config)
+	if err != nil {
+		log.Printf("Error updating document: %v", err)
+		http.Error(w, "Failed to update configuration", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration updated successfully"})
 }

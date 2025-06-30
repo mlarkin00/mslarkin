@@ -65,3 +65,7 @@ export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlark
 alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
 # alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
+
+
+export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+# export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
