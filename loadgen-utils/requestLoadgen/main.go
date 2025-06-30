@@ -42,7 +42,7 @@ func main() {
 	}
 
 	var err error
-	firestoreClient, err = firestore.NewClient(ctx, projectID)
+	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
 	if err != nil {
 		log.Fatalf("Failed to create Firestore client: %v", err)
 	}
