@@ -15,7 +15,6 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/firestore"
-	"github.com/donseba/go-htmx"
 	"google.golang.org/api/iterator"
 )
 
@@ -51,8 +50,6 @@ const collectionName = "loadgen-configs"
 var (
 	// firestoreClient is the client used to interact with Firestore.
 	firestoreClient *firestore.Client
-	htmx_app        *htmx.HTMX
-	htmx_handler    *htmx.Handler
 	html_template   *template.Template
 )
 
