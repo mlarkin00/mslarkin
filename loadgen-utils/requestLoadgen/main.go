@@ -13,25 +13,21 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
-	// monitoring "cloud.google.com/go/monitoring/apiv3/v2"
-	// monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-// ConfigParams holds the configuration parameters read from Firestore.
 type ConfigParams struct {
-	TargetURL     string `firestore:"targetUrl"`
-	TargetCPU     int    `firestore:"targetCpu,omitempty"`
-	QPS           int    `firestore:"qps,omitempty"`
-	Duration      int    `firestore:"duration,omitempty"`
-	FirestoreID   string `firestore:"-"` // Document ID
+	TargetURL   string `firestore:"targetUrl"`
+	TargetCPU   int    `firestore:"targetCpu,omitempty"`
+	QPS         int    `firestore:"qps,omitempty"`
+	Duration    int    `firestore:"duration,omitempty"`
+	FirestoreID string `firestore:"-"`
 }
 
 const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
-const collectionName = "loadgen-configs" // Same collection as used by loadgenConfig
+const collectionName = "loadgen-configs"
 
 var (
 	firestoreClient *firestore.Client
-	// monitoringClient *monitoring.MetricClient // To be used later
 )
 
 func main() {
@@ -48,34 +44,52 @@ func main() {
 	}
 	defer firestoreClient.Close()
 
-	// Initialize Monitoring client (placeholder for now)
-	// monitoringClient, err = monitoring.NewMetricClient(ctx)
-	// if err != nil {
-	// 	log.Fatalf("Failed to create monitoring client: %v", err)
-	// }
-	// defer monitoringClient.Close()
-
 	log.Println("RequestLoadgen service started. Reading configurations from Firestore...")
 
-	configs, err := readConfigs(ctx)
-	if err != nil {
-		log.Fatalf("Failed to read configs from Firestore: %v", err)
-	}
-
-	if len(configs) == 0 {
-		log.Println("No configurations found in Firestore. Exiting.")
-		return
-	}
-
+	configs := make(map[string]ConfigParams)
+	stopChans := make(map[string]chan struct{})
 	var wg sync.WaitGroup
-	for _, config := range configs {
-		wg.Add(1)
-		go func(cfg ConfigParams) {
-			defer wg.Done()
-			log.Printf("Starting load generation for TargetURL: %s, QPS: %d, Duration: %ds, CPU: %d%%",
-				cfg.TargetURL, cfg.QPS, cfg.Duration, cfg.TargetCPU)
-			generateLoad(cfg)
-		}(config)
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for ; true; <-ticker.C {
+		log.Println("Reading configurations from Firestore...")
+		newConfigs, err := readConfigs(ctx)
+		if err != nil {
+			log.Printf("Error reading configs from Firestore: %v", err)
+			continue
+		}
+
+		newConfigMap := make(map[string]ConfigParams)
+		for _, config := range newConfigs {
+			newConfigMap[config.FirestoreID] = config
+		}
+
+		// Stop goroutines for configs that have been removed
+		for id := range configs {
+			if _, ok := newConfigMap[id]; !ok {
+				log.Printf("Stopping load generation for config %s", id)
+				close(stopChans[id])
+				delete(stopChans, id)
+			}
+		}
+
+		// Start or update goroutines for new or existing configs
+		for id, config := range newConfigMap {
+			if _, ok := configs[id]; !ok {
+				log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
+				stopChan := make(chan struct{})
+				stopChans[id] = stopChan
+				wg.Add(1)
+				go func(cfg ConfigParams, stop <-chan struct{}) {
+					defer wg.Done()
+					generateLoad(cfg, stop)
+				}(config, stopChan)
+			}
+		}
+
+		configs = newConfigMap
 	}
 
 	wg.Wait()
@@ -101,7 +115,6 @@ func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 		}
 		config.FirestoreID = doc.Ref.ID
 
-		// Apply defaults if not set (matching loadgenConfig service)
 		if config.QPS == 0 {
 			config.QPS = 1
 		}
@@ -114,7 +127,7 @@ func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 	return configs, nil
 }
 
-func generateLoad(config ConfigParams) {
+func generateLoad(config ConfigParams, stop <-chan struct{}) {
 	target, err := url.Parse(config.TargetURL)
 	if err != nil {
 		log.Printf("[%s] Invalid Target URL %s: %v", config.FirestoreID, config.TargetURL, err)
@@ -165,27 +178,16 @@ func generateLoad(config ConfigParams) {
 				config.FirestoreID, config.Duration, finalURL, requestCount)
 			queryAndLogMetrics(config, finalURL, projectIDEnv, requestCount)
 			return
+		case <-stop:
+			log.Printf("[%s] Stopping load generation for %s.", config.FirestoreID, finalURL)
+			return
 		}
 	}
 }
 
-// queryAndLogMetrics is a placeholder for Cloud Monitoring integration.
-// For now, it will log the configured QPS and a calculated actual QPS based on requests sent by this instance.
-// The `run.googleapis.com/request_count` metric would give a more authoritative value if the target is a Cloud Run service.
 func queryAndLogMetrics(config ConfigParams, actualURL string, projectID string, requestsSentByThisInstance int) {
-	// Placeholder: In a real scenario, you'd query Cloud Monitoring API.
-	// This requires:
-	// 1. Identifying the Cloud Run service (service_id, region) from the targetURL or additional config.
-	// 2. Using the monitoring client to query "run.googleapis.com/request_count".
-	// 3. Filtering by revision_name, service_name, etc.
-	// 4. Calculating QPS based on the change in request_count over a time window.
-
 	calculatedQPS := float64(requestsSentByThisInstance) / float64(config.Duration)
 
 	log.Printf("METRICS [%s]: Target URL: %s, Configured QPS: %d, Actual QPS (calculated by this instance): %.2f",
 		config.FirestoreID, actualURL, config.QPS, calculatedQPS)
-
-	// Example of what would be logged if we had actual monitoring data:
-	// log.Printf("METRICS [%s]: Target URL: %s, Configured QPS: %d, Actual QPS (from Cloud Monitoring): %.2f",
-	//    config.FirestoreID, actualURL, config.QPS, actualMonitoringQPS)
 }
