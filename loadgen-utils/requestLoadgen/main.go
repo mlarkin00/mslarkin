@@ -20,6 +20,7 @@ type ConfigParams struct {
 	TargetCPU   int    `firestore:"targetCpu,omitempty"`
 	QPS         int    `firestore:"qps,omitempty"`
 	Duration    int    `firestore:"duration,omitempty"`
+	Active      bool   `firestore:"active"`
 	FirestoreID string `firestore:"-"`
 }
 
@@ -66,17 +67,20 @@ func main() {
 			newConfigMap[config.FirestoreID] = config
 		}
 
-		// Stop goroutines for configs that have been removed
+		// Stop goroutines for configs that have been removed or deactivated
 		for id := range configs {
-			if _, ok := newConfigMap[id]; !ok {
+			if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
 				log.Printf("Stopping load generation for config %s", id)
 				close(stopChans[id])
 				delete(stopChans, id)
 			}
 		}
 
-		// Start or update goroutines for new or existing configs
+		// Start or update goroutines for new or existing active configs
 		for id, config := range newConfigMap {
+			if !config.Active {
+				continue
+			}
 			if _, ok := configs[id]; !ok {
 				log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
 				stopChan := make(chan struct{})
