@@ -38,7 +38,7 @@ func main() {
 	ctx := context.Background()
 	projectID := os.Getenv(projectIDEnv)
 	if projectID == "" {
-		log.Fatalf("Environment variable %s must be set.", projectIDEnv)
+		projectID = "mslarkin-ext"
 	}
 
 	var err error
@@ -72,8 +72,8 @@ func main() {
 		wg.Add(1)
 		go func(cfg ConfigParams) {
 			defer wg.Done()
-			log.Printf("Starting load generation for ID %s: TargetURL: %s, QPS: %d, Duration: %ds, CPU: %d%%",
-				cfg.FirestoreID, cfg.TargetURL, cfg.QPS, cfg.Duration, cfg.TargetCPU)
+			log.Printf("Starting load generation for TargetURL: %s, QPS: %d, Duration: %ds, CPU: %d%%",
+				cfg.TargetURL, cfg.QPS, cfg.Duration, cfg.TargetCPU)
 			generateLoad(cfg)
 		}(config)
 	}
@@ -125,11 +125,6 @@ func generateLoad(config ConfigParams) {
 	if config.TargetCPU > 0 {
 		query.Set("targetCpuPct", strconv.Itoa(config.TargetCPU))
 	}
-	// Duration is used for how long this function runs, but also appended as a query param
-	// as per the original request.
-	if config.Duration > 0 {
-		query.Set("durationS", strconv.Itoa(config.Duration))
-	}
 	target.RawQuery = query.Encode()
 	finalURL := target.String()
 
@@ -140,17 +135,15 @@ func generateLoad(config ConfigParams) {
 		log.Printf("[%s] QPS is %d, must be positive. Skipping.", config.FirestoreID, config.QPS)
 		return
 	}
-	if config.Duration <= 0 {
-		log.Printf("[%s] Duration is %d, must be positive. Skipping.", config.FirestoreID, config.Duration)
-		return
-	}
 
 	interval := time.Second / time.Duration(config.QPS)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	durationTimer := time.NewTimer(time.Duration(config.Duration) * time.Second)
-	defer durationTimer.Stop()
+	var durationTimer <-chan time.Time
+	if config.Duration != -1 {
+		durationTimer = time.NewTimer(time.Duration(config.Duration) * time.Second).C
+	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	requestCount := 0
@@ -165,14 +158,11 @@ func generateLoad(config ConfigParams) {
 					return
 				}
 				defer resp.Body.Close()
-				// Log basic response info, can be expanded
-				// log.Printf("[%s] Request to %s - Status: %s", config.FirestoreID, finalURL, resp.Status)
 			}()
 			requestCount++
-		case <-durationTimer.C:
+		case <-durationTimer:
 			log.Printf("[%s] Duration of %d seconds reached for %s. Sent %d requests.",
 				config.FirestoreID, config.Duration, finalURL, requestCount)
-			// This is where we would query Cloud Monitoring
 			queryAndLogMetrics(config, finalURL, projectIDEnv, requestCount)
 			return
 		}
