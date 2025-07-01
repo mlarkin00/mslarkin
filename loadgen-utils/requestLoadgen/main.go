@@ -116,7 +116,7 @@ func main() {
 			}
 			// If the configuration isn't running, start a new goroutine for it.
 			if _, exists := stopChans[id]; !exists {
-				log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
+				// log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
 				stopChan := make(chan struct{})
 				stopChans[id] = stopChan
 				wg.Add(1)
