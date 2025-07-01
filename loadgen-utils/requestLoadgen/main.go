@@ -156,8 +156,7 @@ func main() {
 	sig := <-signalChan
 	log.Printf("SIGNAL: %s\n", sig)
 	// Close all stop channels to signal goroutines to stop.
-	for id, stopChan := range stopChans {
-		log.Printf("Stopping load generation for config %s", id)
+	for _, stopChan := range stopChans {
 		close(stopChan)
 	}
 	// Cancel the load generation context to stop all goroutines.
