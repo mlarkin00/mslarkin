@@ -97,9 +97,6 @@ func main() {
 
 		// Stop goroutines for configurations that have been removed or deactivated.
 		for id := range configs {
-			_, running := stopChans[id]
-			log.Printf("(Running: %v) %v - Stop Check: %s",
-				running, configs[id].Active, configs[id].TargetURL)
 			//Check if the config was in the old set but not the new set
 			if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
 				//If the config was removed (in old, not new) and is running, stop it.
