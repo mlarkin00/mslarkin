@@ -35,6 +35,7 @@
                     <th>Target CPU</th>
                     <th>QPS</th>
                     <th>Duration</th>
+                    <th>Active</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -44,9 +45,12 @@
                     <td>{{ config.targetCpu }}</td>
                     <td>{{ config.qps }}</td>
                     <td>{{ config.duration }}</td>
+                    <td>{{ config.active }}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" @click="editConfig(config)">Update</button>
                         <button class="btn btn-sm btn-danger" @click="deleteConfig(config.id)">Delete</button>
+                        <button v-if="!config.active" class="btn btn-sm btn-success" @click="toggleActive(config.id)">Start</button>
+                        <button v-if="config.active" class="btn btn-sm btn-warning" @click="toggleActive(config.id)">Stop</button>
                     </td>
                 </tr>
             </tbody>

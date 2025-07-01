@@ -26,6 +26,8 @@ type ConfigParams struct {
 	QPS int `firestore:"qps,omitempty" json:"qps,omitempty"`
 	// Duration is the duration of the load test in seconds.
 	Duration int `firestore:"duration,omitempty" json:"duration,omitempty"`
+	// Active determines if the load generation is active for this configuration.
+	Active bool `firestore:"active" json:"active"`
 }
 
 // projectIDEnv is the environment variable that contains the Google Cloud project ID.
@@ -69,6 +71,7 @@ func main() {
 	http.HandleFunc("/api/configs", handleGetConfigs)
 	http.HandleFunc("/api/delete/", handleDeleteConfig)
 	http.HandleFunc("/api/update/", handleUpdateConfig)
+	http.HandleFunc("/api/toggleActive/", handleToggleActive)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -138,6 +141,8 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	config.Active = true
+
 	ctx := r.Context()
 	docRef, _, err := firestoreClient.Collection(collectionName).Add(ctx, config)
 	if err != nil {
@@ -195,6 +200,48 @@ func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	_, err := firestoreClient.Collection(collectionName).Doc(id).Set(ctx, config)
+	if err != nil {
+		log.Printf("Error updating document: %v", err)
+		http.Error(w, "Failed to update configuration", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration updated successfully"})
+}
+
+// handleToggleActive handles the PUT request to the "/api/toggleActive/{id}" URL.
+// It toggles the Active field of the specified configuration in Firestore.
+func handleToggleActive(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Only PUT method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Path[len("/api/toggleActive/"):]
+	ctx := r.Context()
+
+	// Get the current document
+	doc, err := firestoreClient.Collection(collectionName).Doc(id).Get(ctx)
+	if err != nil {
+		log.Printf("Error getting document: %v", err)
+		http.Error(w, "Failed to get configuration", http.StatusInternalServerError)
+		return
+	}
+
+	var config ConfigParams
+	if err := doc.DataTo(&config); err != nil {
+		log.Printf("Error converting document data: %v", err)
+		http.Error(w, "Failed to get configuration", http.StatusInternalServerError)
+		return
+	}
+
+	// Toggle the Active field
+	config.Active = !config.Active
+
+	// Update the document
+	_, err = firestoreClient.Collection(collectionName).Doc(id).Set(ctx, config)
 	if err != nil {
 		log.Printf("Error updating document: %v", err)
 		http.Error(w, "Failed to update configuration", http.StatusInternalServerError)

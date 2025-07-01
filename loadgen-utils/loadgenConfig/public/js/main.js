@@ -80,6 +80,26 @@ createApp({
       this.isEditing = true;
       this.config = { ...config };
     },
+    async toggleActive(id) {
+      try {
+        const response = await fetch(`/api/toggleActive/${id}`, {
+          method: 'PUT'
+        });
+        const data = await response.json();
+        if (response.ok) {
+          this.message = data.message;
+          this.error = false;
+          this.loadConfigs();
+        } else {
+          this.message = `Error: ${data.error}`;
+          this.error = true;
+        }
+      } catch (error) {
+        this.message = 'An unexpected error occurred.';
+        this.error = true;
+        console.error(error);
+      }
+    },
     resetForm() {
       this.isEditing = false;
       this.config = {
