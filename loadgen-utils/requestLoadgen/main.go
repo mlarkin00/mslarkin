@@ -15,59 +15,87 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// ConfigParams defines the structure for load generation configuration.
+// These parameters are read from a Firestore collection.
 type ConfigParams struct {
-	TargetURL   string `firestore:"targetUrl"`
-	TargetCPU   int    `firestore:"targetCpu,omitempty"`
-	QPS         int    `firestore:"qps,omitempty"`
-	Duration    int    `firestore:"duration,omitempty"`
-	Active      bool   `firestore:"active"`
+	// TargetURL is the URL to which the load generation will send requests.
+	TargetURL string `firestore:"targetUrl"`
+	// TargetCPU is the target CPU utilization percentage for the target service.
+	// This is an optional parameter that can be passed as a query parameter to the target URL.
+	TargetCPU int `firestore:"targetCpu,omitempty"`
+	// QPS is the number of queries per second to generate.
+	QPS int `firestore:"qps,omitempty"`
+	// Duration is the length of time in seconds for which to generate load.
+	Duration int `firestore:"duration,omitempty"`
+	// Active indicates whether this configuration is currently active and should be used for load generation.
+	Active bool `firestore:"active"`
+	// FirestoreID is the unique identifier of the document in Firestore.
+	// It is not stored in Firestore but is populated when the config is read.
 	FirestoreID string `firestore:"-"`
 }
 
+// projectIDEnv is the environment variable for the Google Cloud project ID.
 const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
+
+// collectionName is the name of the Firestore collection where load generation configurations are stored.
 const collectionName = "loadgen-configs"
 
 var (
+	// firestoreClient is the global client for interacting with Firestore.
 	firestoreClient *firestore.Client
 )
 
+// main is the entry point of the application.
+// It initializes the Firestore client, and then enters a loop to periodically
+// read load generation configurations and manage the load generation goroutines.
 func main() {
+	// Create a background context.
 	ctx := context.Background()
+	// Get the project ID from the environment variable, with a default value.
 	projectID := os.Getenv(projectIDEnv)
 	if projectID == "" {
 		projectID = "mslarkin-ext"
 	}
 
+	// Initialize the Firestore client.
 	var err error
 	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
 	if err != nil {
 		log.Fatalf("Failed to create Firestore client: %v", err)
 	}
+	// Defer closing the client until the function returns.
 	defer firestoreClient.Close()
 
 	log.Println("RequestLoadgen service started. Reading configurations from Firestore...")
 
+	// configs stores the current set of active load generation configurations.
 	configs := make(map[string]ConfigParams)
+	// stopChans holds channels that can be used to stop the corresponding goroutines.
 	stopChans := make(map[string]chan struct{})
+	// wg is a WaitGroup to wait for all goroutines to finish before exiting.
 	var wg sync.WaitGroup
 
+	// Create a ticker to periodically re-read the configurations from Firestore.
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
+	// Main loop to manage load generation based on Firestore configurations.
 	for ; true; <-ticker.C {
 		log.Println("Reading configurations from Firestore...")
+		// Read the latest configurations from Firestore.
 		newConfigs, err := readConfigs(ctx)
 		if err != nil {
 			log.Printf("Error reading configs from Firestore: %v", err)
 			continue
 		}
 
+		// Create a map of the new configurations for easy lookup.
 		newConfigMap := make(map[string]ConfigParams)
 		for _, config := range newConfigs {
 			newConfigMap[config.FirestoreID] = config
 		}
 
-		// Stop goroutines for configs that have been removed or deactivated
+		// Stop goroutines for configurations that have been removed or deactivated.
 		for id := range configs {
 			if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
 				log.Printf("Stopping load generation for config %s", id)
@@ -76,11 +104,13 @@ func main() {
 			}
 		}
 
-		// Start or update goroutines for new or existing active configs
+		// Start or update goroutines for new or existing active configs.
 		for id, config := range newConfigMap {
+			// Skip inactive configurations.
 			if !config.Active {
 				continue
 			}
+			// If the configuration is new, start a new goroutine for it.
 			if _, ok := configs[id]; !ok {
 				log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
 				stopChan := make(chan struct{})
@@ -93,17 +123,23 @@ func main() {
 			}
 		}
 
+		// Update the current set of configurations.
 		configs = newConfigMap
 	}
 
+	// Wait for all load generation goroutines to complete.
 	wg.Wait()
 	log.Println("All load generation tasks completed.")
 }
 
+// readConfigs reads all documents from the configured Firestore collection
+// and returns them as a slice of ConfigParams.
 func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 	var configs []ConfigParams
+	// Get an iterator for all documents in the collection.
 	iter := firestoreClient.Collection(collectionName).Documents(ctx)
 	defer iter.Stop()
+	// Iterate over the documents.
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -112,13 +148,16 @@ func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error iterating documents: %w", err)
 		}
+		// Decode the document into a ConfigParams struct.
 		var config ConfigParams
 		if err := doc.DataTo(&config); err != nil {
 			log.Printf("Warning: Failed to parse document %s: %v. Skipping.", doc.Ref.ID, err)
 			continue
 		}
+		// Set the FirestoreID from the document reference.
 		config.FirestoreID = doc.Ref.ID
 
+		// Set default values for QPS and Duration if they are not provided.
 		if config.QPS == 0 {
 			config.QPS = 1
 		}
@@ -131,13 +170,17 @@ func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 	return configs, nil
 }
 
+// generateLoad generates HTTP requests to a target URL based on the provided configuration.
+// It runs until the duration is reached or a stop signal is received.
 func generateLoad(config ConfigParams, stop <-chan struct{}) {
+	// Parse the target URL.
 	target, err := url.Parse(config.TargetURL)
 	if err != nil {
 		log.Printf("[%s] Invalid Target URL %s: %v", config.FirestoreID, config.TargetURL, err)
 		return
 	}
 
+	// Add the target CPU as a query parameter if it is specified.
 	query := target.Query()
 	if config.TargetCPU > 0 {
 		query.Set("targetCpuPct", strconv.Itoa(config.TargetCPU))
@@ -148,25 +191,31 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 	log.Printf("[%s] Starting requests to: %s (QPS: %d, Duration: %ds)",
 		config.FirestoreID, finalURL, config.QPS, config.Duration)
 
+	// Ensure QPS is a positive number.
 	if config.QPS <= 0 {
 		log.Printf("[%s] QPS is %d, must be positive. Skipping.", config.FirestoreID, config.QPS)
 		return
 	}
 
+	// Create a ticker to control the request rate (QPS).
 	interval := time.Second / time.Duration(config.QPS)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	// Create a timer to stop the load generation after the specified duration.
 	var durationTimer <-chan time.Time
 	if config.Duration != -1 {
 		durationTimer = time.NewTimer(time.Duration(config.Duration) * time.Second).C
 	}
 
+	// Create an HTTP client with a timeout.
 	client := &http.Client{Timeout: 10 * time.Second}
 	requestCount := 0
 
+	// Main loop for sending requests.
 	for {
 		select {
+		// When the ticker fires, send a request.
 		case <-ticker.C:
 			go func() {
 				resp, err := client.Get(finalURL)
@@ -177,11 +226,13 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 				defer resp.Body.Close()
 			}()
 			requestCount++
+		// When the duration timer fires, stop the load generation.
 		case <-durationTimer:
 			log.Printf("[%s] Duration of %d seconds reached for %s. Sent %d requests.",
 				config.FirestoreID, config.Duration, finalURL, requestCount)
 			queryAndLogMetrics(config, finalURL, projectIDEnv, requestCount)
 			return
+		// When a stop signal is received, stop the load generation.
 		case <-stop:
 			log.Printf("[%s] Stopping load generation for %s.", config.FirestoreID, finalURL)
 			return
@@ -189,9 +240,12 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 	}
 }
 
+// queryAndLogMetrics calculates and logs metrics about the load generation.
 func queryAndLogMetrics(config ConfigParams, actualURL string, projectID string, requestsSentByThisInstance int) {
+	// Calculate the actual QPS based on the number of requests sent and the duration.
 	calculatedQPS := float64(requestsSentByThisInstance) / float64(config.Duration)
 
+	// Log the metrics.
 	log.Printf("METRICS [%s]: Target URL: %s, Configured QPS: %d, Actual QPS (calculated by this instance): %.2f",
 		config.FirestoreID, actualURL, config.QPS, calculatedQPS)
 }
