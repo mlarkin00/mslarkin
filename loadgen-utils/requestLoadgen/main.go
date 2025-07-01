@@ -154,16 +154,16 @@ func main() {
 	}(loadCtx)
 	// Wait for a termination signal.
 	sig := <-signalChan
-	log.Printf("%s signal caught", sig)
+	log.Printf("SIGNAL: %s\n", sig)
 	// Close all stop channels to signal goroutines to stop.
 	for id, stopChan := range stopChans {
 		log.Printf("Stopping load generation for config %s", id)
 		close(stopChan)
 	}
-	// Wait for all goroutines to finish.
-	wg.Wait()
 	// Cancel the load generation context to stop all goroutines.
 	loadCtxCancel()
+	// Wait for all goroutines to finish.
+	wg.Wait()
 	log.Println("RequestLoadgen service stopped gracefully.")
 }
 
