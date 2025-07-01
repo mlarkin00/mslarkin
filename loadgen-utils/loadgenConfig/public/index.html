@@ -43,6 +43,7 @@
                     <td>{{ config.targetUrl }}</td>
                     <td>{{ config.targetCpu }}</td>
                     <td>{{ config.qps }}</td>
+                    <td v-if="config.duration<0"></td>
                     <td v-if="config.duration>0">{{ config.duration }}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" @click="editConfig(config)">Update</button>
