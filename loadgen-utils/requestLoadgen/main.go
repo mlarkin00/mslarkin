@@ -284,7 +284,7 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 			return
 		// When a stop signal is received, stop the load generation.
 		case <-stop:
-			log.Printf("[%s] Stopping load generation for %s.", config.FirestoreID, finalURL)
+			// log.Printf("[%s] Stopping load generation for %s.", config.FirestoreID, finalURL)
 			return
 		}
 	}
