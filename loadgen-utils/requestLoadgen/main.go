@@ -289,13 +289,3 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 		}
 	}
 }
-
-// queryAndLogMetrics calculates and logs metrics about the load generation.
-func queryAndLogMetrics(config ConfigParams, actualURL string, projectID string, requestsSentByThisInstance int) {
-	// Calculate the actual QPS based on the number of requests sent and the duration.
-	calculatedQPS := float64(requestsSentByThisInstance) / float64(config.Duration)
-
-	// Log the metrics.
-	log.Printf("METRICS [%s]: Target URL: %s, Configured QPS: %d, Actual QPS (calculated by this instance): %.2f",
-		config.FirestoreID, actualURL, config.QPS, calculatedQPS)
-}
