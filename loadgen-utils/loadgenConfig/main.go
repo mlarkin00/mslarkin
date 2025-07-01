@@ -62,7 +62,7 @@ func main() {
 	}
 	defer firestoreClient.Close()
 
-	fs, err := fs.Sub(publicFS, "public")
+	fs, err := fs.Sub(publicFS, "public/dist")
 	if err != nil {
 		log.Fatal(err)
 	}
