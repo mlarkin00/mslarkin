@@ -36,11 +36,10 @@ type ConfigParams struct {
 	FirestoreID string `firestore:"-"`
 }
 
-// projectIDEnv is the environment variable for the Google Cloud project ID.
-const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
-
 // collectionName is the name of the Firestore collection where load generation configurations are stored.
 const collectionName = "loadgen-configs"
+
+var projectID string
 
 var (
 	// firestoreClient is the global client for interacting with Firestore.
@@ -57,9 +56,14 @@ func main() {
 	// Create a background context.
 	ctx := context.Background()
 	// Get the project ID from the environment variable, with a default value.
-	projectID := os.Getenv(projectIDEnv)
+	projectID = os.Getenv("PROJECT_ID")
 	if projectID == "" {
 		projectID = "mslarkin-ext"
+	}
+	pollRateS := os.Getenv("POLL_RATE_S")
+	pollRate := 30 // Default poll rate is 30 seconds
+	if pollRateS != "" {
+		pollRate, _ = strconv.Atoi(os.Getenv("POLL_RATE_S"))
 	}
 
 	// SIGINT handles Ctrl+C locally.
@@ -89,7 +93,7 @@ func main() {
 	// Start load generation in a goroutine to allow for signal handling and graceful shutdown.
 	go func(ctx context.Context) {
 		// Create a ticker to periodically re-read the configurations from Firestore.
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(time.Duration(pollRate) * time.Second)
 		defer ticker.Stop()
 
 		// Main loop to manage load generation based on Firestore configurations.
@@ -261,7 +265,7 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 		case <-durationTimer:
 			log.Printf("[%s] Duration of %d seconds reached for %s. Sent %d requests.",
 				config.FirestoreID, config.Duration, finalURL, requestCount)
-			queryAndLogMetrics(config, finalURL, projectIDEnv, requestCount)
+			queryAndLogMetrics(config, finalURL, projectID, requestCount)
 			return
 		// When a stop signal is received, stop the load generation.
 		case <-stop:
