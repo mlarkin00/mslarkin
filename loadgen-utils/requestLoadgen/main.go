@@ -93,11 +93,19 @@ func main() {
 		newConfigMap := make(map[string]ConfigParams)
 		for _, config := range newConfigs {
 			newConfigMap[config.FirestoreID] = config
+			log.Printf("[%s] %v - ReadConfig: %s (QPS: %d, Duration: %ds)",
+				config.FirestoreID, config.Active, config.TargetURL, config.QPS, config.Duration)
 		}
+		log.Println("----------------------------------")
 
 		// Stop goroutines for configurations that have been removed or deactivated.
 		for id := range configs {
+			_, running := stopChans[id]
+			log.Printf("[%s] %v - Stop Check: %s (Running: %v)",
+				configs[id].FirestoreID, configs[id].Active, configs[id].TargetURL, running)
+			//Check if the config was in the old set but not the new set
 			if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
+				//If the config was removed (in old, not new) and is running, stop it.
 				_, exists := stopChans[id]
 				if exists {
 					log.Printf("Stopping load generation for config %s", id)
@@ -111,6 +119,8 @@ func main() {
 		for id, config := range newConfigMap {
 			// Skip inactive configurations.
 			if !config.Active {
+				log.Printf("[%s] %v - Inactive Config: %s (QPS: %d, Duration: %ds)",
+					config.FirestoreID, config.Active, config.TargetURL, config.QPS, config.Duration)
 				continue
 			}
 			// If the configuration is new, start a new goroutine for it.
