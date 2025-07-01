@@ -196,7 +196,7 @@ func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 			config.QPS = 1
 		}
 		if config.Duration == 0 {
-			config.Duration = 1
+			config.Duration = 60
 		}
 
 		configs = append(configs, config)
@@ -207,6 +207,9 @@ func readConfigs(ctx context.Context) ([]ConfigParams, error) {
 // generateLoad generates HTTP requests to a target URL based on the provided configuration.
 // It runs until the duration is reached or a stop signal is received.
 func generateLoad(config ConfigParams, stop <-chan struct{}) {
+	loadCtx, loadCtxCancel := context.WithCancel(context.Background())
+	defer loadCtxCancel()
+
 	// Parse the target URL.
 	target, err := url.Parse(config.TargetURL)
 	if err != nil {
@@ -264,7 +267,11 @@ func generateLoad(config ConfigParams, stop <-chan struct{}) {
 		case <-durationTimer:
 			log.Printf("[%s] Duration of %d seconds reached for %s. Sent %d requests.",
 				config.FirestoreID, config.Duration, finalURL, requestCount)
-			queryAndLogMetrics(config, finalURL, projectID, requestCount)
+			config.Active = false // Set the config to inactive after duration ends
+			_, err := firestoreClient.Collection(collectionName).Doc(config.FirestoreID).Set(loadCtx, config)
+			if err != nil {
+				log.Printf("Error updating document: %v", err)
+			}
 			return
 		// When a stop signal is received, stop the load generation.
 		case <-stop:
