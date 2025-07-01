@@ -15,11 +15,11 @@ steps:
 timeout: 300s
 substitutions:
   _REPO: 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-utils'
-  _SRC: './go-flexible-workload'
-  _IMAGE: go-flexible-workload
+  _SRC: './loadgen-utils/loadgenConfig'
+  _IMAGE: loadgen-config
 
 options:
-  dynamicSubstitutions: true
-  substitutionOption: 'ALLOW_LOOSE'
-  logging: CLOUD_LOGGING_ONLY 
+    dynamicSubstitutions: true
+    substitutionOption: 'ALLOW_LOOSE'
+    logging: CLOUD_LOGGING_ONLY 
     # logging: GCS_ONLY 

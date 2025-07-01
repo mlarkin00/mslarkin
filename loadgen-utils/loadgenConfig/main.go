@@ -43,7 +43,7 @@ var (
 	firestoreClient *firestore.Client
 )
 
-//go:embed all:public
+//go:embed all:public/dist
 var publicFS embed.FS
 
 // main is the entry point of the application. It initializes the Firestore client,
