@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -45,6 +47,9 @@ var (
 	firestoreClient *firestore.Client
 )
 
+// Create channel to listen for signals.
+var signalChan chan (os.Signal) = make(chan os.Signal, 1)
+
 // main is the entry point of the application.
 // It initializes the Firestore client, and then enters a loop to periodically
 // read load generation configurations and manage the load generation goroutines.
@@ -56,6 +61,10 @@ func main() {
 	if projectID == "" {
 		projectID = "mslarkin-ext"
 	}
+
+	// SIGINT handles Ctrl+C locally.
+	// SIGTERM handles Cloud Run termination signal.
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Initialize the Firestore client.
 	var err error
@@ -75,65 +84,83 @@ func main() {
 	// wg is a WaitGroup to wait for all goroutines to finish before exiting.
 	var wg sync.WaitGroup
 
-	// Create a ticker to periodically re-read the configurations from Firestore.
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
+	loadCtx, loadCtxCancel := context.WithCancel(context.Background())
+	defer loadCtx.Done()
+	// Start load generation in a goroutine to allow for signal handling and graceful shutdown.
+	go func(ctx context.Context) {
+		// Create a ticker to periodically re-read the configurations from Firestore.
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
 
-	// Main loop to manage load generation based on Firestore configurations.
-	for ; true; <-ticker.C {
-		// log.Println("Reading configurations from Firestore...")
-		// Read the latest configurations from Firestore.
-		newConfigs, err := readConfigs(ctx)
-		if err != nil {
-			log.Printf("Error reading configs from Firestore: %v", err)
-			continue
-		}
-
-		// Create a map of the new configurations for easy lookup.
-		newConfigMap := make(map[string]ConfigParams)
-		for _, config := range newConfigs {
-			newConfigMap[config.FirestoreID] = config
-		}
-
-		// Stop goroutines for configurations that have been removed or deactivated.
-		for id := range configs {
-			//Check if the config was in the old set but not the new set
-			if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
-				//If the config was removed (in old, not new) and is running, stop it.
-				if _, exists := stopChans[id]; exists {
-					log.Printf("Stopping load generation for config %s", id)
-					close(stopChans[id])
-					delete(stopChans, id)
-				}
-			}
-		}
-
-		// Start or update goroutines for new or existing active configs.
-		for id, config := range newConfigMap {
-			// Skip inactive configurations.
-			if !config.Active {
+		// Main loop to manage load generation based on Firestore configurations.
+		for ; true; <-ticker.C {
+			// log.Println("Reading configurations from Firestore...")
+			// Read the latest configurations from Firestore.
+			newConfigs, err := readConfigs(ctx)
+			if err != nil {
+				log.Printf("Error reading configs from Firestore: %v", err)
 				continue
 			}
-			// If the configuration isn't running, start a new goroutine for it.
-			if _, exists := stopChans[id]; !exists {
-				// log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
-				stopChan := make(chan struct{})
-				stopChans[id] = stopChan
-				wg.Add(1)
-				go func(cfg ConfigParams, stop <-chan struct{}) {
-					defer wg.Done()
-					generateLoad(cfg, stop)
-				}(config, stopChan)
+
+			// Create a map of the new configurations for easy lookup.
+			newConfigMap := make(map[string]ConfigParams)
+			for _, config := range newConfigs {
+				newConfigMap[config.FirestoreID] = config
 			}
+
+			// Stop goroutines for configurations that have been removed or deactivated.
+			for id := range configs {
+				//Check if the config was in the old set but not the new set
+				if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
+					//If the config was removed (in old, not new) and is running, stop it.
+					if _, exists := stopChans[id]; exists {
+						log.Printf("[%s] Stopping load generation: %s", id, newConfig.TargetURL)
+						close(stopChans[id])
+						delete(stopChans, id)
+					}
+				}
+			}
+
+			// Start or update goroutines for new or existing active configs.
+			for id, config := range newConfigMap {
+				// Skip inactive configurations.
+				if !config.Active {
+					continue
+				}
+				// If the configuration isn't running, start a new goroutine for it.
+				if _, exists := stopChans[id]; !exists {
+					// log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
+					stopChan := make(chan struct{})
+					stopChans[id] = stopChan
+					wg.Add(1)
+					go func(cfg ConfigParams, stop <-chan struct{}) {
+						defer wg.Done()
+						generateLoad(cfg, stop)
+					}(config, stopChan)
+				}
+			}
+
+			// Update the current set of configurations.
+			configs = newConfigMap
 		}
 
-		// Update the current set of configurations.
-		configs = newConfigMap
+		// Wait for all load generation goroutines to complete.
+		wg.Wait()
+		log.Println("All load generation tasks completed.")
+	}(loadCtx)
+	// Wait for a termination signal.
+	sig := <-signalChan
+	log.Printf("%s signal caught", sig)
+	// Cancel the load generation context to stop all goroutines.
+	loadCtxCancel()
+	// Close all stop channels to signal goroutines to stop.
+	for id, stopChan := range stopChans {
+		log.Printf("Stopping load generation for config %s", id)
+		close(stopChan)
 	}
-
-	// Wait for all load generation goroutines to complete.
+	// Wait for all goroutines to finish.
 	wg.Wait()
-	log.Println("All load generation tasks completed.")
+	log.Println("RequestLoadgen service stopped gracefully.")
 }
 
 // readConfigs reads all documents from the configured Firestore collection
