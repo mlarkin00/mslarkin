@@ -131,6 +131,15 @@ func main() {
 				if !config.Active {
 					continue
 				}
+
+				// If the configuration has changed, stop the existing goroutine if it is running.
+				if config != configs[id] {
+					if _, exists := stopChans[id]; exists {
+						close(stopChans[id])
+						delete(stopChans, id)
+					}
+				}
+
 				// If the configuration isn't running, start a new goroutine for it.
 				if _, exists := stopChans[id]; !exists {
 					// log.Printf("Starting load generation for TargetURL: %s", config.TargetURL)
