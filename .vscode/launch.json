@@ -31,7 +31,7 @@
       "request": "launch",
       "build": {
         "docker": {
-          "path": "loadgen-utils/loadgenConfig/Dockerfile"
+          "path": "loadgen-utils/requestLoadgen/Dockerfile"
         }
       },
       "image": "request-loadgen",

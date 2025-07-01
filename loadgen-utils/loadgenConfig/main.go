@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -17,7 +18,7 @@ import (
 // ConfigParams holds the configuration parameters from the user input.
 // These parameters are used to define a load generation test.
 type ConfigParams struct {
-	ID          string `firestore:"-" json:"id"`
+	ID string `firestore:"-" json:"id"`
 	// TargetURL is the URL of the service to be tested.
 	TargetURL string `firestore:"targetUrl" json:"targetUrl"`
 	// TargetCPU is the target CPU utilization percentage for the load test.
@@ -114,6 +115,21 @@ func handleGetConfigs(w http.ResponseWriter, r *http.Request) {
 		config.ID = doc.Ref.ID
 		configs = append(configs, config)
 	}
+
+	slices.SortFunc(configs, func(a, b ConfigParams) int {
+		if a.Active && !b.Active {
+			return -1
+		} else if !a.Active && b.Active {
+			return 1
+		} else if a.Active == b.Active {
+			if a.TargetURL < b.TargetURL {
+				return -1
+			} else if a.TargetURL > b.TargetURL {
+				return 1
+			}
+		}
+		return 0
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(configs); err != nil {

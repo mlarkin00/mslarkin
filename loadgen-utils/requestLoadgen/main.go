@@ -81,7 +81,7 @@ func main() {
 
 	// Main loop to manage load generation based on Firestore configurations.
 	for ; true; <-ticker.C {
-		log.Println("Reading configurations from Firestore...")
+		// log.Println("Reading configurations from Firestore...")
 		// Read the latest configurations from Firestore.
 		newConfigs, err := readConfigs(ctx)
 		if err != nil {
@@ -98,9 +98,12 @@ func main() {
 		// Stop goroutines for configurations that have been removed or deactivated.
 		for id := range configs {
 			if newConfig, ok := newConfigMap[id]; !ok || !newConfig.Active {
-				log.Printf("Stopping load generation for config %s", id)
-				close(stopChans[id])
-				delete(stopChans, id)
+				_, exists := stopChans[id]
+				if exists {
+					log.Printf("Stopping load generation for config %s", id)
+					close(stopChans[id])
+					delete(stopChans, id)
+				}
 			}
 		}
 
