@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Load Generation Configuration</h1>
+    <h3>Load Generation Configuration</h3>
     <ConfigForm :config="config" :is-editing="isEditing" @submit-form="submitForm" @reset-form="resetForm" />
     <div>
       <p v-if="message" :class="{ 'error-message': error, 'success-message': !error }">{{ message }}</p>
@@ -16,10 +16,9 @@
           {{ message }}
         </div>
       </div>
-      <h2>Existing Configs</h2>
-      <ConfigList :configs="configs" @delete-config="deleteConfig" @edit-config="editConfig"
-        @toggle-active="toggleActive" />
     </div>
+    <ConfigList :configs="configs" @delete-config="deleteConfig" @edit-config="editConfig"
+      @toggle-active="toggleActive" />
   </div>
 </template>
 
@@ -48,9 +47,15 @@
       };
     },
     computed: {
-      isPerpetual() {
-        return this.config.duration < 0 ? true : false;
-      }
+      perpetualConfigs() {
+        return this.configs.filter((config) => config.duration < 0);
+      },
+      timedConfigs() {
+        return this.configs.filter((config) => config.duration >= 0);
+      },
+      altConfigs() {
+        return this.configs;
+      },
     },
     methods: {
       async submitForm(configData) {
@@ -154,7 +159,7 @@
     beforeUnmount() {
       clearInterval(this.timer);
     },
-  };
+  }
 </script>
 
 <style>

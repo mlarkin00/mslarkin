@@ -1,0 +1,42 @@
+steps:
+  - id: "Pull latest image for caching"
+    waitFor: ["-"]
+    name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args: ["-c", "docker pull ${_REPO}/${_IMAGE}:latest || exit 0"]
+
+  - id: "Build workload image"
+    waitFor: ["Pull latest image for caching"]
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "${_REPO}/${_IMAGE}",
+        "--cache-from",
+        "${_REPO}/${_IMAGE}:latest",
+        "${_SRC}",
+      ]
+
+  - id: "Push to AR"
+    name: "gcr.io/cloud-builders/docker"
+    waitFor: ["Build workload image"]
+    args: ["push", "${_REPO}/${_IMAGE}"]
+
+  - id: "Redeploy loadgen-config"
+    waitFor: ["Push to AR"]
+    name: gcr.io/cloud-builders/gcloud
+    args: ["run", "deploy", "loadgen-config", "--image", "${_REPO}/${_IMAGE}"]
+
+timeout: 300s
+substitutions:
+  _REPO: "us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-utils"
+  _SRC: "."
+  _IMAGE: loadgen-config
+
+options:
+  dynamicSubstitutions: true
+  substitutionOption: "ALLOW_LOOSE"
+  logging:
+    CLOUD_LOGGING_ONLY
+    # logging: GCS_ONLY
