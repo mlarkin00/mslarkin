@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	// "embed"
 	"encoding/json"
 	"fmt"
-	// "io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -40,9 +38,6 @@ var (
 	firestoreClient *firestore.Client
 )
 
-// //go:embed all:public
-// var publicFS embed.FS
-
 // main is the entry point of the application. It initializes the Firestore client,
 // sets up the HTTP server and handlers, and starts listening for requests.
 func main() {
@@ -59,12 +54,6 @@ func main() {
 	}
 	defer firestoreClient.Close()
 
-	// fs, err := fs.Sub(publicFS, "public")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// http.Handle("/", http.FileServer(http.FS(fs)))
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/api/submit", handleSubmit)
 	http.HandleFunc("/api/configs", handleGetConfigs)

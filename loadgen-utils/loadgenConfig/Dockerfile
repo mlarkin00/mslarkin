@@ -10,8 +10,8 @@ WORKDIR /src
 # Copying this first prevents re-running npm install on every code change.
 # COPY package*.json ./
 
-COPY vue-src ./vue-src
-WORKDIR /src/vue-src
+COPY public ./public
+WORKDIR /src/public
 
 # Install dependencies.
 # if you need a deterministic and repeatable build create a
@@ -50,6 +50,6 @@ RUN apk add --no-cache ca-certificates
 # Copy the binary to the production image from the builder stage.
 COPY --from=go-builder /app/workload /workload
 # Copy the Vue application from the node-builder stage.
-COPY --from=node-builder /src/vue-src/dist ./public
+COPY --from=node-builder /src/public/dist ./public
 # Run the web service on container startup.
 ENTRYPOINT ["/workload"]
