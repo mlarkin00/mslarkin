@@ -20,10 +20,8 @@ WORKDIR /src/vue-src
 # if you need to include development dependencies during development
 # of your application, use:
 # RUN npm install --dev
-RUN ls 
 RUN npm install 
 RUN npm run build
-RUN ls dist
 
 # Use the official Golang image to create a build artifact.
 # This is based on Debian and sets the GOPATH to /go.
