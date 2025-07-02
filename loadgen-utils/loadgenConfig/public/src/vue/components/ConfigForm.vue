@@ -3,7 +3,7 @@
     <input type="hidden" v-model="localConfig.id" />
     <div class="form-group">
       <label for="targetUrl">Target URL</label>
-      <input type="text" class="form-control" id="targetUrl" v-model="localConfig.targetUrl" required>
+      <input type="text" class="form-control" id="targetUrl" v-model.trim="localConfig.targetUrl" required>
     </div>
     <div class="form-group">
       <label for="qps">QPS</label>
