@@ -1,14 +1,6 @@
 <template>
   <form @submit.prevent="$emit('submit-form', localConfig)">
     <input type="hidden" v-model="localConfig.id" />
-    <!-- <label for="targetUrl">Target URL:</label>
-    <input type="text" id="targetUrl" v-model="localConfig.targetUrl" required />
-    <label for="qps">QPS:</label>
-    <input type="number" id="qps" v-model.number="localConfig.qps" />
-    <label for="duration">Duration (seconds):</label>
-    <input type="number" id="duration" v-model.number="localConfig.duration" />
-    <label for="targetCpu">Target CPU:</label>
-    <input type="number" id="targetCpu" v-model.number="localConfig.targetCpu" /> -->
     <div class="form-group">
       <label for="targetUrl">Target URL</label>
       <input type="text" class="form-control" id="targetUrl" v-model="localConfig.targetUrl" required>
