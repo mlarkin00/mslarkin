@@ -19,24 +19,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o workload
 FROM node:20-slim as node-builder
 
 # Create and change to the app directory.
-WORKDIR /src
+WORKDIR /src/public
 
 # Copy application dependency manifests to the container image.
 # A wildcard is used to ensure copying both package.json AND package-lock.json (when available).
 # Copying this first prevents re-running npm install on every code change.
-# COPY package*.json ./
-
-COPY public ./public
-WORKDIR /src/public
-
-# Install dependencies.
-# if you need a deterministic and repeatable build create a
-# package-lock.json file and use npm ci:
-# RUN npm ci --omit=dev
-# if you need to include development dependencies during development
-# of your application, use:
-# RUN npm install --dev
+COPY ./public/package*.json ./
 RUN npm install 
+COPY ./public .
 RUN npm run build
 
 # Build the runtime container image from scratch, copying what is needed from the previous stage.  

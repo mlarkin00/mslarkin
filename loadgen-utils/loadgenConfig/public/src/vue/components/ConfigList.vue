@@ -1,17 +1,7 @@
 <template>
   <h3><small class="text-body-secondary">Existing Configs</small></h3>
   <div>
-    <li v-for="tc in configs" :key="c.id">
-      {{ c }}
-    </li>
-    <li v-for="ac in altConfigs" :key="ac.id">
-      {{ ac }}
-    </li>
-    <li v-for="tc in timedConfigs" :key="tc.id">
-      {{ tc }}
-    </li>
-  </div>
-  <!-- <div>
+    <h4><small class="text-body-secondary">Timed Configs</small></h4>
     <table class="table table-striped">
       <thead>
         <tr>
@@ -41,6 +31,7 @@
           </td>
         </tr>
       </tbody>
+      <h4><small class="text-body-secondary">Perpetual Configs</small></h4>
     </table>
     <table class="table table-striped">
       <thead>
@@ -66,13 +57,21 @@
         </tr>
       </tbody>
     </table>
-  </div> -->
+  </div>
 </template>
 
 <script>
   export default {
     props: {
       configs: Array,
+    },
+    computed: {
+      perpetualConfigs() {
+        return this.configs.filter((config) => config.duration < 0);
+      },
+      timedConfigs() {
+        return this.configs.filter((config) => config.duration >= 0);
+      },
     },
   };
 </script>

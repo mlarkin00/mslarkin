@@ -26,7 +26,18 @@ steps:
   - id: "Redeploy loadgen-config"
     waitFor: ["Push to AR"]
     name: gcr.io/cloud-builders/gcloud
-    args: ["run", "deploy", "loadgen-config", "--image", "${_REPO}/${_IMAGE}"]
+    args:
+      [
+        "run",
+        "deploy",
+        "loadgen-config",
+        "--region",
+        "us-west1",
+        "--project",
+        "mslarkin-ext",
+        "--image",
+        "${_REPO}/${_IMAGE}",
+      ]
 
 timeout: 300s
 substitutions:
