@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"embed"
+	// "embed"
 	"encoding/json"
 	"fmt"
-	"io/fs"
+	// "io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -31,9 +31,6 @@ type ConfigParams struct {
 	Active bool `firestore:"active" json:"active"`
 }
 
-// projectIDEnv is the environment variable that contains the Google Cloud project ID.
-const projectIDEnv = "GOOGLE_CLOUD_PROJECT"
-
 // collectionName is the name of the Firestore collection where the load generation
 // configurations are stored.
 const collectionName = "loadgen-configs"
@@ -43,15 +40,15 @@ var (
 	firestoreClient *firestore.Client
 )
 
-//go:embed all:public/dist
-var publicFS embed.FS
+// //go:embed all:public
+// var publicFS embed.FS
 
 // main is the entry point of the application. It initializes the Firestore client,
 // sets up the HTTP server and handlers, and starts listening for requests.
 func main() {
 	var err error
 	ctx := context.Background()
-	projectID := os.Getenv(projectIDEnv)
+	projectID := os.Getenv("PROJECT_ID")
 	if projectID == "" {
 		projectID = "mslarkin-ext" // Default project ID
 	}
@@ -62,12 +59,13 @@ func main() {
 	}
 	defer firestoreClient.Close()
 
-	fs, err := fs.Sub(publicFS, "public/dist")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// fs, err := fs.Sub(publicFS, "public")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	http.Handle("/", http.FileServer(http.FS(fs)))
+	// http.Handle("/", http.FileServer(http.FS(fs)))
+	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/api/submit", handleSubmit)
 	http.HandleFunc("/api/configs", handleGetConfigs)
 	http.HandleFunc("/api/delete/", handleDeleteConfig)

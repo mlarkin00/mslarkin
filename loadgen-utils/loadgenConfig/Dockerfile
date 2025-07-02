@@ -8,7 +8,10 @@ WORKDIR /src
 # Copy application dependency manifests to the container image.
 # A wildcard is used to ensure copying both package.json AND package-lock.json (when available).
 # Copying this first prevents re-running npm install on every code change.
-COPY package*.json ./
+# COPY package*.json ./
+
+COPY vue-src ./vue-src
+WORKDIR /src/vue-src
 
 # Install dependencies.
 # if you need a deterministic and repeatable build create a
@@ -17,9 +20,10 @@ COPY package*.json ./
 # if you need to include development dependencies during development
 # of your application, use:
 # RUN npm install --dev
-
-RUN npm install --omit=dev
+RUN ls 
+RUN npm install 
 RUN npm run build
+RUN ls dist
 
 # Use the official Golang image to create a build artifact.
 # This is based on Debian and sets the GOPATH to /go.
@@ -47,7 +51,7 @@ FROM alpine:3
 RUN apk add --no-cache ca-certificates
 # Copy the binary to the production image from the builder stage.
 COPY --from=go-builder /app/workload /workload
-
-RUN ls -R /workload
+# Copy the Vue application from the node-builder stage.
+COPY --from=node-builder /src/vue-src/dist ./public
 # Run the web service on container startup.
 ENTRYPOINT ["/workload"]
