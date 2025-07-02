@@ -2,9 +2,9 @@
   <div id="app">
     <h3>Load Generation Configuration</h3>
     <ConfigForm :config="config" :is-editing="isEditing" @submit-form="submitForm" @reset-form="resetForm" />
-    <div v-if="message" class="toast show align-items-center border-0"
-      :class="{ 'text-bg-danger': error, 'text-bg-primary': !error }" role="alert" aria-live="assertive"
-      aria-atomic="true">
+    <div v-if="message" class="toast show align-items-center border-0 g-2"
+      :class="{ 'text-bg-danger': error, 'text-bg-primary': !error }" role="alert" data-bs-autohide="true"
+      data-bs-delay='5000' aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body">
           {{ message }}

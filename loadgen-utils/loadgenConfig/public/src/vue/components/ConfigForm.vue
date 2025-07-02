@@ -1,6 +1,6 @@
 <template>
   <h3><small class="text-body-secondary">{{ isEditing ? 'Update Config' : 'Create New config' }}</small></h3>
-  <div>
+  <div class='g-3'>
     <form @submit.prevent="$emit('submit-form', localConfig)">
       <input type="hidden" v-model="localConfig.id" />
       <div class="form-group">
