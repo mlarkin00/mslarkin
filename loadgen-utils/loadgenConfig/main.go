@@ -54,7 +54,7 @@ func main() {
 	}
 	defer firestoreClient.Close()
 
-	http.Handle("/", http.FileServer(http.Dir("public")))
+	http.Handle("/", http.FileServer(http.Dir("public/dist")))
 	http.HandleFunc("/api/submit", handleSubmit)
 	http.HandleFunc("/api/configs", handleGetConfigs)
 	http.HandleFunc("/api/delete/", handleDeleteConfig)

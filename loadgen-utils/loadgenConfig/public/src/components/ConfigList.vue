@@ -1,8 +1,7 @@
-
 <template>
   <div>
     <h2>Existing Configs</h2>
-    <table>
+    <table class="table">
       <thead>
         <tr>
           <th>Target URL</th>
@@ -16,11 +15,14 @@
         <tr v-for="c in configs" :key="c.id">
           <td>{{ c.targetUrl }}</td>
           <td>{{ c.qps }}</td>
-          <td>{{ c.duration }}</td>
+          <td v-if="c.duration < 0"></td>
+          <td v-if="c.duration > 0">{{ c.duration }}</td>
           <td>{{ c.targetCpu }}</td>
           <td>
-            <button @click="$emit('edit-config', c)">Update</button>
-            <button @click="$emit('delete-config', c.id)">Delete</button>
+            <button class="btn btn-sm btn-primary" @click="$emit('edit-config', c)">Update</button>
+            <button class="btn btn-sm btn-danger" @click="$emit('delete-config', c.id)">Delete</button>
+            <button v-if="!c.active" class="btn btn-sm btn-success" @click="$emit('toggle-active', c.id)">Start</button>
+            <button v-if="c.active" class="btn btn-sm btn-warning" @click="$emit('toggle-active', c.id)">Stop</button>
           </td>
         </tr>
       </tbody>
@@ -29,9 +31,9 @@
 </template>
 
 <script>
-export default {
-  props: {
-    configs: Array,
-  },
-};
+  export default {
+    props: {
+      configs: Array,
+    },
+  };
 </script>

@@ -50,6 +50,6 @@ RUN apk add --no-cache ca-certificates
 # Copy the binary to the production image from the builder stage.
 COPY --from=go-builder /app/workload /workload
 # Copy the Vue application from the node-builder stage.
-COPY --from=node-builder /src/public/dist ./public
+COPY --from=node-builder /src/public/dist ./public/dist
 # Run the web service on container startup.
 ENTRYPOINT ["/workload"]
