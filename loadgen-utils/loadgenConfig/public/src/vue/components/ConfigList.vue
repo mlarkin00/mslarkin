@@ -1,6 +1,6 @@
 <template>
   <h3><small class="text-body-secondary">Existing Configs</small></h3>
-  <div class='g-3'>
+  <div class='container-lg g-3'>
     <h4><small class="text-body-secondary">Timed Configs</small></h4>
     <table class="table table-striped">
       <thead>
@@ -33,6 +33,8 @@
       </tbody>
       <h4><small class="text-body-secondary">Perpetual Configs</small></h4>
     </table>
+  </div>
+  <div class='container-lg g-3'>
     <table class="table table-striped">
       <thead>
         <tr>

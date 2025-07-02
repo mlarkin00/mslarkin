@@ -2,15 +2,16 @@
   <div id="app">
     <h3>Load Generation Configuration</h3>
     <ConfigForm :config="config" :is-editing="isEditing" @submit-form="submitForm" @reset-form="resetForm" />
-    <div v-if="message" class="toast show align-items-center border-0 g-2"
-      :class="{ 'text-bg-danger': error, 'text-bg-primary': !error }" role="alert" data-bs-autohide="true"
-      data-bs-delay='5000' aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          {{ message }}
+    <div class="toast-container align-items-center border-0 g-2">
+      <div id="actionToast" class="toast" :class="{ 'text-bg-danger': error, 'text-bg-primary': !error }" role="alert"
+        data-bs-autohide="true" data-bs-delay='5000' aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ message }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+            aria-label="Close"></button>
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-          aria-label="Close"></button>
       </div>
     </div>
     <ConfigList :configs="configs" @delete-config="deleteConfig" @edit-config="editConfig"
@@ -140,6 +141,12 @@
     mounted() {
       this.loadConfigs(); // Initial load
       this.timer = setInterval(this.loadConfigs, 30000); // Load configs every 30 seconds
+
+      const actionToast = document.getElementById('actionToast');
+      const toast = new bootstrap.Toast.getOrCreateInstance(actionToast);
+      if (this.message) {
+        toast.show();
+      }
     },
     beforeUnmount() {
       clearInterval(this.timer);
