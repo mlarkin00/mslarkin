@@ -1,6 +1,5 @@
 <template>
   <div>
-    <h2>Existing Configs</h2>
     <table class="table">
       <thead>
         <tr>

@@ -28,6 +28,20 @@
     <button type="submit" class="btn btn-primary">{{ isEditing ? 'Update' : 'Create' }}</button>
     <button type="button" class="btn btn-secondary" @click="$emit('reset-form')" v-if="isEditing">Cancel</button>
   </form>
+  <!-- <div v-if="message" class="alert mt-3" :class="{'alert-success': !error, 'alert-danger': error}">{{ message }}</div> -->
+  <!-- <div v-if="message" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <img src="..." class="rounded mr-2" alt="...">
+      <strong class="mr-auto">Bootstrap</strong>
+      <small>11 mins ago</small>
+      <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="toast-body">
+      {{ message }}
+    </div> -->
+  <!-- </div> -->
 </template>
 
 <script>
