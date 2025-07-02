@@ -48,7 +48,12 @@ func main() {
 		projectID = "mslarkin-ext" // Default project ID
 	}
 
-	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
+	fsDB := os.Getenv("FIRESTORE_DB")
+	if fsDB == "" {
+		fsDB = "loadgen-target-config" // Default DB
+	}
+
+	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, fsDB)
 	if err != nil {
 		log.Fatalf("Failed to create Firestore client: %v", err)
 	}
@@ -161,7 +166,7 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration saved successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration created"})
 }
 
 // handleDeleteConfig handles the DELETE request to the "/api/delete/{id}" URL.
@@ -183,7 +188,7 @@ func handleDeleteConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration deleted successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration deleted"})
 }
 
 // handleUpdateConfig handles the PUT request to the "/api/update/{id}" URL.
@@ -211,7 +216,7 @@ func handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration updated successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Configuration updated"})
 }
 
 // handleToggleActive handles the PUT request to the "/api/toggleActive/{id}" URL.

@@ -1,8 +1,21 @@
 <template>
   <div id="app">
     <h1>Load Generation Configuration</h1>
-    <p v-if="message" :class="{ 'error-message': error, 'success-message': !error }">{{ message }}</p>
     <ConfigForm :config="config" :is-editing="isEditing" @submit-form="submitForm" @reset-form="resetForm" />
+    <p v-if="message" :class="{ 'error-message': error, 'success-message': !error }">{{ message }}</p>
+    <!-- <div v-if="message" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <img src="..." class="rounded mr-2" alt="...">
+        <strong class="mr-auto">Bootstrap</strong>
+        <small>11 mins ago</small>
+        <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="toast-body">
+        Hello, world! This is a toast message.
+      </div>
+    </div> -->
     <h2>Existing Configs</h2>
     <ConfigList :configs="configs" @delete-config="deleteConfig" @edit-config="editConfig"
       @toggle-active="toggleActive" />
@@ -129,7 +142,11 @@
       },
     },
     mounted() {
-      this.loadConfigs();
+      this.loadConfigs(); // Initial load
+      this.timer = setInterval(this.loadConfigs, 30000); // Load configs every 30 seconds
+    },
+    beforeUnmount() {
+      clearInterval(this.timer);
     },
   };
 </script>

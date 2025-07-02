@@ -39,8 +39,6 @@ type ConfigParams struct {
 // collectionName is the name of the Firestore collection where load generation configurations are stored.
 const collectionName = "loadgen-configs"
 
-var projectID string
-
 var (
 	// firestoreClient is the global client for interacting with Firestore.
 	firestoreClient *firestore.Client
@@ -56,7 +54,7 @@ func main() {
 	// Create a background context.
 	ctx := context.Background()
 	// Get the project ID from the environment variable, with a default value.
-	projectID = os.Getenv("PROJECT_ID")
+	projectID := os.Getenv("PROJECT_ID")
 	if projectID == "" {
 		projectID = "mslarkin-ext"
 	}
@@ -65,6 +63,10 @@ func main() {
 	if pollRateS != "" {
 		pollRate, _ = strconv.Atoi(os.Getenv("POLL_RATE_S"))
 	}
+	fsDB := os.Getenv("FIRESTORE_DB")
+	if fsDB == "" {
+		fsDB = "loadgen-target-config" // Default DB
+	}
 
 	// SIGINT handles Ctrl+C locally.
 	// SIGTERM handles Cloud Run termination signal.
@@ -72,7 +74,7 @@ func main() {
 
 	// Initialize the Firestore client.
 	var err error
-	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, "loadgen-target-config")
+	firestoreClient, err = firestore.NewClientWithDatabase(ctx, projectID, fsDB)
 	if err != nil {
 		log.Fatalf("Failed to create Firestore client: %v", err)
 	}
