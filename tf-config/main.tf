@@ -1,4 +1,3 @@
-# main.tf (in your root Terraform project directory)
 terraform {
   required_providers {
     google = {
