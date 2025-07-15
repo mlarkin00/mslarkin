@@ -47,3 +47,8 @@ variable "external_ip" {
   description = "The external IP address for the VM."
   type        = string
 }
+
+variable "subnetwork" {
+  description = "The internal subnet for the VM."
+  type        = string
+}

@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.0" # Use an appropriate version
     }
   }
+
+  backend "gcs" {
+    bucket = "mslarkin-tf-state"
+    # prefix = "terraform/state"
+  }
 }
 
 provider "google" {
@@ -33,6 +38,7 @@ module "model_host_vm" {
   hostname              = "model-host.mslarkin-tf"
   service_account_email = "model-host-sa@mslarkin-tf.iam.gserviceaccount.com"
   external_ip           = module.network.model_host_external_ip
+  subnetwork            = module.network.subnet
 
   # This is the specific image family for Deep Learning VM with CUDA 12.4 M129
   # It's crucial to get the exact image name. You can list available images with:
