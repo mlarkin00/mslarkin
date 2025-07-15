@@ -50,7 +50,6 @@ gcloud config set builds/region us-west1
 gcloud config set compute/region us-west1 
 gcloud config set compute/zone us-west1-b
 gcloud config set ai/region us-west1
-gcloud config set artifacts/region us-west1
 
 
 gcloud config unset core/user_output_enabled
