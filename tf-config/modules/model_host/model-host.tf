@@ -4,6 +4,7 @@ resource "google_compute_instance" "model_host_vm" {
   name         = var.vm_name
   machine_type = var.machine_type
   hostname     = var.hostname
+  tags         = ["allow-ssh"]
 
   boot_disk {
     initialize_params {

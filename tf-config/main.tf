@@ -12,27 +12,34 @@ terraform {
   }
 }
 
+locals {
+  project_id = "mslarkin-tf"
+  region     = "us-west1"
+  zone       = "us-west1-b"
+}
+
 provider "google" {
-  project = "mslarkin-tf" # Your project ID
-  region  = "us-west1"    # Your desired region
+  project = local.project_id
+  region  = local.region
+  zone    = local.zone
 }
 
 module "network" {
-  source = "./modules/network"
-
+  source           = "./modules/network"
+  project_id       = local.project_id
   network_name     = "ai-network"
   subnet_name      = "ai-subnet"
   subnet_cidr      = "10.0.0.0/20"
-  region           = "us-west1"
+  region           = local.region
   external_ip_name = "model-host-ip"
 }
 
 module "model_host_vm" {
   source = "./modules/model_host"
 
-  project_id            = "mslarkin-tf"
+  project_id            = local.project_id
   vm_name               = "model-host"
-  zone                  = "us-west1-b"
+  zone                  = local.zone
   machine_type          = "n1-standard-8"
   gpu_type              = "nvidia-tesla-t4"
   hostname              = "model-host.mslarkin-tf"

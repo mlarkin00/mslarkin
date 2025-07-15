@@ -15,3 +15,17 @@ resource "google_compute_address" "model-host-ip" {
   region       = var.region
   address_type = "EXTERNAL"
 }
+
+resource "google_compute_firewall" "rules" {
+  name        = "ai-network-ssh-allow"
+  network     = google_compute_network.ai-network.id
+  description = "Creates firewall rule allowing SSH on the ai-network"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["allow-ssh"]
+}

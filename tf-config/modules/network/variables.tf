@@ -22,3 +22,8 @@ variable "external_ip_name" {
   description = "The name of the external IP address."
   type        = string
 }
+
+variable "project_id" {
+  description = "The GCP project ID."
+  type        = string
+}
