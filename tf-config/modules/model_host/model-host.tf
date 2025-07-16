@@ -35,9 +35,17 @@ resource "google_compute_instance" "model_host_vm" {
   }
 
   metadata = {
-    enable-oslogin  = "TRUE"
-    enable-osconfig = "TRUE"
+    enable-oslogin      = "TRUE"
+    enable-osconfig     = "TRUE"
+    enable-os-inventory = "TRUE"
+    startup-script      = "#!/bin/bash 
+              <<EOT 
+              docker run 
+              -p 8080:8080 
+              -d us-west1-docker.pkg.dev/mslarkin-tf/mslarkin-docker/vllm-backend:latest
+              EOT"
   }
+
 
   service_account {
     email = var.service_account_email
