@@ -88,5 +88,5 @@ resource "google_compute_firewall" "ai-network-internal" {
     protocol = "icmp"
   }
 
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = ["10.128.0.0/9"]
 }
