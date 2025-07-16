@@ -16,7 +16,7 @@ resource "google_compute_address" "model-host-ip" {
   address_type = "EXTERNAL"
 }
 
-resource "google_compute_firewall" "rules" {
+resource "google_compute_firewall" "ai-network-ssh" {
   name        = "ai-network-ssh-allow"
   network     = google_compute_network.ai-network.id
   description = "Creates firewall rule allowing SSH on the ai-network"
@@ -28,4 +28,18 @@ resource "google_compute_firewall" "rules" {
 
   source_ranges = ["0.0.0.0/0"]
   target_tags   = ["allow-ssh"]
+}
+
+resource "google_compute_firewall" "ai-network-https" {
+  name        = "ai-network-https-allow"
+  network     = google_compute_network.ai-network.id
+  description = "Creates firewall rule allowing HTTPS on the ai-network"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["allow-https"]
 }
