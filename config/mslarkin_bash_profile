@@ -13,3 +13,4 @@ echo "Running mslarkin_bash_profile (login)"
 ###
 git config --global user.email "matthewlarkin@google.com"
 git config --global user.name "Matt Larkin"
+git config --global credential.helper store
