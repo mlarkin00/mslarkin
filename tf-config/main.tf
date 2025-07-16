@@ -54,3 +54,11 @@ module "model_host_vm" {
   boot_disk_image   = "projects/ml-images/global/images/c0-deeplearning-common-cu124-v20250325-debian-11-py310" # Placeholder, see note below
   boot_disk_size_gb = 200
 }
+
+module "scraper-db" {
+  source = "./modules/web-scraper"
+
+  project_id = local.project_id
+  region     = local.region
+  db_name    = "scraper-db"
+}
