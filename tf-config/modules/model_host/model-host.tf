@@ -35,7 +35,8 @@ resource "google_compute_instance" "model_host_vm" {
   }
 
   metadata = {
-    enable-oslogin = "TRUE"
+    enable-oslogin  = "TRUE"
+    enable-osconfig = "TRUE"
   }
 
   service_account {
