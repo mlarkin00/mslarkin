@@ -38,7 +38,7 @@ variable "boot_disk_size_gb" {
   type        = number
 }
 
-variable "service_account_email" {
+variable "service_account" {
   description = "The service account for the VM."
   type        = string
 }
@@ -48,7 +48,7 @@ variable "external_ip" {
   type        = string
 }
 
-variable "subnetwork" {
-  description = "The internal subnet for the VM."
+variable "subnet_name" {
+  description = "The subnet name."
   type        = string
 }

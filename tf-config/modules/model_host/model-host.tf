@@ -1,3 +1,15 @@
+resource "google_service_account" "model-host-sa" {
+  account_id                   = var.service_account
+  project                      = var.project_id
+  create_ignore_already_exists = true
+}
+
+resource "google_project_iam_member" "model-host-sa-iam" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.model-host-sa.email}"
+}
+
 resource "google_compute_instance" "model_host_vm" {
   project      = var.project_id
   zone         = var.zone
@@ -44,7 +56,7 @@ resource "google_compute_instance" "model_host_vm" {
   metadata_startup_script = "#!/bin/bash docker run -p 443:8080 -d us-west1-docker.pkg.dev/mslarkin-tf/mslarkin-docker/vllm-backend:latest"
 
   service_account {
-    email = var.service_account_email
+    email = google_service_account.model-host-sa.email
     # Full access to all Cloud APIs
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }

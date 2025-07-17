@@ -2,7 +2,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.0" # Use an appropriate version
+      version = "~> 6.0" # Use an appropriate version
     }
   }
 
@@ -13,9 +13,11 @@ terraform {
 }
 
 locals {
-  project_id = "mslarkin-tf"
-  region     = "us-west1"
-  zone       = "us-west1-b"
+  project_id   = "mslarkin-tf"
+  region       = "us-west1"
+  zone         = "us-west1-b"
+  network_name = "ai-network"
+  subnet_name  = "ai-subnet"
 }
 
 provider "google" {
@@ -27,8 +29,8 @@ provider "google" {
 module "network" {
   source           = "./modules/network"
   project_id       = local.project_id
-  network_name     = "ai-network"
-  subnet_name      = "ai-subnet"
+  network_name     = local.network_name
+  subnet_name      = local.subnet_name
   subnet_cidr      = "10.0.0.0/20"
   region           = local.region
   external_ip_name = "model-host-ip"
@@ -37,15 +39,15 @@ module "network" {
 module "model_host_vm" {
   source = "./modules/model_host"
 
-  project_id            = local.project_id
-  vm_name               = "model-host"
-  zone                  = local.zone
-  machine_type          = "n1-standard-8"
-  gpu_type              = "nvidia-tesla-t4"
-  hostname              = "model-host.mslarkin-tf"
-  service_account_email = "model-host-sa@mslarkin-tf.iam.gserviceaccount.com"
-  external_ip           = module.network.model_host_external_ip
-  subnetwork            = module.network.subnet
+  project_id      = local.project_id
+  vm_name         = "model-host"
+  service_account = "model-host-sa"
+  zone            = local.zone
+  machine_type    = "n1-standard-8"
+  gpu_type        = "nvidia-tesla-t4"
+  hostname        = "model-host.mslarkin-tf"
+  external_ip     = module.network.model_host_external_ip
+  subnet_name     = local.subnet_name
 
   # This is the specific image family for Deep Learning VM with CUDA 12.4 M129
   # It's crucial to get the exact image name. You can list available images with:
@@ -55,10 +57,17 @@ module "model_host_vm" {
   boot_disk_size_gb = 200
 }
 
-module "scraper-db" {
+module "web-scraper" {
   source = "./modules/web-scraper"
 
   project_id = local.project_id
   region     = local.region
-  db_name    = "scraper-db"
+
+  db_name = "web-scraper-db"
+
+  worker_pool_name = "web-scraper-worker"
+
+  network_name    = local.network_name
+  subnet_name     = local.subnet_name
+  service_account = "web-scraper-sa"
 }
