@@ -25,7 +25,7 @@ resource "google_cloud_run_v2_worker_pool" "scraper-worker" {
   launch_stage        = "BETA"
 
   scaling {
-    manual_instance_count = 1
+    manual_instance_count = 0
   }
 
   template {
