@@ -11,6 +11,17 @@ resource "google_storage_bucket" "target-gcs-bucket" {
   force_destroy = true
 }
 
+resource "google_storage_bucket" "content-gcs-bucket" {
+  name                        = "scraper-content"
+  location                    = "US-WEST1"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+}
+
 resource "google_service_account" "scraper-sa" {
   account_id                   = var.service_account
   project                      = var.project_id
