@@ -5,6 +5,12 @@ resource "google_firestore_database" "scraper-db" {
   type        = "FIRESTORE_NATIVE"
 }
 
+resource "google_storage_bucket" "target-gcs-bucket" {
+  name          = "scraper-targets"
+  location      = "US-WEST1"
+  force_destroy = true
+}
+
 resource "google_service_account" "scraper-sa" {
   account_id                   = var.service_account
   project                      = var.project_id
@@ -14,6 +20,12 @@ resource "google_service_account" "scraper-sa" {
 resource "google_project_iam_member" "scraper-sa-iam" {
   project = var.project_id
   role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.scraper-sa.email}"
+}
+
+resource "google_project_iam_member" "scraper-sa-iam-gcs" {
+  project = var.project_id
+  role    = "roles/storage.objectUser"
   member  = "serviceAccount:${google_service_account.scraper-sa.email}"
 }
 
