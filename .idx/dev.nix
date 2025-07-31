@@ -19,6 +19,9 @@
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
       # "vscodevim.vim"
+      "esbenp.prettier-vscode"
+      "google.geminicodeassist"
+      "googlecloudtools.cloudcode"
     ];
 
     # Enable previews
