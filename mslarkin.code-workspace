@@ -3,10 +3,6 @@
     {
       "name": "mslarkin",
       "path": "."
-    },
-    {
-      "name": "mslarkin-public",
-      "path": "../mslarkin-public"
     }
   ],
   "settings": {

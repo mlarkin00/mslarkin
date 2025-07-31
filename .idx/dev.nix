@@ -2,13 +2,13 @@
 # see: https://firebase.google.com/docs/studio/customize-workspace
 { pkgs, ... }: {
   # Which nixpkgs channel to use.
-  channel = "stable-24.05"; # or "unstable"
+  channel = "stable-25.05"; # or "unstable"
 
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.go
-    pkgs.python313
-    pkgs.python313Packages.pip
+    pkgs.python312
+    pkgs.python312Packages.pip
     # pkgs.nodejs_20
     # pkgs.nodePackages.nodemon
   ];
