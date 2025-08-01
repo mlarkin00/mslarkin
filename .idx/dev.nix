@@ -4,7 +4,7 @@
   # Which nixpkgs channel to use.
   channel = "stable-25.05"; # or "unstable"
   imports = [
-    ./standard.nix
+    ../config/nix/standard.nix
   ];
 
   # Use https://search.nixos.org/packages to find packages
