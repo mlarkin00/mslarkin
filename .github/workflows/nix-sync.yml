@@ -16,3 +16,4 @@ jobs:
           github_token: ${{ secrets.API_TOKEN_GITHUB }}
           copy-from-directory: "config/nix"
           copy-to-directory: ".idx"
+          configs-json-file: "./config/nix/nix-sync-config.json"
