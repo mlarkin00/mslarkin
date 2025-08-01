@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      -'**/config/nix/standard.nix'
+      -'**/config/nix/*'
 
 jobs:
   sync-files:
