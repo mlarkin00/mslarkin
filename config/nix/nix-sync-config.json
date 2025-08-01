@@ -1,0 +1,10 @@
+{
+    "repos": {
+        "mslarkin-playground": {},
+        "mslarkin-gke": {},
+        "mslarkin-ai": {},
+        "mslarkin-terraform": {},
+        "mslarkin-eperiments": {},
+        "mslarkin-public": {}
+    }
+}
