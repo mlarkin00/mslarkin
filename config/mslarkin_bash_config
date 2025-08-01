@@ -13,8 +13,49 @@ echo "Running mslarkin_bash_config (new shell)"
 ################
 if [ ! -f /usr/bin/docker ]; then
     echo "Docker not found, installing..."
+    
+    ## External 
     bash <(curl -s https://get.docker.com)
+    
+    # gLinux
+#     sudo glinux-add-repo docker-ce-"$(lsb_release -cs)"
+#     sudo apt update
+#     sudo apt install docker-ce
+
+#     sudo systemctl stop docker
+#     sudo ip link set docker0 down
+#     sudo ip link del docker0
+
+#     # * move Docker's storage location for more space.
+#     # * avoid conflicts between the Docker bridge and Corp IPs
+#     # * turn on the debug mode, if you don't want that you could set that to false
+#     sudo tee /etc/docker/daemon.json <<EOF
+#     {
+#         "data-root": "/usr/local/google/docker",
+#         "bip": "192.168.9.1/24",
+#         "default-address-pools": [
+#             {
+#             "base": "192.168.11.0/22",
+#             "size": 24
+#             }
+#         ],
+#         "storage-driver": "overlay2",
+#         "debug": true,
+#         "registry-mirrors": ["https://mirror.gcr.io"]
+#     }
+# EOF
+
+#     sudo systemctl start docker
+#     sudo systemctl enable docker
+
+#     ## Setup GCR credential helper
+#     gcloud auth configure-docker -q
+
+#     ## Add external repos
+#     ## Support pushing and pulling "us-docker.pkg.dev" images
+#     gcloud auth configure-docker -q us-docker.pkg.dev 
 fi
+
 ################
 # Install Hey
 ################
@@ -31,33 +72,46 @@ alias hey='~/local_tools/hey_linux_amd64'
 ################
 # Install Node Version Manager (NVM) & Node.js
 ################
-if [ ! -d "$HOME/.config/nvm" ]; then
-    echo "NVM not found, installing..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-    nvm install --lts
+# if [ ! -d "$HOME/.config/nvm" ]; then
+#     echo "NVM not found, installing..."
+#     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+#     nvm install --lts
+# fi
+
+################
+# Install gcloud cli
+################
+if [ ! -d "$HOME/google-cloud-sdk" ]; then
+    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
+    tar -xf google-cloud-cli-linux-x86_64.tar.gz
+
+    # Add to PATH
+    ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc 
+
+    # Cleanup
+    rm google-cloud-cli-linux-x86_64.tar.gz
 fi
+
 
 ################
 # Set up GCP Project environment
 ################
-gcloud config set core/user_output_enabled False &> /dev/null
+# gcloud config set core/user_output_enabled False &> /dev/null
 # if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
 #   gcloud config set project mslarkin-ext 
 # fi
-gcloud config set run/region us-west1 
-gcloud config set account matthewlarkin@google.com 
-gcloud config set builds/region us-west1 
-gcloud config set compute/region us-west1 
-gcloud config set compute/zone us-west1-b
-gcloud config set ai/region us-west1
+# gcloud config set run/region us-west1 
+# gcloud config set account matthewlarkin@google.com 
+# gcloud config set builds/region us-west1 
+# gcloud config set ai/region us-west1
 
+## These require the project to be set
+# gcloud config set compute/region us-west1 
+# gcloud config set compute/zone us-west1-b
 
-gcloud config unset core/user_output_enabled
+# gcloud config unset core/user_output_enabled
 
 # gcloud config list
-
-# Set Gemini API key
-export GEMINI_API_KEY="AIzaSyAQzwmAMXAJV6eKZMaeYhLjLAGN-HFg4Ho"
 
 # Set up Go tools
 export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
