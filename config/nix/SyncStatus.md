@@ -1,0 +1,1 @@
+[![Sync nix config](https://github.com/mlarkin00/mslarkin/actions/workflows/nix-sync.yml/badge.svg)](https://github.com/mlarkin00/mslarkin/actions/workflows/nix-sync.yml)
