@@ -55,11 +55,11 @@ fi
 ################
 # Set up GCP Project environment
 ################
-gcloud config set core/user_output_enabled False &> /dev/null
+# gcloud config set core/user_output_enabled False &> /dev/null
 # if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
 #   gcloud config set project mslarkin-ext 
 # fi
-gcloud config set run/region us-west1 
+# gcloud config set run/region us-west1 
 gcloud config set account matthewlarkin@google.com 
 gcloud config set builds/region us-west1 
 gcloud config set compute/region us-west1 
@@ -67,7 +67,7 @@ gcloud config set compute/zone us-west1-b
 gcloud config set ai/region us-west1
 
 
-gcloud config unset core/user_output_enabled
+# gcloud config unset core/user_output_enabled
 
 # gcloud config list
 
