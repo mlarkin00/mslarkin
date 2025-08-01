@@ -1,4 +1,4 @@
-name: Sync Files
+name: Sync nix config
 
 on:
   push:
