@@ -13,7 +13,7 @@
     # pkgs.nodePackages.nodemon
   ];
 
-  # Standard services
+  # Enable Docker
   services.docker.enable = true;
 
   # Sets environment variables in the workspace
