@@ -1,6 +1,7 @@
 name: Sync nix config
 
 on:
+  workflow_dispatch:
   push:
     paths:
       -'**/config/nix/standard.nix'
