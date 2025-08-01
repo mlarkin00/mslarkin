@@ -8,7 +8,7 @@
   packages = [
     # pkgs.go
     pkgs.docker
-    # pkgs.google-cloud-sdk
+    pkgs.google-cloud-sdk
     # pkgs.nodejs_20
     # pkgs.nodePackages.nodemon
   ];
