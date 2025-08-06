@@ -1,16 +1,16 @@
 #!/bin/bash
 
 #####
-# Add this command to the end of .profile or .bash_profile 
+# Add this command to the end of .profile or .bash_profile
 # source ~/msl-playground/config/mslarkin_bash_profile
 # Profile only runs on login
 #####
 
-echo "Running mslarkin_bash_profile (login)"
+# echo "Running mslarkin_bash_profile (login)"
 
-###
-# Set up Git
-###
-git config --global user.email "matthewlarkin@google.com"
-git config --global user.name "Matt Larkin"
-git config --global credential.helper store
+# ###
+# # Set up Git
+# ###
+# git config --global user.email "matthewlarkin@google.com"
+# git config --global user.name "Matt Larkin"
+# git config --global credential.helper store
