@@ -11,9 +11,26 @@ echo "Running mslarkin_bash_config (new shell)"
 ###
 # Set up Git
 ###
+if [ ! -d "$HOME/google-cloud-sdk" ]; then
+  sudo apt install git -y
+fi
 git config --global user.email "matthewlarkin@google.com"
 git config --global user.name "Matt Larkin"
 git config --global credential.helper store
+
+################
+# Install gcloud cli
+################
+if [ ! -d "$HOME/google-cloud-sdk" ]; then
+    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
+    tar -xf google-cloud-cli-linux-x86_64.tar.gz
+
+    # Add to PATH
+    ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc
+
+    # Cleanup
+    rm google-cloud-cli-linux-x86_64.tar.gz
+fi
 
 ################
 # Install Docker
@@ -84,20 +101,6 @@ alias hey='~/local_tools/hey_linux_amd64'
 #     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 #     nvm install --lts
 # fi
-
-################
-# Install gcloud cli
-################
-if [ ! -d "$HOME/google-cloud-sdk" ]; then
-    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
-    tar -xf google-cloud-cli-linux-x86_64.tar.gz
-
-    # Add to PATH
-    ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc
-
-    # Cleanup
-    rm google-cloud-cli-linux-x86_64.tar.gz
-fi
 
 
 ################
