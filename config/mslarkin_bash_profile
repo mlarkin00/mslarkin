@@ -8,6 +8,11 @@
 
 echo "Running mslarkin_bash_profile (login)"
 
+####
+# Update gcloud 
+####
+gcloud components update -q
+
 # ###
 # # Set up Git
 # ###
