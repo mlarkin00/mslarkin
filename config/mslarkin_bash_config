@@ -103,6 +103,8 @@ alias hey='~/local_tools/hey_linux_amd64'
 # fi
 
 
+# npm install -g @google/gemini-cli
+
 ################
 # Set up GCP Project environment
 ################
