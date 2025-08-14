@@ -140,9 +140,14 @@ alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatfor
 ################
 if [ ! -f "/usr/bin/kubectl" ]; then
   sudo apt install kubectl
+  gcloud components install gke-gcloud-auth-plugin
 fi
 # Set up Kubectl autocomplete
 source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
 
+# Set up auth for each cluster
+# mslarkin-autopilot
+gcloud container clusters get-credentials mslarkin-autopilot \
+    --location=us-west1
 # export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 # export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
