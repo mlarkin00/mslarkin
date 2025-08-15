@@ -134,7 +134,7 @@ alias hey='~/local_tools/hey_linux_amd64'
 alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
 # alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
-
+alias pip-remove-all='pip freeze | xargs pip uninstall -y'
 ################
 # Set up Kubectl
 ################
