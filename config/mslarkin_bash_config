@@ -30,6 +30,7 @@ if [ ! -d "$HOME/google-cloud-sdk" ]; then
 
     # Cleanup
     rm google-cloud-cli-linux-x86_64.tar.gz
+    sudo reboot
 fi
 
 ################
@@ -145,7 +146,7 @@ if [ ! -f "/usr/bin/kubectl" ]; then
   # Set up auth for each cluster
   # mslarkin-autopilot
   gcloud container clusters get-credentials mslarkin-autopilot \
-    --location=us-west1
+    --location=us-west1 --project mslarkin-tf
 fi
 # Set up Kubectl autocomplete
 source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
