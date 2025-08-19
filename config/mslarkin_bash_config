@@ -97,11 +97,11 @@ alias hey='~/local_tools/hey_linux_amd64'
 ################
 # Install Node Version Manager (NVM) & Node.js
 ################
-# if [ ! -d "$HOME/.config/nvm" ]; then
-#     echo "NVM not found, installing..."
-#     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-#     nvm install --lts
-# fi
+if [ ! -d "$HOME/.config/nvm" ]; then
+    echo "NVM not found, installing..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    nvm install --lts
+fi
 
 
 # npm install -g @google/gemini-cli
