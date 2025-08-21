@@ -82,6 +82,19 @@ EOF
 fi
 
 ################
+# Install Terraform
+################
+if [ ! -f "$HOME/bin/terraform" ]; then
+export TERRAFORM_VERSION=1.13.0
+cd ~
+mkdir bin
+curl -O "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+mv terraform bin/
+rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+fi
+
+################
 # Install Hey
 ################
 if [ ! -d "$HOME/local_tools" ]; then
