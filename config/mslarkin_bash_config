@@ -149,6 +149,7 @@ alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-tok
 # alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
 alias pip-remove-all='pip freeze | xargs pip uninstall -y'
+alias tf='terraform'
 ################
 # Set up Kubectl
 ################
