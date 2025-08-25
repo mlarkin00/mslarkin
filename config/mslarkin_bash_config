@@ -164,6 +164,7 @@ if [ ! -f "/usr/bin/kubectl" ]; then
 fi
 # Set up Kubectl autocomplete
 source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
+source <(helm completion bash)
 
 
 # export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
