@@ -118,6 +118,7 @@ fi
 
 
 # npm install -g @google/gemini-cli
+# ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
 
 ################
 # Set up GCP Project environment
