@@ -117,9 +117,10 @@ if [ ! -d "$HOME/.config/nvm" ]; then
 fi
 
 
-# npm install -g @google/gemini-cli
+npm install -g @google/gemini-cli &> /dev/null
 # ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
-npm update -g @google/gemini-cli &> /dev/null
+alias gemini-dl="npx https://github.com/google-gemini/gemini-cli"
+
 
 
 ################
