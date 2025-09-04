@@ -9,13 +9,8 @@
 echo "Running mslarkin_bash_profile (login)"
 
 ####
-# Update gcloud 
+# Update gcloud
 ####
 gcloud components update -q
 
-# ###
-# # Set up Git
-# ###
-# git config --global user.email "matthewlarkin@google.com"
-# git config --global user.name "Matt Larkin"
-# git config --global credential.helper store
+npm install -g @google/gemini-cli &> /dev/null
