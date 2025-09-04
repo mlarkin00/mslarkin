@@ -11,6 +11,4 @@ echo "Running mslarkin_bash_profile (login)"
 ####
 # Update gcloud
 ####
-gcloud components update -q
-
-npm install -g @google/gemini-cli &> /dev/null
+# gcloud components update -q
