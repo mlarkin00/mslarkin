@@ -171,7 +171,7 @@ source <(kubectl completion bash) # set up autocomplete in bash into the current
 source <(helm completion bash)
 
 
-# export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
-# export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
+export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
 
 export PATH=$PATH:/home/matthewlarkin/local_tools
