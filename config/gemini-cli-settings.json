@@ -1,0 +1,31 @@
+{
+  "enablePromptCompletion": true,
+  "extensions": {
+    "disabled": [],
+    "workspacesWithMigrationNudge": [
+      "/home/matthewlarkin"
+    ]
+  },
+  "hasSeenIdeIntegrationNudge": true,
+  "hideBanner": false,
+  "ideMode": true,
+  "checkpointing": { "enabled": true },
+  "mcpServers": {
+    "context7-mcp": {
+      "httpUrl": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-4faf6bc1-2904-40b3-8c6f-75748c6f09fc"
+      },
+      "description": "Reference for official documentation for a wide range of languages, packages, and tools",
+      "timeout": 5000
+    },
+    "flux-k8s-mcp": {
+      "command": "npx",
+      "args": [
+        "mcp-server-kubernetes"
+      ],
+      "description": "Kubernetes cluster management and operations"
+    }
+  },
+  "selectedAuthType": "oauth-personal"
+}
