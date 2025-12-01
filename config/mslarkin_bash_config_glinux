@@ -21,17 +21,17 @@ git config --global credential.helper store
 ################
 # Install gcloud cli
 ################
-# if [ ! -d "$HOME/google-cloud-sdk" ]; then
-#     curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
-#     tar -xf google-cloud-cli-linux-x86_64.tar.gz
+if [ ! -d "$HOME/google-cloud-sdk" ]; then
+    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
+    tar -xf google-cloud-cli-linux-x86_64.tar.gz
 
-#     # Add to PATH
-#     ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc
+    # Add to PATH
+    ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc
 
-#     # Cleanup
-#     rm google-cloud-cli-linux-x86_64.tar.gz
-#     sudo reboot
-# fi
+    # Cleanup
+    rm google-cloud-cli-linux-x86_64.tar.gz
+    sudo reboot
+fi
 
 ################
 # Install Docker
@@ -39,8 +39,36 @@ git config --global credential.helper store
 if [ ! -f /usr/bin/docker ]; then
     echo "Docker not found, installing..."
 
-    ## External
-    bash <(curl -s https://get.docker.com)
+    # gLinux
+    sudo glinux-add-repo docker-ce-"$(lsb_release -cs)"
+    sudo apt update
+    sudo apt install docker-ce
+
+    sudo systemctl stop docker
+    sudo ip link set docker0 down
+    sudo ip link del docker0
+
+#     # * move Docker's storage location for more space.
+#     # * avoid conflicts between the Docker bridge and Corp IPs
+#     # * turn on the debug mode, if you don't want that you could set that to false
+    sudo tee /etc/docker/daemon.json <<EOF
+    {
+        "data-root": "/usr/local/google/docker",
+        "bip": "192.168.9.1/24",
+        "default-address-pools": [
+            {
+            "base": "192.168.11.0/22",
+            "size": 24
+            }
+        ],
+        "storage-driver": "overlay2",
+        "debug": true,
+        "registry-mirrors": ["https://mirror.gcr.io"]
+    }
+EOF
+
+    sudo systemctl start docker
+    sudo systemctl enable docker
 
     ## Setup GCR credential helper
     gcloud auth configure-docker -q
@@ -126,15 +154,15 @@ alias tf='terraform'
 ################
 # Set up Kubectl
 ################
-# if [ ! -f "/usr/bin/kubectl" ]; then
-#   sudo apt install kubectl
-#   gcloud components install gke-gcloud-auth-plugin
+if [ ! -f "/usr/bin/kubectl" ]; then
+  sudo apt install kubectl
+  gcloud components install gke-gcloud-auth-plugin
 
-#   # Set up auth for each cluster
-#   # mslarkin-autopilot
-#   gcloud container clusters get-credentials mslarkin-autopilot \
-#     --location=us-west1 --project mslarkin-tf
-# fi
+  # Set up auth for each cluster
+  # mslarkin-autopilot
+  gcloud container clusters get-credentials mslarkin-autopilot \
+    --location=us-west1 --project mslarkin-tf
+fi
 # Set up Kubectl autocomplete
 source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
 source <(helm completion bash)
