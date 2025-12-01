@@ -146,4 +146,4 @@ export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 # export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
 export GOOGLE_CLOUD_PROJECT="mslarkin-ext"
 
-export PATH=$PATH:/home/matthewlarkin/local_tools
+export PATH=$PATH:/home/matthewlarkin/local_tools:/home/matthewlarkin/local_tools/Jetski
