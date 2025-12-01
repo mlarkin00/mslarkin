@@ -11,7 +11,7 @@ echo "Running mslarkin_bash_config (new shell)"
 ###
 # Set up Git
 ###
-if [ ! -d "$HOME/google-cloud-sdk" ]; then
+if [ ! -f "/usr/bin/git" ]; then
   sudo apt install git -y
 fi
 git config --global user.email "matthewlarkin@google.com"
@@ -21,17 +21,17 @@ git config --global credential.helper store
 ################
 # Install gcloud cli
 ################
-# if [ ! -d "$HOME/google-cloud-sdk" ]; then
-#     curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
-#     tar -xf google-cloud-cli-linux-x86_64.tar.gz
+if [ ! -f "/usr/bin/gcloud" ]; then
+    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
+    tar -xf google-cloud-cli-linux-x86_64.tar.gz
 
-#     # Add to PATH
-#     ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc
+    # Add to PATH
+    ./google-cloud-sdk/install.sh -q --rc-path $HOME/.bashrc
 
-#     # Cleanup
-#     rm google-cloud-cli-linux-x86_64.tar.gz
-#     sudo reboot
-# fi
+    # Cleanup
+    rm google-cloud-cli-linux-x86_64.tar.gz
+    sudo reboot
+fi
 
 ################
 # Install Docker
@@ -86,16 +86,16 @@ if [ ! -d "$HOME/.config/nvm" ]; then
 fi
 
 
-ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
+# ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
 alias gemini-dl="npx https://github.com/google-gemini/gemini-cli"
-alias gemini-update="npm install -g @google/gemini-cli"
+alias gemini-update="sudo npm install -g @google/gemini-cli"
 
 
 
 ################
 # Set up GCP Project environment
 ################
-# gcloud config set core/user_output_enabled False &> /dev/null
+gcloud config set core/user_output_enabled False &> /dev/null
 if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
   gcloud config set project mslarkin-ext
 fi
@@ -108,12 +108,12 @@ gcloud config set ai/region us-west1
 gcloud config set compute/region us-west1
 gcloud config set compute/zone us-west1-b
 
-# gcloud config unset core/user_output_enabled
+gcloud config unset core/user_output_enabled
 
-# gcloud config list
+gcloud config list project
 
 # Set up Go tools
-# export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
+export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlarkin/local_tools
 
 ################
 # Set up useful aliases
@@ -126,21 +126,23 @@ alias tf='terraform'
 ################
 # Set up Kubectl
 ################
-# if [ ! -f "/usr/bin/kubectl" ]; then
-#   sudo apt install kubectl
-#   gcloud components install gke-gcloud-auth-plugin
+if [ ! -f "/usr/bin/kubectl" ]; then
+  sudo apt install kubectl
+  gcloud components install gke-gcloud-auth-plugin
 
-#   # Set up auth for each cluster
-#   # mslarkin-autopilot
-#   gcloud container clusters get-credentials mslarkin-autopilot \
-#     --location=us-west1 --project mslarkin-tf
-# fi
+  # Set up auth for each cluster
+  # mslarkin-autopilot
+  gcloud container clusters get-credentials ai-auto-clsuter \
+    --location=us-west1 --project mslarkin-ext
+fi
+
 # Set up Kubectl autocomplete
 source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
-source <(helm completion bash)
+# source <(helm completion bash)
 
 
 export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 # export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
+export GOOGLE_CLOUD_PROJECT="mslarkin-ext"
 
 export PATH=$PATH:/home/matthewlarkin/local_tools
