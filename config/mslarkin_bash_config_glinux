@@ -11,7 +11,7 @@ echo "Running mslarkin_bash_config (new shell)"
 ###
 # Set up Git
 ###
-if [ ! -d "$HOME/google-cloud-sdk" ]; then
+if [ ! -f "/usr/bin/git" ]; then
   sudo apt install git -y
 fi
 git config --global user.email "matthewlarkin@google.com"
@@ -81,15 +81,15 @@ fi
 ################
 # Install Terraform
 ################
-if [ ! -f "$HOME/bin/terraform" ]; then
-export TERRAFORM_VERSION=1.13.0
-cd ~
-mkdir bin
-curl -O "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
-unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-mv terraform bin/
-rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-fi
+# if [ ! -f "$HOME/bin/terraform" ]; then
+# export TERRAFORM_VERSION=1.13.0
+# cd ~
+# mkdir bin
+# curl -O "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+# unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+# mv terraform bin/
+# rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+# fi
 
 ################
 # Install Hey
@@ -107,14 +107,14 @@ fi
 ################
 # Install Node Version Manager (NVM) & Node.js
 ################
-if [ ! -d "$HOME/.config/nvm" ]; then
+if [ ! -d "$HOME/.nvm" ]; then
     echo "NVM not found, installing..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
     nvm install --lts
 fi
 
 
-ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
+# ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
 alias gemini-dl="npx https://github.com/google-gemini/gemini-cli"
 alias gemini-update="npm install -g @google/gemini-cli"
 
@@ -150,7 +150,7 @@ alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-tok
 # alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
 alias pip-remove-all='pip freeze | xargs pip uninstall -y'
-alias tf='terraform'
+# alias tf='terraform'
 ################
 # Set up Kubectl
 ################
@@ -165,7 +165,7 @@ if [ ! -f "/usr/bin/kubectl" ]; then
 fi
 # Set up Kubectl autocomplete
 source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
-source <(helm completion bash)
+# source <(helm completion bash)
 
 
 export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
