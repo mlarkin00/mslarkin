@@ -127,15 +127,32 @@ alias gemini-update="npm install -g @google/gemini-cli"
 # if [[ "$(gcloud config list project | grep project)" == *"(unset)"* ]]; then
 #   gcloud config set project mslarkin-ext
 # fi
-gcloud config set project mslarkin-ext
-gcloud config set run/region us-west1
-gcloud config set account matthewlarkin@google.com
-gcloud config set builds/region us-west1
-gcloud config set ai/region us-west1
 
-## These require the project to be set
-gcloud config set compute/region us-west1
-gcloud config set compute/zone us-west1-b
+if gcloud config configurations describe mslarkin-ext &> /dev/null; then
+  # echo "Activating existing gcloud configuration: mslarkin-ext"
+  gcloud config configurations activate mslarkin-ext
+else
+  echo "Creating new gcloud configuration: mslarkin-ext"
+  gcloud config configurations create mslarkin-ext
+  gcloud config configurations activate mslarkin-ext
+  gcloud config set project mslarkin-ext
+  gcloud config set run/region us-west1
+  gcloud config set account matthewlarkin@google.com
+  gcloud config set builds/region us-west1
+  gcloud config set ai/region us-west1
+  gcloud config set compute/region us-west1
+  gcloud config set compute/zone us-west1-b
+fi
+
+# gcloud config set project mslarkin-ext
+# gcloud config set run/region us-west1
+# gcloud config set account matthewlarkin@google.com
+# gcloud config set builds/region us-west1
+# gcloud config set ai/region us-west1
+
+# ## These require the project to be set
+# gcloud config set compute/region us-west1
+# gcloud config set compute/zone us-west1-b
 
 # gcloud config unset core/user_output_enabled
 
