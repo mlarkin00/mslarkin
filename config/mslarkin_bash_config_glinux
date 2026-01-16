@@ -11,9 +11,6 @@ echo "Running mslarkin_bash_config (new shell)"
 ###
 # Set up Git
 ###
-if [ ! -f "/usr/bin/git" ]; then
-  sudo apt install git -y
-fi
 git config --global user.email "matthewlarkin@google.com"
 git config --global user.name "Matt Larkin"
 git config --global credential.helper store
