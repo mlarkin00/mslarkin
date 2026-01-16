@@ -1,32 +1,41 @@
 {
   "folders": [
     {
-      "path": "gke-demo-agent",
+      "name": "gke-demo-agent",
+      "path": "gke-demo-agent"
     },
     {
-      "path": "config",
+      "name": "skills",
+      "path": "skills"
     },
     {
-      "path": "gke-mcp",
+      "name": "models",
+      "path": "models"
     },
     {
-      "path": "go-flexible-workload",
+      "name": "gke-mcp",
+      "path": "../gke-mcp"
     },
     {
-      "path": "go-test",
+      "name": "config",
+      "path": "config"
     },
     {
-      "path": "go-mslarkin-utils",
+      "name": "go-flexible-workload",
+      "path": "go-flexible-workload"
     },
     {
-      "path": "microservices-demo-main",
+      "name": "go-test",
+      "path": "go-test"
     },
     {
-      "path": "models",
+      "name": "microservices-demo-main",
+      "path": "microservices-demo-main"
     },
     {
-      "path": "skills",
-    },
+      "name": "go-mslarkin-utils",
+      "path": "go-mslarkin-utils"
+    }
   ],
   "settings": {
     "java.compile.nullAnalysis.mode": "automatic",
