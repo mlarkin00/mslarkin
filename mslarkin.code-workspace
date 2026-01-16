@@ -9,6 +9,24 @@
     {
       "path": "gke-mcp",
     },
+    {
+      "path": "go-flexible-workload",
+    },
+    {
+      "path": "go-test",
+    },
+    {
+      "path": "go-mslarkin-utils",
+    },
+    {
+      "path": "microservices-demo-main",
+    },
+    {
+      "path": "models",
+    },
+    {
+      "path": "skills",
+    },
   ],
   "settings": {
     "java.compile.nullAnalysis.mode": "automatic",
