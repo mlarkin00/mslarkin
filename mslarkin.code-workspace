@@ -5,7 +5,10 @@
     },
     {
       "path": "config",
-    }
+    },
+    {
+      "path": "gke-mcp",
+    },
   ],
   "settings": {
     "java.compile.nullAnalysis.mode": "automatic",
