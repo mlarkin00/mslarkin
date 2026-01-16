@@ -9,16 +9,16 @@
       "path": "skills"
     },
     {
-      "name": "models",
-      "path": "models"
-    },
-    {
       "name": "gke-mcp",
       "path": "../gke-mcp"
     },
     {
-      "name": "config",
-      "path": "config"
+      "name": ".gemini",
+      "path": "../.gemini"
+    },
+    {
+      "name": "models",
+      "path": "models"
     },
     {
       "name": "go-flexible-workload",
@@ -37,10 +37,12 @@
       "path": "go-mslarkin-utils"
     },
     {
+      "name": "local_tools",
       "path": "../local_tools"
     },
     {
-      "path": "../.gemini"
+      "name": "config",
+      "path": "config"
     }
   ],
   "settings": {
