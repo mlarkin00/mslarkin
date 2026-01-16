@@ -49,6 +49,7 @@ alias rw-mslarkin='rw mslarkin.c.googlers.com'
 # ln ~/mslarkin/config/GEMINI.md ~/.gemini/GEMINI.md
 alias gemini-dl="npx https://github.com/google-gemini/gemini-cli"
 alias gemini-update="npm install -g @google/gemini-cli"
+alias mcp-inspect='npx @modelcontextprotocol/inspector'
 
 # export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth application-default print-access-token)"
 # export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
