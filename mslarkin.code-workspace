@@ -9,6 +9,10 @@
       "path": "skills"
     },
     {
+      "name": "anthropic-skills",
+      "path": "anthropic-skills"
+    },
+    {
       "name": "gke-mcp",
       "path": "../gke-mcp"
     },
@@ -43,6 +47,9 @@
     {
       "name": "config",
       "path": "config"
+    },
+    {
+      "path": "wshobson-agents"
     }
   ],
   "settings": {
