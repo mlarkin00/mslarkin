@@ -120,7 +120,7 @@ export PATH=$PATH:/usr/local/go/bin:/home/matthewlarkin/go/bin:/home/matthewlark
 # Set up useful aliases
 ################
 alias gcurl='curl --header "Authorization: Bearer $(gcloud auth print-access-token)"'
-# alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
+alias gcurl_id='curl --header "Authorization: Bearer $(gcloud auth print-identity-token)"'
 alias refreshauth='GOPROXY=proxy.golang.org go run github.com/GoogleCloudPlatform/artifact-registry-go-tools/cmd/auth@v0.1.0 refresh'
 alias pip-remove-all='pip freeze | xargs pip uninstall -y'
 alias tf='terraform'
@@ -142,7 +142,7 @@ source <(kubectl completion bash) # set up autocomplete in bash into the current
 # source <(helm completion bash)
 
 
-export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+# export CLOUDSDK_AUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 # export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
 export GOOGLE_CLOUD_PROJECT="mslarkin-ext"
 

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    cloud.google.com/neg: '{"ingress":true}'
+  labels:
+    app: qwen3-8b-vllm-app
+    recommender.ai.gke.io/generated: 'true'
+    recommender.ai.gke.io/inference-server: vllm
+  name: qwen3-8b-service
+  namespace: models-ns
+spec:
+  clusterIP: 34.118.232.164
+  clusterIPs:
+  - 34.118.232.164
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: qwen3-8b-vllm-app
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

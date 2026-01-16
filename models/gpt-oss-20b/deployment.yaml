@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gpt-oss-20b-app
+  name: gpt-oss-20b
+  namespace: models-ns
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: gpt-oss-20b-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        ai.gke.io/inference-server: ollama
+        ai.gke.io/model: gpt-oss-20b
+        app: gpt-oss-20b-app
+    spec:
+      containers:
+        - command:
+            - /bin/ollama
+            - serve
+          env:
+            - name: OLLAMA_HOST
+              value: 0.0.0.0:8000
+            - name: OLLAMA_KEEP_ALIVE
+              value: "-1"
+            - name: OLLAMA_DEBUG
+              value: "1"
+          image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/gpt-oss-20b
+          imagePullPolicy: IfNotPresent
+          name: gpt-oss-20b
+          ports:
+            - containerPort: 8000
+              name: metrics
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 600
+            tcpSocket:
+              port: 8000
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits:
+              cpu: '9'
+              ephemeral-storage: 80Gi
+              memory: 34Gi
+              nvidia.com/gpu: '2'
+            requests:
+              cpu: '9'
+              ephemeral-storage: 80Gi
+              memory: 34Gi
+              nvidia.com/gpu: '2'
+          securityContext:
+            capabilities:
+              drop:
+                - NET_RAW
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-accelerator-count: '2'
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - effect: NoSchedule
+          key: kubernetes.io/arch
+          operator: Equal
+          value: amd64
+        - effect: NoSchedule
+          key: cloud.google.com/gke-accelerator
+          operator: Equal
+          value: nvidia-l4
+        - effect: NoSchedule
+          key: cloud.google.com/machine-family
+          operator: Exists
+      volumes:
+        - emptyDir:
+            medium: Memory
+          name: dshm
