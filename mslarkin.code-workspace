@@ -1,12 +1,11 @@
 {
   "folders": [
     {
-      "name": "mslarkin",
-      "path": ".",
+      "path": "gke-demo-agent",
     },
     {
-      "path": "../mslarkin-playground",
-    },
+      "path": "config",
+    }
   ],
   "settings": {
     "java.compile.nullAnalysis.mode": "automatic",
