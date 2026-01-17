@@ -13,18 +13,6 @@
       "path": "../gke-mcp"
     },
     {
-      "name": "wshobson-agents",
-      "path": "wshobson-agents"
-    },
-    {
-      "name": "anthropic-skills",
-      "path": "anthropic-skills"
-    },
-    {
-      "name": ".gemini",
-      "path": "../.gemini"
-    },
-    {
       "name": "models",
       "path": "models"
     },
@@ -51,6 +39,10 @@
     {
       "name": "config",
       "path": "config"
+    },
+    {
+      "name": ".gemini",
+      "path": "../.gemini"
     }
   ],
   "settings": {
