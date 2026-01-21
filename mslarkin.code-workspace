@@ -43,6 +43,10 @@
     {
       "name": ".gemini",
       "path": "../.gemini"
+    },
+    {
+      "name": "gke-testing",
+      "path": "../gke-testing"
     }
   ],
   "settings": {
