@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: shop-demo
+spec:
+  hard:
+    pods: "15" # Restrict pod count so HPA cannot scale out
+    requests.cpu: "2000m" # Restrict CPU heavily
+    requests.memory: "4Gi"
