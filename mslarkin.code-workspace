@@ -25,6 +25,10 @@
       "path": "go-test"
     },
     {
+      "name": "online-shop-demo",
+      "path": "online-shop-demo"
+    },
+    {
       "name": "microservices-demo-main",
       "path": "microservices-demo-main"
     },
