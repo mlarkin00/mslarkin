@@ -74,6 +74,18 @@ To reset the cluster to the baseline state (except for unique artifacts like Res
   kubectl apply -f baseline/release/kubernetes-manifests.yaml
   ```
 
+### 6. Scale: Increased downstream latency
+- **Description:** Increased load (1000 users) combined with a bottleneck (1 replica) in `productcatalogservice` causes high latency.
+- **Manifestation:** High latency in frontend and productcatalogservice.
+- **Apply:**
+  ```bash
+  ./failure-modes/latency/apply.sh
+  ```
+- **Revert:**
+  ```bash
+  kubectl apply -f baseline/release/kubernetes-manifests.yaml
+  ```
+
 ## Global Reset
 To ensure the environment is completely reset to the baseline state:
 

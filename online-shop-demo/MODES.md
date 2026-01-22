@@ -51,3 +51,13 @@ Our goal is to highlight testing and diagnostic tools, showing how they can be u
 * **Expectation of manifestation:**
     * `kubectl top pods` shows very low usage (e.g., 10m CPU).
     * `kubectl describe node` shows high "Requests" percentage, potentially leading to scale-up of nodes despite low actual cluster load.
+
+## 6. Scale: Increased downstream latency
+* **Description:** Inbound traffic increases significantly, causing high latency because a downstream service is bottlenecked by being limited to a single replica.
+* **Suggested options for introduction:**
+    * Increase the load generator's traffic (e.g., `USERS` env var set to `100` or more).
+    * Explicitly configure a critical downstream service (e.g., `productcatalogservice`) to `replicas: 1` (even if it's the default, enforcing it ensures the bottleneck).
+* **Expectation of manifestation:**
+    * High latency observed in the frontend and the specific downstream service.
+    * Potential timeouts or errors if the load is high enough.
+
