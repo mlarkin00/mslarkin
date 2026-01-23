@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Failure Mode Simulator (A2UI)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .a2ui-renderer { font-family: system-ui, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div id="root" class="max-w-4xl mx-auto bg-white shadow rounded-lg p-6 a2ui-renderer">
+        <h1 class="text-2xl font-bold mb-4">Connecting...</h1>
+    </div>
+
+    <script>
+        const rootEl = document.getElementById('root');
+        const componentMap = new Map(); // id -> Element
+        const evtSource = new EventSource("/stream");
+
+        // Helper to get or create element
+        function getOrCreate(id, tag = 'div') {
+            if (componentMap.has(id)) return componentMap.get(id);
+            const el = document.createElement(tag);
+            el.id = id;
+            componentMap.set(id, el);
+            return el;
+        }
+
+        evtSource.onmessage = function(event) {
+            const data = event.data;
+            if (!data) return;
+            const msg = JSON.parse(data);
+
+            if (msg.surfaceUpdate) {
+                handleSurfaceUpdate(msg.surfaceUpdate);
+            } else if (msg.beginRendering) {
+                handleBeginRendering(msg.beginRendering);
+            }
+        };
+
+        function handleSurfaceUpdate(update) {
+            if (!update.components) return;
+
+            update.components.forEach(item => {
+                const id = item.id;
+                const comp = item.component;
+                let el = getOrCreate(id);
+
+                // Simple reconciler: clear content and re-render
+                // real implementation would diff, but this is a demo
+                el.innerHTML = '';
+                el.className = ''; // Reset classes
+
+                if (comp.Column) {
+                    el.className = 'flex flex-col gap-2';
+                    if (comp.Column.alignment === 'center') el.classList.add('items-center');
+                    renderChildren(el, comp.Column.children);
+                } else if (comp.Row) {
+                    el.className = 'flex flex-row gap-2';
+                    if (comp.Row.alignment === 'center') el.classList.add('items-center');
+                     if (comp.Row.alignment === 'end') el.classList.add('items-end');
+                    // 'space-between' simulation for simple demo if needed, but flex gap is usually enough
+                    renderChildren(el, comp.Row.children);
+                } else if (comp.Text) {
+                    // Handle text content
+                    const textVal = resolveBoundValue(comp.Text.text);
+                    const hint = comp.Text.usageHint;
+
+                    // Allow upgrading tag for semantic HTML if possible (hard with reuse, so just style)
+                    if (hint === 'h1') el.className = 'text-2xl font-bold';
+                    else if (hint === 'h2') el.className = 'text-xl font-semibold';
+                    else if (hint === 'h3') el.className = 'text-lg font-medium';
+                    else if (hint === 'error') el.className = 'text-red-500';
+                    else if (hint === 'mono') el.className = 'font-mono text-sm text-gray-600 bg-gray-50 p-2 rounded';
+
+                    el.textContent = textVal;
+                } else if (comp.Button) {
+                    // Turn div into button-like if it isn't one (created as div by default getOrCreate)
+                    // In a real renderer we'd create correct tags based on type first.
+                    // Here we just swap or style. Swapping is cleaner.
+                    if (el.tagName !== 'BUTTON') {
+                        const newEl = document.createElement('button');
+                        newEl.id = id;
+                        componentMap.set(id, newEl);
+                        if (el.parentNode) el.parentNode.replaceChild(newEl, el);
+                        el = newEl;
+                    }
+                    el.className = 'px-4 py-2 rounded text-white bg-blue-500 hover:bg-blue-600 transition';
+                    // Custom styles for specific actions if hinted/context?
+                    // For now standard blue.
+
+                    // Child label
+                    const childId = comp.Button.child;
+                    // We need to append the child element (which might be Text)
+                    // But wait, the child might not be defined yet?
+                    // A2UI says components are sent before use or we buffer.
+                    // We assume valid stream order or we might see empty.
+                     // IMPORTANT: We need to mount the child element inside this button
+                    const childEl = getOrCreate(childId, 'span'); // Text usually
+                    el.appendChild(childEl);
+
+                    el.onclick = () => handleAction(comp.Button.action);
+                }
+            });
+        }
+
+        function renderChildren(parent, children) {
+            if (!children || !children.explicitList) return;
+            children.explicitList.forEach(childId => {
+                const childEl = getOrCreate(childId);
+                parent.appendChild(childEl);
+            });
+        }
+
+        function resolveBoundValue(val) {
+            if (val.literalString) return val.literalString;
+            return ""; // Data binding not impl in client demo
+        }
+
+        function handleBeginRendering(begin) {
+            const rootId = begin.root;
+            const content = getOrCreate(rootId);
+            rootEl.innerHTML = '';
+            rootEl.appendChild(content);
+        }
+
+        function handleAction(action) {
+            if (!action) return;
+            console.log("Action:", action);
+
+            // Construct payload
+            const payload = {
+                userAction: {
+                    name: action.name,
+                    context: {}
+                }
+            };
+
+            if (action.context) {
+                action.context.forEach(ctx => {
+                    // Simple resolution: assume literal
+                    // Real impl resolves paths
+                    // Note: server sends array of objects map-like
+                    if (ctx.value && ctx.value.literalString) {
+                         payload.userAction.context[ctx.key] = ctx.value.literalString;
+                    }
+                });
+            }
+
+            fetch('/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Action error:", err));
+        }
+    </script>
+</body>
+</html>

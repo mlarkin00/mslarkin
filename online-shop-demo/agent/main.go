@@ -1,127 +1,223 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/mslarkin/online-shop-demo/agent/pkg/a2ui"
 	"github.com/mslarkin/online-shop-demo/agent/pkg/agent"
 	"github.com/mslarkin/online-shop-demo/agent/pkg/gcp"
 	"github.com/mslarkin/online-shop-demo/agent/pkg/k8s"
-	"github.com/mslarkin/online-shop-demo/agent/ui"
 )
 
 func main() {
-	http.HandleFunc("/", handleIndex)
-	http.HandleFunc("/apply", handleApply)
-
-	log.Println("Server starting on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func handleIndex(w http.ResponseWriter, r *http.Request) {
-	project := r.URL.Query().Get("project")
-	if project == "" {
-		project = "mslarkin-ext" // Default
-	}
-
-	var clusterNames []string
-	if project != "" {
-		clusters, err := gcp.ListClusters(r.Context(), project)
-		if err != nil {
-			log.Printf("Error listing clusters: %v", err)
-			// Don't fail completely, just show empty list or error
-		} else {
-			for _, c := range clusters {
-				clusterNames = append(clusterNames, c.Name)
-			}
-		}
-	}
-
-	rootDir := os.Getenv("APP_ROOT")
-	if rootDir == "" {
-		rootDir, _ = filepath.Abs("..") // Assuming we run from agent/ locally
-	}
-	// failureModes is now []k8s.FailureMode
-	k8sModes, err := k8s.GetFailureModes(rootDir)
-	if err != nil {
-		log.Printf("Error getting failure modes: %v", err)
-	}
-
-	var uiModes []ui.FailureMode
-	for _, m := range k8sModes {
-		uiModes = append(uiModes, ui.FailureMode{
-			Name:        m.Name,
-			Description: m.Description,
-		})
-	}
-
-	page := ui.Layout("Failure Mode Simulator", ui.Dashboard([]string{project}, project, clusterNames, uiModes))
-	w.Header().Set("Content-Type", "text/html")
-	_ = page.Render(w)
-}
-
-func handleApply(w http.ResponseWriter, r *http.Request) {
-	mode := r.FormValue("mode")
-	action := r.FormValue("action")
-	project := r.FormValue("project")
-	cluster := r.FormValue("cluster")
-
-	if project == "" {
-		project = "mslarkin-ext"
-	}
-
 	rootDir := os.Getenv("APP_ROOT")
 	if rootDir == "" {
 		rootDir, _ = filepath.Abs("..")
 	}
 
-	// Initialize Agent
-	ctx := r.Context()
+	// Initialize A2UI Server
+	a2uiServer := a2ui.NewServer()
 
-	// Lookup cluster location since valid prompt needs it for tool call
-	var location string
-	if project != "" && cluster != "" {
-		clusters, err := gcp.ListClusters(ctx, project)
-		if err == nil {
-			for _, c := range clusters {
-				if c.Name == cluster {
-					location = c.Location
-					break
+	// Push initial state
+	project := "mslarkin-ext" // Default
+	pushInitialState(a2uiServer, rootDir, project)
+
+	// Handlers
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "ui/client.html")
+	})
+	http.HandleFunc("/stream", a2uiServer.HandleStream)
+	http.HandleFunc("/action", func(w http.ResponseWriter, r *http.Request) {
+		a2uiServer.HandleAction(w, r, func(action a2ui.UserAction) {
+			handleUserAction(a2uiServer, rootDir, action)
+		})
+	})
+
+	log.Println("Agent starting on :8080 (A2UI)")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func pushInitialState(s *a2ui.Server, rootDir, project string) {
+	// Build components
+	k8sModes, err := k8s.GetFailureModes(rootDir)
+	if err != nil {
+		log.Printf("Error getting failure modes: %v", err)
+	}
+
+	ctx := context.Background()
+	clusters, _ := gcp.ListClusters(ctx, project)
+	clusterNames := []string{}
+	for _, c := range clusters {
+		clusterNames = append(clusterNames, c.Name)
+	}
+
+	// Construct A2UI Components
+	var components []a2ui.ComponentWrapper
+
+	// Root Column
+	components = append(components, a2ui.ComponentWrapper{
+		ID: "root",
+		Component: a2ui.Component{
+			Column: &a2ui.Column{
+				Children: a2ui.Children{ExplicitList: []string{"header", "project_form", "cluster_select", "mode_list"}},
+			},
+		},
+	})
+
+	// Header
+	components = append(components, a2ui.MakeText("header", "Failure Mode Simulator", "h1"))
+
+	// Project Form
+	components = append(components, a2ui.MakeText("project_form", "Project: "+project, "h3"))
+
+	// Cluster Select
+	targetCluster := ""
+	if len(clusterNames) > 0 {
+		targetCluster = clusterNames[0]
+	}
+	components = append(components, a2ui.MakeText("cluster_select", "Target Cluster: "+targetCluster, "h3"))
+
+	// Modes
+	var modeIDs []string
+	for _, mode := range k8sModes {
+		rowID := "mode_row_" + mode.Name
+		nameID := "mode_name_" + mode.Name
+		descID := "mode_desc_" + mode.Name
+		applyBtnID := "btn_apply_" + mode.Name
+		applyLabelID := "lbl_apply_" + mode.Name
+		revertBtnID := "btn_revert_" + mode.Name
+		revertLabelID := "lbl_revert_" + mode.Name
+
+		modeIDs = append(modeIDs, rowID)
+
+		// Row
+		components = append(components, a2ui.ComponentWrapper{
+			ID: rowID,
+			Component: a2ui.Component{
+				Column: &a2ui.Column{
+					Children: a2ui.Children{ExplicitList: []string{nameID, descID, "actions_" + mode.Name}},
+				},
+			},
+		})
+
+		// Name & Desc
+		components = append(components, a2ui.MakeText(nameID, mode.Name, "h3"))
+		components = append(components, a2ui.MakeText(descID, mode.Description, "mono"))
+
+		// Actions Row
+		components = append(components, a2ui.ComponentWrapper{
+			ID: "actions_" + mode.Name,
+			Component: a2ui.Component{
+				Row: &a2ui.Row{
+					Children: a2ui.Children{ExplicitList: []string{applyBtnID, revertBtnID}},
+				},
+			},
+		})
+
+		// Buttons
+		applyComps := a2ui.MakeButton(applyBtnID, applyLabelID, "Apply", "apply_mode", map[string]string{
+			"mode": mode.Name,
+			"project": project,
+			"cluster": targetCluster,
+			"action": "apply",
+		})
+		components = append(components, applyComps...)
+
+		revertComps := a2ui.MakeButton(revertBtnID, revertLabelID, "Revert", "apply_mode", map[string]string{
+			"mode": mode.Name,
+			"project": project,
+			"cluster": targetCluster,
+			"action": "revert",
+		})
+		components = append(components, revertComps...)
+	}
+
+	components = append(components, a2ui.ComponentWrapper{
+		ID: "mode_list",
+		Component: a2ui.Component{
+			Column: &a2ui.Column{
+				Children: a2ui.Children{ExplicitList: modeIDs},
+			},
+		},
+	})
+
+	s.Broadcast(a2ui.Message{
+		SurfaceUpdate: &a2ui.SurfaceUpdate{
+			SurfaceID: "main",
+			Components: components,
+		},
+	})
+
+	s.Broadcast(a2ui.Message{
+		BeginRendering: &a2ui.BeginRendering{Root: "root"},
+	})
+}
+
+func handleUserAction(s *a2ui.Server, rootDir string, action a2ui.UserAction) {
+	ctx := context.Background()
+	if action.Name == "apply_mode" {
+		mode := action.Context["mode"]
+		project := action.Context["project"]
+		cluster := action.Context["cluster"]
+		act := action.Context["action"] // apply or revert
+
+		// Find location
+		location := "us-central1"
+		if project != "" && cluster != "" {
+			clusters, err := gcp.ListClusters(ctx, project)
+			if err == nil {
+				for _, c := range clusters {
+					if c.Name == cluster {
+						location = c.Location
+						break
+					}
 				}
 			}
 		}
-	}
-	if location == "" {
-		location = "us-central1" // Fallback or let agent guess/ask (but agent has no chat UI)
-		// Or maybe we should error? But let's try fallback.
-	}
 
-	agentService, err := agent.NewAgent(ctx, project, "us-central1", "gemini-2.0-flash-001", rootDir)
-	if err != nil {
-		fmt.Fprintf(w, "<span class='text-red-500'>Failed to init agent: %v</span>", err)
-		return
-	}
-	defer agentService.Close()
+		statusID := "header" // Reuse header for status
+		s.Broadcast(a2ui.Message{
+			SurfaceUpdate: &a2ui.SurfaceUpdate{
+				Components: []a2ui.ComponentWrapper{
+					a2ui.MakeText(statusID, fmt.Sprintf("Processing %s %s...", act, mode), "h1"),
+				},
+			},
+		})
 
-	var prompt string
-	if action == "apply" {
-		prompt = fmt.Sprintf("Please apply the '%s' failure mode to cluster '%s' in project '%s', location '%s'.", mode, cluster, project, location)
-	} else {
-		prompt = fmt.Sprintf("Please revert the '%s' failure mode on cluster '%s' in project '%s', location '%s'.", mode, cluster, project, location)
-	}
+		agentService, err := agent.NewAgent(ctx, project, "us-central1", "gemini-2.0-flash-001", rootDir)
+		if err != nil {
+			log.Printf("Agent init fail: %v", err)
+			return
+		}
+		defer agentService.Close()
 
-	response, err := agentService.Run(ctx, prompt)
-	if err != nil {
-		log.Printf("Agent failed: %v", err)
-		fmt.Fprintf(w, "<span class='text-red-500'>Agent Error: %v</span>", err)
-		return
-	}
+		var prompt string
+		if act == "apply" {
+			prompt = fmt.Sprintf("Please apply the '%s' failure mode to cluster '%s' in project '%s', location '%s'.", mode, cluster, project, location)
+		} else {
+			prompt = fmt.Sprintf("Please revert the '%s' failure mode on cluster '%s' in project '%s', location '%s'.", mode, cluster, project, location)
+		}
 
-	// Success response from Agent
-	fmt.Fprintf(w, "<span class='text-green-500'>Agent: %s</span>", response)
+		resp, err := agentService.Run(ctx, prompt)
+		resText := resp
+		if err != nil {
+			resText = fmt.Sprintf("Error: %v", err)
+		}
+
+		// Update Status
+		s.Broadcast(a2ui.Message{
+			SurfaceUpdate: &a2ui.SurfaceUpdate{
+				Components: []a2ui.ComponentWrapper{
+					a2ui.MakeText(statusID, "Agent: "+resText, "h1"),
+				},
+			},
+		})
+	}
 }
