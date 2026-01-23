@@ -1,0 +1,2 @@
+Mechanism: Adds a 2s latency injection sidecar or strict timeout to productcatalogservice.
+Manifestation: Product pages will load very slowly or timeout. User experience degrades significantly.

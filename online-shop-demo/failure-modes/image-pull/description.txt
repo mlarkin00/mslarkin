@@ -1,0 +1,2 @@
+Mechanism: Updates currencyservice image to a non-existent tag `v0.10.4-nonexistent`.
+Manifestation: Pods will fail with ImagePullBackOff/ErrImagePull. Frontend will fail to convert currencies.

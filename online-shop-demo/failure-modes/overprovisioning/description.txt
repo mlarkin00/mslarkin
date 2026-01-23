@@ -1,0 +1,2 @@
+Mechanism: Requests excessive CPU/Memory for paymentservice (e.g. 100CPU).
+Manifestation: Pods will stay in Pending state due to insufficient cluster resources. Checkout cannot complete.

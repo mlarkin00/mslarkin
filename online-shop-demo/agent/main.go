@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/mslarkin/online-shop-demo/agent/pkg/agent"
@@ -41,31 +42,65 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rootDir, _ := filepath.Abs("..") // Assuming we run from agent/
-	failureModes, err := k8s.GetFailureModes(rootDir)
+	rootDir := os.Getenv("APP_ROOT")
+	if rootDir == "" {
+		rootDir, _ = filepath.Abs("..") // Assuming we run from agent/ locally
+	}
+	// failureModes is now []k8s.FailureMode
+	k8sModes, err := k8s.GetFailureModes(rootDir)
 	if err != nil {
 		log.Printf("Error getting failure modes: %v", err)
 	}
 
-	page := ui.Layout("Failure Mode Simulator", ui.Dashboard([]string{project}, project, clusterNames, failureModes))
+	var uiModes []ui.FailureMode
+	for _, m := range k8sModes {
+		uiModes = append(uiModes, ui.FailureMode{
+			Name:        m.Name,
+			Description: m.Description,
+		})
+	}
+
+	page := ui.Layout("Failure Mode Simulator", ui.Dashboard([]string{project}, project, clusterNames, uiModes))
 	w.Header().Set("Content-Type", "text/html")
 	_ = page.Render(w)
 }
 
 func handleApply(w http.ResponseWriter, r *http.Request) {
-	mode := r.URL.Query().Get("mode")
-	action := r.URL.Query().Get("action")
-	project := r.URL.Query().Get("project")
-	cluster := r.URL.Query().Get("cluster")
+	mode := r.FormValue("mode")
+	action := r.FormValue("action")
+	project := r.FormValue("project")
+	cluster := r.FormValue("cluster")
 
 	if project == "" {
 		project = "mslarkin-ext"
 	}
 
-	rootDir, _ := filepath.Abs("..")
+	rootDir := os.Getenv("APP_ROOT")
+	if rootDir == "" {
+		rootDir, _ = filepath.Abs("..")
+	}
 
 	// Initialize Agent
 	ctx := r.Context()
+
+	// Lookup cluster location since valid prompt needs it for tool call
+	var location string
+	if project != "" && cluster != "" {
+		clusters, err := gcp.ListClusters(ctx, project)
+		if err == nil {
+			for _, c := range clusters {
+				if c.Name == cluster {
+					location = c.Location
+					break
+				}
+			}
+		}
+	}
+	if location == "" {
+		location = "us-central1" // Fallback or let agent guess/ask (but agent has no chat UI)
+		// Or maybe we should error? But let's try fallback.
+	}
+
 	agentService, err := agent.NewAgent(ctx, project, "us-central1", "gemini-2.0-flash-001", rootDir)
 	if err != nil {
 		fmt.Fprintf(w, "<span class='text-red-500'>Failed to init agent: %v</span>", err)
@@ -75,9 +110,9 @@ func handleApply(w http.ResponseWriter, r *http.Request) {
 
 	var prompt string
 	if action == "apply" {
-		prompt = fmt.Sprintf("Please apply the '%s' failure mode to cluster '%s' in project '%s'.", mode, cluster, project)
+		prompt = fmt.Sprintf("Please apply the '%s' failure mode to cluster '%s' in project '%s', location '%s'.", mode, cluster, project, location)
 	} else {
-		prompt = fmt.Sprintf("Please revert the '%s' failure mode on cluster '%s' in project '%s'.", mode, cluster, project)
+		prompt = fmt.Sprintf("Please revert the '%s' failure mode on cluster '%s' in project '%s', location '%s'.", mode, cluster, project, location)
 	}
 
 	response, err := agentService.Run(ctx, prompt)

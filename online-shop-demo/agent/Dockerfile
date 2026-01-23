@@ -17,15 +17,18 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -v -o agent main.go
 
 # Final stage
-FROM alpine:3.19
+FROM google/cloud-sdk:alpine
 
 WORKDIR /app
 
-# Install runtime dependencies and kubectl
+# Install dependencies
+# google/cloud-sdk:alpine has gcloud. We need kubectl.
+# Try installing via gcloud components or manual. Manual is often faster/reliable on alpine.
 RUN apk add --no-cache ca-certificates bash curl \
     && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
     && chmod +x kubectl \
-    && mv kubectl /usr/local/bin/
+    && mv kubectl /usr/local/bin/ \
+    && gcloud components install gke-gcloud-auth-plugin --quiet
 
 # Copy binary from builder
 COPY --from=builder /app/agent /app/agent
@@ -37,6 +40,7 @@ COPY --from=builder /app/baseline /app/baseline
 
 # Environment variables
 ENV PORT=8080
+ENV APP_ROOT=/app
 
 EXPOSE 8080
 

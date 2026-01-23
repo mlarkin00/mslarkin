@@ -2,7 +2,7 @@
 Create a web app that can be used to simulate failure modes in the online shop demo.
 
 # Tech
-* Use Google ADK for Go
+* Use Golang
 * Deploy agent to Vertex AI Angent Engine
 
 # UI

@@ -1,0 +1,2 @@
+Mechanism: Sets absurdly low memory limits (10Mi) on adservice.
+Manifestation: adservice pods will be OOMKilled repeatedly. Ads section on frontend will be missing or empty.

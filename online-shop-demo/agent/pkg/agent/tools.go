@@ -45,8 +45,12 @@ var clusterTool = &genai.Tool{
 						Type:        genai.TypeString,
 						Description: "The name of the target GKE cluster.",
 					},
+					"location": {
+						Type:        genai.TypeString,
+						Description: "The location (region/zone) of the target GKE cluster.",
+					},
 				},
-				Required: []string{"mode", "project_id", "cluster"},
+				Required: []string{"mode", "project_id", "cluster", "location"},
 			},
 		},
 		{
@@ -67,8 +71,12 @@ var clusterTool = &genai.Tool{
 						Type:        genai.TypeString,
 						Description: "The name of the target GKE cluster.",
 					},
+					"location": {
+						Type:        genai.TypeString,
+						Description: "The location (region/zone) of the target GKE cluster.",
+					},
 				},
-				Required: []string{"mode", "project_id", "cluster"},
+				Required: []string{"mode", "project_id", "cluster", "location"},
 			},
 		},
 	},
@@ -87,29 +95,16 @@ func executeTool(ctx context.Context, name string, args map[string]interface{}, 
 
 	case "apply_failure_mode":
 		mode, _ := args["mode"].(string)
-		// For now we ignore cluster/project target in actual execution because
-		// the demo scripts just use current context.
-		// In a real agent we would switch context here.
+		projectID, _ := args["project_id"].(string)
+		cluster, _ := args["cluster"].(string)
+		location, _ := args["location"].(string)
 
-		// Try to find apply.sh or *.yaml
-		// Quick implementation: just look for yaml for now as our k8s client supports it
-		// Or assume there is an emailservice-crash.yaml etc
+		// Configure credentials for kubectl
+		if err := k8s.ConfigureCredentials(ctx, projectID, location, cluster); err != nil {
+			return nil, fmt.Errorf("failed to configure credentials: %w", err)
+		}
 
-		// Let's implement a smarter finder in k8s package later.
-		// For now, hardcode some logic or use a helper.
-
-		// TODO: Switch KubeContext to project/cluster
-		log.Printf("Applying mode %s (Targeting %v/%v - Context switch not impl)", mode, args["project_id"], args["cluster"])
-
-		// We use a simplified assumption: The user has set the context or we just apply to current.
-		// The prompt asks to apply to a cluster, we should probably at least log it.
-
-		// Logic to find manifest
-		// Better: scan directory for yaml
-
-		// For the purpose of this demo, we can just use the path we found in exploration?
-		// No, we need to be generic.
-
+		log.Printf("Applying mode %s to %s/%s in %s", mode, projectID, cluster, location)
 		err := k8s.ApplyFailureMode(ctx, rootDir, mode)
 		if err != nil {
 			return nil, err
@@ -118,7 +113,16 @@ func executeTool(ctx context.Context, name string, args map[string]interface{}, 
 
 	case "revert_failure_mode":
 		mode, _ := args["mode"].(string)
-		log.Printf("Reverting mode %s", mode)
+		projectID, _ := args["project_id"].(string)
+		cluster, _ := args["cluster"].(string)
+		location, _ := args["location"].(string)
+
+		// Configure credentials for kubectl
+		if err := k8s.ConfigureCredentials(ctx, projectID, location, cluster); err != nil {
+			return nil, fmt.Errorf("failed to configure credentials: %w", err)
+		}
+
+		log.Printf("Reverting mode %s on %s/%s in %s", mode, projectID, cluster, location)
 		err := k8s.RevertFailureMode(ctx, rootDir, mode)
 		if err != nil {
 			return nil, err

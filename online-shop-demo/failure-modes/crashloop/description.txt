@@ -1,0 +1,2 @@
+Mechanism: Changes the emailservice deployment command to `/bin/false` to force immediate exit.
+Manifestation: Pods will enter a CrashLoopBackOff state. Checkout operations requiring email confirmation will fail or hang.

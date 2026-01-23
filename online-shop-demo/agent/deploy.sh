@@ -7,7 +7,14 @@ SERVICE_NAME="failure-mode-agent"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
 echo "Building container image..."
+# Copy necessary directories for the agent to function
+cp -r ../failure-modes .
+cp -r ../baseline .
+
 gcloud builds submit --tag $IMAGE_NAME .
+
+# Cleanup
+rm -rf failure-modes baseline
 
 echo "Deploying to Cloud Run..."
 gcloud run deploy $SERVICE_NAME \

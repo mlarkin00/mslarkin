@@ -31,18 +31,48 @@ func DeleteManifest(ctx context.Context, manifestPath string) error {
 	return nil
 }
 
+// ConfigureCredentials configures kubectl to communicate with the specified cluster.
+func ConfigureCredentials(ctx context.Context, projectID, location, cluster string) error {
+	// gcloud container clusters get-credentials CLUSTER --region REGION --project PROJECT
+	cmd := exec.CommandContext(ctx, "gcloud", "container", "clusters", "get-credentials", cluster,
+		"--region", location,
+		"--project", projectID,
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to get-credentials for %s: %w", cluster, err)
+	}
+	return nil
+}
+
+// FailureMode represents a chaos scenario
+type FailureMode struct {
+	Name        string
+	Description string
+}
+
 // GetFailureModes returns a list of available failure modes by scanning the failure-modes directory.
-func GetFailureModes(rootDir string) ([]string, error) {
+func GetFailureModes(rootDir string) ([]FailureMode, error) {
 	modesDir := filepath.Join(rootDir, "failure-modes")
 	entries, err := os.ReadDir(modesDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read failure modes directory: %w", err)
 	}
 
-	var modes []string
+	var modes []FailureMode
 	for _, e := range entries {
 		if e.IsDir() {
-			modes = append(modes, e.Name())
+			descPath := filepath.Join(modesDir, e.Name(), "description.txt")
+			descBytes, _ := os.ReadFile(descPath)
+			description := string(descBytes)
+			if description == "" {
+				description = "No description available."
+			}
+			modes = append(modes, FailureMode{
+				Name:        e.Name(),
+				Description: description,
+			})
 		}
 	}
 	return modes, nil

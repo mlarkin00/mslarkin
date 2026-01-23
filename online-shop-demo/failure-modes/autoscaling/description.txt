@@ -1,0 +1,2 @@
+Mechanism: Sets resource quota to very low values, preventing scale-up.
+Manifestation: HPA attempts to scale up loadgenerator/frontend will fail. Throughput will plateau or drop under load.
