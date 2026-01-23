@@ -47,8 +47,10 @@ func ConfigureCredentials(ctx context.Context, projectID, location, cluster stri
 }
 
 // FailureMode represents a chaos scenario
+// FailureMode represents a chaos scenario
 type FailureMode struct {
-	Name        string
+	ID          string // Directory name, used for identification
+	Name        string // Human-readable display name
 	Description string
 }
 
@@ -60,6 +62,15 @@ func GetFailureModes(rootDir string) ([]FailureMode, error) {
 		return nil, fmt.Errorf("failed to read failure modes directory: %w", err)
 	}
 
+	displayNames := map[string]string{
+		"autoscaling":      "Autoscaling: Failure to scale up",
+		"crashloop":        "Crashloop",
+		"image-pull":       "Image pull backoff",
+		"latency":          "Downstream latency",
+		"oom":              "App OOM",
+		"overprovisioning": "Resource overprovisioning",
+	}
+
 	var modes []FailureMode
 	for _, e := range entries {
 		if e.IsDir() {
@@ -69,8 +80,15 @@ func GetFailureModes(rootDir string) ([]FailureMode, error) {
 			if description == "" {
 				description = "No description available."
 			}
+
+			displayName, ok := displayNames[e.Name()]
+			if !ok {
+				displayName = e.Name()
+			}
+
 			modes = append(modes, FailureMode{
-				Name:        e.Name(),
+				ID:          e.Name(),
+				Name:        displayName,
 				Description: description,
 			})
 		}

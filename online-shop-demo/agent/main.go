@@ -87,13 +87,13 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 	// Modes
 	var modeIDs []string
 	for _, mode := range k8sModes {
-		rowID := "mode_row_" + mode.Name
-		nameID := "mode_name_" + mode.Name
-		descID := "mode_desc_" + mode.Name
-		applyBtnID := "btn_apply_" + mode.Name
-		applyLabelID := "lbl_apply_" + mode.Name
-		revertBtnID := "btn_revert_" + mode.Name
-		revertLabelID := "lbl_revert_" + mode.Name
+		rowID := "mode_row_" + mode.ID
+		nameID := "mode_name_" + mode.ID
+		descID := "mode_desc_" + mode.ID
+		applyBtnID := "btn_apply_" + mode.ID
+		applyLabelID := "lbl_apply_" + mode.ID
+		revertBtnID := "btn_revert_" + mode.ID
+		revertLabelID := "lbl_revert_" + mode.ID
 
 		modeIDs = append(modeIDs, rowID)
 
@@ -102,7 +102,7 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 			ID: rowID,
 			Component: a2ui.Component{
 				Column: &a2ui.Column{
-					Children: a2ui.Children{ExplicitList: []string{nameID, descID, "actions_" + mode.Name}},
+					Children: a2ui.Children{ExplicitList: []string{nameID, descID, "actions_" + mode.ID}},
 				},
 			},
 		})
@@ -113,7 +113,7 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 
 		// Actions Row
 		components = append(components, a2ui.ComponentWrapper{
-			ID: "actions_" + mode.Name,
+			ID: "actions_" + mode.ID,
 			Component: a2ui.Component{
 				Row: &a2ui.Row{
 					Children: a2ui.Children{ExplicitList: []string{applyBtnID, revertBtnID}},
@@ -123,18 +123,18 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 
 		// Buttons
 		applyComps := a2ui.MakeButton(applyBtnID, applyLabelID, "Apply", "apply_mode", map[string]string{
-			"mode": mode.Name,
+			"mode":    mode.ID,
 			"project": project,
 			"cluster": targetCluster,
-			"action": "apply",
+			"action":  "apply",
 		})
 		components = append(components, applyComps...)
 
 		revertComps := a2ui.MakeButton(revertBtnID, revertLabelID, "Revert", "apply_mode", map[string]string{
-			"mode": mode.Name,
+			"mode":    mode.ID,
 			"project": project,
 			"cluster": targetCluster,
-			"action": "revert",
+			"action":  "revert",
 		})
 		components = append(components, revertComps...)
 	}
