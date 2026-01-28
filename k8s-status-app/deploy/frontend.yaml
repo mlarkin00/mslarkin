@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-status-frontend-sa
+  annotations:
+    iam.gke.io/gcp-service-account: k8s-status-frontend-sa@mslarkin-ext.iam.gserviceaccount.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-status-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-status-frontend
+  template:
+    metadata:
+      labels:
+        app: k8s-status-frontend
+    spec:
+      serviceAccountName: k8s-status-frontend-sa
+      containers:
+      - name: frontend
+        image: gcr.io/mslarkin-ext/k8s-status-frontend:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: PORT
+          value: "8081"
+        - name: BACKEND_URL
+          value: "http://k8s-status-backend"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-status-frontend
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports": {"80":{"name": "frontend-neg"}}}'
+spec:
+  selector:
+    app: k8s-status-frontend
+  ports:
+  - port: 80
+    targetPort: 8081
+    protocol: TCP
+  type: ClusterIP
