@@ -16,6 +16,8 @@ The Backend functions as the central data aggregator. It must be implemented as 
 ### 2.1. Protocol & Connections
 
 * **Protocol:** Model Context Protocol (MCP).
+* **Transport:** **MCP over SSE (Server-Sent Events)** to support remote communication.
+* **Authentication:** **OIDC Token Injection**. The Backend must inject the Service Account's OIDC ID token into the MCP initialization handshake (e.g., via HTTP headers) to authenticate with the upstream GKE MCP Servers.
 * **Language:** Golang.
 * **MCP Server Connections:** The backend must initialize connections to the following MCP Servers to access configuration, status, and metrics:
     1. **GKE OneMCP Server:** `https://container.googleapis.com/mcp`.
@@ -24,6 +26,7 @@ The Backend functions as the central data aggregator. It must be implemented as 
 ### 2.2. Data Retrieval via MCP
 
 The backend maps frontend requests to specific MCP primitives (Resources or Tools) provided by the upstream servers.
+**Performance Requirement:** To ensure dashboard responsiveness, the Backend must implement **In-Memory Caching** (TTL: 30-60 seconds) for Cluster Discovery and Workload Aggregation data. Reading these values should bypass the Agentic reasoning loop and use the **MCP Client SDK directly**.
 
 #### **A. Cluster Discovery (via GKE OneMCP)**
 
@@ -59,8 +62,8 @@ The backend implementation must adhere to specific framework and model requireme
 
 * **Framework:** **Google Gen AI Agent Development Kit (ADK)**.
     * **Requirement:** The backend agent logic and tool orchestration must be built using the Google ADK to leverage standardized patterns for reliability and observability.
-* **Model:** **Vertex AI Gemini 3 Pro**.
-    * **Requirement:** The **Chat Assistant** feature must use the Vertex AI Gemini 3 Pro model to answer user questions about the environment. Core dashboard rendering remains deterministic.
+* **Model:** **Vertex AI Gemini 1.5 Pro (or latest stable)**.
+    * **Requirement:** The **Chat Assistant** feature must use the Vertex AI Gemini 1.5 Pro model to answer user questions about the environment. Core dashboard rendering remains deterministic.
 
 ### 2.4. Identity & Permissions
 
@@ -81,7 +84,8 @@ Since the Frontend and Backend are decoupled, the Backend must expose a structur
     * `GET /api/workloads`: List workloads for a specific cluster/namespace.
     * `GET /api/workload/{name}`: Get detailed description for a workload.
     * `GET /api/workload/{name}/pods`: Get pods for a workload.
-    * `POST /api/chat`: Send user questions to the AI assistant.
+
+    * `POST /api/chat`: Send user questions to the AI assistant. **Must support Streaming Responses** (e.g., via SSE or chunked transfer) to improve perceived latency.
 
 ---
 
@@ -122,7 +126,8 @@ Each Cluster Card visualizes the data retrieved from the MCP Servers:
 
 * **Service Account:** The Frontend application must run as a dedicated Service Account (e.g., `k8s-status-frontend-sa`).
 * **Permissions:**
-    * **Backend Access:** Must have permissions to reach the Backend service (e.g., via Cloud Run invoker roles or internal GKE network policies).
+
+    * **Backend Access:** Access to the Backend service must be controlled via **Kubernetes NetworkPolicies** and standard K8s Service DNS (e.g., `http://backend.mslarkin-ext.svc.cluster.local`).
     * **Least Privilege:** Should NOT have direct access to the MCP Servers or Kubernetes API; it must rely entirely on the Backend.
 
 ---
