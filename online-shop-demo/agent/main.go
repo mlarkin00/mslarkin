@@ -7,12 +7,25 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/mslarkin/online-shop-demo/agent/pkg/a2ui"
 	"github.com/mslarkin/online-shop-demo/agent/pkg/agent"
 	"github.com/mslarkin/online-shop-demo/agent/pkg/gcp"
 	"github.com/mslarkin/online-shop-demo/agent/pkg/k8s"
 )
+
+type AppState struct {
+	mu             sync.RWMutex
+	CurrentProject string
+	CurrentCluster string
+	Clusters       []gcp.Cluster
+}
+
+var appState = &AppState{
+	CurrentProject: "mslarkin-ext",
+}
 
 func main() {
 	rootDir := os.Getenv("APP_ROOT")
@@ -23,9 +36,9 @@ func main() {
 	// Initialize A2UI Server
 	a2uiServer := a2ui.NewServer()
 
-	// Push initial state
-	project := "mslarkin-ext" // Default
-	pushInitialState(a2uiServer, rootDir, project)
+	// Initial Render
+	refreshClusters(context.Background())
+	renderUI(a2uiServer, rootDir)
 
 	// Handlers
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -44,18 +57,40 @@ func main() {
 	}
 }
 
-func pushInitialState(s *a2ui.Server, rootDir, project string) {
+func refreshClusters(ctx context.Context) {
+	appState.mu.Lock()
+	defer appState.mu.Unlock()
+
+	clusters, err := gcp.ListClusters(ctx, appState.CurrentProject)
+	if err == nil {
+		appState.Clusters = clusters
+		// Set default if not set or invalid
+		found := false
+		for _, c := range clusters {
+			if c.Name == appState.CurrentCluster {
+				found = true
+				break
+			}
+		}
+		if !found && len(clusters) > 0 {
+			appState.CurrentCluster = clusters[0].Name
+		}
+	} else {
+		log.Printf("Error listing clusters: %v", err)
+	}
+}
+
+func renderUI(s *a2ui.Server, rootDir string) {
+	appState.mu.RLock()
+	project := appState.CurrentProject
+	targetCluster := appState.CurrentCluster
+	clusters := appState.Clusters
+	appState.mu.RUnlock()
+
 	// Build components
 	k8sModes, err := k8s.GetFailureModes(rootDir)
 	if err != nil {
 		log.Printf("Error getting failure modes: %v", err)
-	}
-
-	ctx := context.Background()
-	clusters, _ := gcp.ListClusters(ctx, project)
-	clusterNames := []string{}
-	for _, c := range clusters {
-		clusterNames = append(clusterNames, c.Name)
 	}
 
 	// Construct A2UI Components
@@ -66,27 +101,65 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 		ID: "root",
 		Component: a2ui.Component{
 			Column: &a2ui.Column{
-				Children: a2ui.Children{ExplicitList: []string{"header", "project_form", "cluster_select", "mode_list"}},
+				Children: a2ui.Children{ExplicitList: []string{"header", "project_form", "cluster_select_row", "mode_list"}},
 			},
 		},
 	})
 
 	// Header
-	components = append(components, a2ui.MakeText("header", "Failure Mode Simulator", "h1"))
+	components = append(components, a2ui.MakeText("header", "Failure Mode Simulator (A2UI)", "h1"))
 
 	// Project Form
 	components = append(components, a2ui.MakeText("project_form", "Project: "+project, "h3"))
 
 	// Cluster Select
-	targetCluster := ""
-	if len(clusterNames) > 0 {
-		targetCluster = clusterNames[0]
+	var clusterOptions []a2ui.Option
+	for _, c := range clusters {
+		clusterOptions = append(clusterOptions, a2ui.Option{ID: c.Name, Label: c.Name})
 	}
-	components = append(components, a2ui.MakeText("cluster_select", "Target Cluster: "+targetCluster, "h3"))
+
+	// Wrap select in a row or just use the ID
+	// Using a Row to keep it clean if we add a refresh button later
+	components = append(components, a2ui.ComponentWrapper{
+		ID: "cluster_select_row",
+		Component: a2ui.Component{
+			Column: &a2ui.Column{
+				Children: a2ui.Children{ExplicitList: []string{"cluster_label", "cluster_dropdown"}},
+			},
+		},
+	})
+
+	components = append(components, a2ui.MakeText("cluster_label", "Target Cluster:", "h3"))
+
+	selectComps := a2ui.MakeSelect("cluster_dropdown", "Target Cluster", clusterOptions, targetCluster, "select_cluster", map[string]string{
+		"project": project,
+	})
+	components = append(components, selectComps...)
+
+
+	// Find location of target cluster to configure credentials
+	location := "us-central1"
+	for _, c := range clusters {
+		if c.Name == targetCluster {
+			location = c.Location
+			break
+		}
+	}
+
+	// Configure credentials once for this render pass (if targetCluster is set)
+	if targetCluster != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := k8s.ConfigureCredentials(ctx, project, location, targetCluster); err != nil {
+			log.Printf("Failed to configure credentials for %s: %v", targetCluster, err)
+		}
+		cancel()
+	}
 
 	// Modes
 	var modeIDs []string
 	for _, mode := range k8sModes {
+		isActive, _ := k8s.IsFailureModeActive(context.Background(), mode.ID)
+
 		rowID := "mode_row_" + mode.ID
 		nameID := "mode_name_" + mode.ID
 		descID := "mode_desc_" + mode.ID
@@ -108,7 +181,11 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 		})
 
 		// Name & Desc
-		components = append(components, a2ui.MakeText(nameID, mode.Name, "h3"))
+		statusText := ""
+		if isActive {
+			statusText = " (Active)"
+		}
+		components = append(components, a2ui.MakeText(nameID, mode.Name+statusText, "h3"))
 		components = append(components, a2ui.MakeText(descID, mode.Description, "mono"))
 
 		// Actions Row
@@ -121,21 +198,52 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 			},
 		})
 
-		// Buttons
-		applyComps := a2ui.MakeButton(applyBtnID, applyLabelID, "Apply", "apply_mode", map[string]string{
+		// Buttons Logic
+		applyVariant := "success"
+		applyLabel := "Apply"
+		applyAction := "apply"
+
+		revertVariant := "neutral"
+		revertLabel := "Revert"
+		revertAction := "revert"
+
+		if isActive {
+			applyVariant = "neutral"
+			applyLabel = "Applied"
+			// revertVariant logic: if active, revert is danger (red)
+			revertVariant = "danger"
+		}
+
+		// Apply Button
+		applyComps := a2ui.MakeButton(applyBtnID, applyLabelID, applyLabel, "apply_mode", map[string]string{
 			"mode":    mode.ID,
 			"project": project,
 			"cluster": targetCluster,
-			"action":  "apply",
+			"action":  applyAction,
 		})
+		// Patch variant (MakeButton returns [Text, Button])
+		for i := range applyComps {
+			if applyComps[i].Component.Button != nil {
+				applyComps[i].Component.Button.Variant = applyVariant
+				break
+			}
+		}
 		components = append(components, applyComps...)
 
-		revertComps := a2ui.MakeButton(revertBtnID, revertLabelID, "Revert", "apply_mode", map[string]string{
+		// Revert Button
+		revertComps := a2ui.MakeButton(revertBtnID, revertLabelID, revertLabel, "apply_mode", map[string]string{
 			"mode":    mode.ID,
 			"project": project,
 			"cluster": targetCluster,
-			"action":  "revert",
+			"action":  revertAction,
 		})
+		// Patch variant
+		for i := range revertComps {
+			if revertComps[i].Component.Button != nil {
+				revertComps[i].Component.Button.Variant = revertVariant
+				break
+			}
+		}
 		components = append(components, revertComps...)
 	}
 
@@ -162,23 +270,37 @@ func pushInitialState(s *a2ui.Server, rootDir, project string) {
 
 func handleUserAction(s *a2ui.Server, rootDir string, action a2ui.UserAction) {
 	ctx := context.Background()
+
+	if action.Name == "select_cluster" {
+		val, ok := action.Context["selected_value"]
+		if ok {
+			appState.mu.Lock()
+			appState.CurrentCluster = val
+			appState.mu.Unlock()
+			renderUI(s, rootDir)
+		}
+		return
+	}
+
 	if action.Name == "apply_mode" {
 		mode := action.Context["mode"]
 		project := action.Context["project"]
+		// Trust the button context, OR use global state.
+		// Button context was burned in at render time.
+		// If we re-render on select, button context is fresh.
 		cluster := action.Context["cluster"]
 		act := action.Context["action"] // apply or revert
 
-		// Find location
+		// Find location using cached clusters
+		appState.mu.RLock()
+		clusters := appState.Clusters
+		appState.mu.RUnlock()
+
 		location := "us-central1"
-		if project != "" && cluster != "" {
-			clusters, err := gcp.ListClusters(ctx, project)
-			if err == nil {
-				for _, c := range clusters {
-					if c.Name == cluster {
-						location = c.Location
-						break
-					}
-				}
+		for _, c := range clusters {
+			if c.Name == cluster {
+				location = c.Location
+				break
 			}
 		}
 
@@ -186,7 +308,7 @@ func handleUserAction(s *a2ui.Server, rootDir string, action a2ui.UserAction) {
 		s.Broadcast(a2ui.Message{
 			SurfaceUpdate: &a2ui.SurfaceUpdate{
 				Components: []a2ui.ComponentWrapper{
-					a2ui.MakeText(statusID, fmt.Sprintf("Processing %s %s...", act, mode), "h1"),
+					a2ui.MakeText(statusID, fmt.Sprintf("Processing %s %s on %s...", act, mode, cluster), "h1"),
 				},
 			},
 		})

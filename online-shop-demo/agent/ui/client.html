@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Failure Mode Simulator (A2UI)</title>
+    <title>Failure Mode Simulator (A2UI v2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .a2ui-renderer { font-family: system-ui, sans-serif; }
@@ -76,6 +76,31 @@
                     else if (hint === 'mono') el.className = 'font-mono text-sm text-gray-600 bg-gray-50 p-2 rounded';
 
                     el.textContent = textVal;
+                } else if (comp.Select) {
+                    // Select handling
+                    if (el.tagName !== 'SELECT') {
+                        const newEl = document.createElement('select');
+                        newEl.id = id;
+                        componentMap.set(id, newEl);
+                        if (el.parentNode) el.parentNode.replaceChild(newEl, el);
+                        el = newEl;
+                    }
+                    el.className = 'p-2 border rounded bg-white';
+                    el.innerHTML = '';
+                    comp.Select.options.forEach(opt => {
+                        const optEl = document.createElement('option');
+                        optEl.value = opt.id;
+                        optEl.textContent = opt.label;
+                        if (opt.id === comp.Select.selected) optEl.selected = true;
+                        el.appendChild(optEl);
+                    });
+                    el.onchange = (e) => {
+                        const val = e.target.value;
+                        const act = JSON.parse(JSON.stringify(comp.Select.action));
+                        if (!act.context) act.context = [];
+                        act.context.push({key: 'selected_value', value: {literalString: val}});
+                        handleAction(act);
+                    };
                 } else if (comp.Button) {
                     // Turn div into button-like if it isn't one (created as div by default getOrCreate)
                     // In a real renderer we'd create correct tags based on type first.
@@ -87,7 +112,18 @@
                         if (el.parentNode) el.parentNode.replaceChild(newEl, el);
                         el = newEl;
                     }
-                    el.className = 'px-4 py-2 rounded text-white bg-blue-500 hover:bg-blue-600 transition';
+
+                    let baseClass = 'px-4 py-2 rounded text-white transition ';
+                    if (comp.Button.variant === 'danger') {
+                        baseClass += 'bg-red-600 hover:bg-red-700';
+                    } else if (comp.Button.variant === 'success') {
+                        baseClass += 'bg-green-600 hover:bg-green-700';
+                    } else if (comp.Button.variant === 'neutral') {
+                        baseClass += 'bg-gray-400 hover:bg-gray-500 cursor-default';
+                    } else {
+                        baseClass += 'bg-blue-500 hover:bg-blue-600';
+                    }
+                    el.className = baseClass;
                     // Custom styles for specific actions if hinted/context?
                     // For now standard blue.
 

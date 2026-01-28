@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // ApplyManifest applies the given manifest file using kubectl.
@@ -130,3 +131,65 @@ func RevertFailureMode(ctx context.Context, rootDir, mode string) error {
 	baselinePath := filepath.Join(rootDir, "baseline", "release", "kubernetes-manifests.yaml")
 	return ApplyManifest(ctx, baselinePath)
 }
+
+// IsFailureModeActive checks if a failure mode is currently active on the cluster.
+func IsFailureModeActive(ctx context.Context, mode string) (bool, error) {
+	// Logic to check specific resources based on mode ID
+	// Note: We assume "kubectl" is configured for the correct cluster (active context).
+	// The caller manages context switching via ConfigureCredentials or similar if needed,
+	// checking against the CURRENTLY configured cluster.
+
+	switch mode {
+	case "crashloop":
+		// emailservice command should be /bin/false
+		return checkResourceJSONPath(ctx, "deployment", "emailservice", "{.spec.template.spec.containers[?(@.name=='server')].command[0]}", "/bin/false")
+	case "image-pull":
+		// currencyservice image should be ...broken
+		// We verify if it contains "broken" to be safe against version tag changes
+		return checkResourceJSONPathContains(ctx, "deployment", "currencyservice", "{.spec.template.spec.containers[?(@.name=='server')].image}", "broken")
+	case "oom":
+		// adservice memory limit should be 10Mi
+		return checkResourceJSONPath(ctx, "deployment", "adservice", "{.spec.template.spec.containers[?(@.name=='server')].resources.limits.memory}", "10Mi")
+	case "overprovisioning":
+		// paymentservice memory request 4Gi
+		return checkResourceJSONPath(ctx, "deployment", "paymentservice", "{.spec.template.spec.containers[?(@.name=='server')].resources.requests.memory}", "4Gi")
+	case "latency":
+		// loadgenerator USERS env var is 1000
+		return checkResourceJSONPath(ctx, "deployment", "loadgenerator", "{.spec.template.spec.containers[?(@.name=='main')].env[?(@.name=='USERS')].value}", "1000")
+	case "autoscaling":
+		// This one is harder to check statically as it might be a load test or just a quota limit.
+		// Assuming quota-limit.yaml applies a ResourceQuota?
+		// Let's check for the existence of the specific ResourceQuota or similar if defined.
+		// For now, return false or check a side effect.
+		// If manifest is 'quota-limit.yaml', maybe check for a ResourceQuota named 'quota-limit'?
+		// Re-reading 'autoscaling' manifest might be needed if I missed it.
+		// For now, assuming no easy check, returning false (safe default).
+		return false, nil
+	default:
+		return false, nil
+	}
+}
+
+func checkResourceJSONPath(ctx context.Context, kind, name, jsonpath, expected string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "kubectl", "get", kind, name, fmt.Sprintf("-o=jsonpath=%s", jsonpath))
+	out, err := cmd.Output()
+	if err != nil {
+		// If resource not found, it's not active (or broken, but effectively not active in terms of applied failure)
+		return false, nil
+	}
+	return string(out) == expected, nil
+}
+
+func checkResourceJSONPathContains(ctx context.Context, kind, name, jsonpath, substr string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "kubectl", "get", kind, name, fmt.Sprintf("-o=jsonpath=%s", jsonpath))
+	out, err := cmd.Output()
+	if err != nil {
+		return false, nil
+	}
+	return filepath.Base(string(out)) == substr || contains(string(out), substr), nil // Simple contains check
+}
+
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
+}
+

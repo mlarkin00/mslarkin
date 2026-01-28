@@ -156,3 +156,28 @@ func MakeButton(id, labelID, labelText, actionName string, context map[string]st
 	}
 	return []ComponentWrapper{textComp, btnComp}
 }
+
+// Helper to create a select dropdown
+func MakeSelect(id, label string, options []Option, selected string, actionName string, context map[string]string) []ComponentWrapper {
+	ctxVars := []ContextVariable{}
+	for k, v := range context {
+		ctxVars = append(ctxVars, ContextVariable{Key: k, Value: BoundValue{LiteralString: v}})
+	}
+
+	return []ComponentWrapper{
+		{
+			ID: id,
+			Component: Component{
+				Select: &Select{
+					Label:    label,
+					Options:  options,
+					Selected: selected,
+					Action: Action{
+						Name:    actionName,
+						Context: ctxVars,
+					},
+				},
+			},
+		},
+	}
+}

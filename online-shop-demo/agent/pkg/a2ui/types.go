@@ -31,6 +31,19 @@ type Component struct {
 	Button *Button `json:"Button,omitempty"`
 	Image  *Image  `json:"Image,omitempty"`
 	Card   *Card   `json:"Card,omitempty"`
+	Select *Select `json:"Select,omitempty"`
+}
+
+type Select struct {
+	Label    string   `json:"label,omitempty"`
+	Options  []Option `json:"options"`
+	Selected string   `json:"selected,omitempty"`
+	Action   Action   `json:"action,omitempty"`
+}
+
+type Option struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
 }
 
 type Column struct {
@@ -49,8 +62,9 @@ type Text struct {
 }
 
 type Button struct {
-	Child  string `json:"child"` // Component ID of the button label
-	Action Action `json:"action,omitempty"`
+	Child   string `json:"child"` // Component ID of the button label
+	Action  Action `json:"action,omitempty"`
+	Variant string `json:"variant,omitempty"` // e.g., "primary", "danger", "neutral", "success"
 }
 
 type Image struct {
