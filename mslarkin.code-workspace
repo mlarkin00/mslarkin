@@ -47,6 +47,9 @@
     {
       "name": "gke-testing",
       "path": "../gke-testing"
+    },
+    {
+      "path": "k8s-status-app"
     }
   ],
   "settings": {
