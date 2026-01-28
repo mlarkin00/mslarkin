@@ -45,7 +45,7 @@ func main() {
     }
 
 	// Initialize Chat Service
-	chatService, err := chat.NewChatService(ctx, projectID, location, "")
+	chatService, err := chat.NewChatService(ctx, projectID, location, "", client)
 	if err != nil {
 		log.Printf("Warning: Failed to initialize Chat Service: %v", err)
         // log.Fatal(err)

@@ -27,6 +27,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("public"))))
 	mux.HandleFunc("GET /", handleLanding)
 	mux.HandleFunc("GET /dashboard", handleDashboard)
 	mux.HandleFunc("GET /partials/workloads", handlePartialsWorkloads)
@@ -53,31 +54,10 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch clusters
-	resp, err := http.Get(fmt.Sprintf("%s/api/clusters?project=%s", backendURL, url.QueryEscape(project)))
-	if err != nil {
-		http.Error(w, "Failed to connect to backend", http.StatusBadGateway)
-		log.Printf("Error fetching clusters: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		http.Error(w, "Failed to fetch clusters", http.StatusInternalServerError)
-		log.Printf("Backend returned status: %d", resp.StatusCode)
-		return
-	}
-
-	var clusters []models.Cluster
-	if err := json.NewDecoder(resp.Body).Decode(&clusters); err != nil {
-		http.Error(w, "Failed to decode clusters", http.StatusInternalServerError)
-		return
-	}
-
-	views.Dashboard(views.DashboardData{
-		Project:  project,
-		Clusters: clusters,
-	}).Render(w)
+    // Switch to A2UI Shell.
+    // We send an initial prompt to the agent to load the dashboard for the project.
+    initialPrompt := fmt.Sprintf("Show me the cluster dashboard for project %s", project)
+    views.A2UIShell(initialPrompt).Render(w)
 }
 
 func handlePartialsWorkloads(w http.ResponseWriter, r *http.Request) {
