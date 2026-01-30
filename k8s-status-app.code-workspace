@@ -1,10 +1,14 @@
 {
 	"folders": [
-		{
-			"path": "k8s-status-app"
-		},
-		{
-			"path": "online-shop-demo"
-		}
-	]
+    {
+      "path": "k8s-status-app"
+    },
+    {
+      "path": "online-shop-demo"
+    },
+    {
+      "name": "microservices-demo",
+      "path": "../microservices-demo"
+    }
+  ]
 }
