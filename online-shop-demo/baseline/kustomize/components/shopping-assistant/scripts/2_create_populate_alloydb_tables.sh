@@ -18,12 +18,13 @@ set -e
 set -x
 
 # Set sensible defaults
-REGION=us-central1
+REGION=us-west1
 ALLOYDB_CLUSTER_NAME=onlineboutique-cluster
 ALLOYDB_CARTS_DATABASE_NAME=carts
 ALLOYDB_CARTS_TABLE_NAME=cart_items
 ALLOYDB_PRODUCTS_DATABASE_NAME=products
 ALLOYDB_PRODUCTS_TABLE_NAME=catalog_items
+MODEL=text-embedding-004
 
 # Fetch the primary and read IPs
 ALLOYDB_PRIMARY_IP=`gcloud alloydb instances list --region=${REGION} --cluster=${ALLOYDB_CLUSTER_NAME} --filter="INSTANCE_TYPE:PRIMARY" --format=flattened | sed -nE "s/ipAddress:\s*(.*)/\1/p"`
@@ -46,4 +47,4 @@ psql -h ${ALLOYDB_PRIMARY_IP} -U postgres -d ${ALLOYDB_PRODUCTS_DATABASE_NAME} -
 rm products.sql
 
 # Generate vector embeddings
-psql -h ${ALLOYDB_PRIMARY_IP} -U postgres -d ${ALLOYDB_PRODUCTS_DATABASE_NAME} -c "UPDATE ${ALLOYDB_PRODUCTS_TABLE_NAME} SET product_embedding = embedding('textembedding-gecko@003', description), embed_model='textembedding-gecko@003';"
+psql -h ${ALLOYDB_PRIMARY_IP} -U postgres -d ${ALLOYDB_PRODUCTS_DATABASE_NAME} -c "UPDATE ${ALLOYDB_PRODUCTS_TABLE_NAME} SET product_embedding = embedding('${MODEL}', description), embed_model='${MODEL}';"
