@@ -20,12 +20,12 @@ set -x
 # Replace me
 PROJECT_ID=$PROJECT_ID
 PROJECT_NUMBER=$PROJECT_NUMBER
-PGPASSWORD=$PGPASSWORD
+PGPASSWORD=onlineshoppgpassword
 
 # Set sensible defaults
-REGION=us-central1
+REGION=us-west1
 USE_GKE_GCLOUD_AUTH_PLUGIN=True
-ALLOYDB_NETWORK=default
+ALLOYDB_NETWORK=shop-demo-network
 ALLOYDB_SERVICE_NAME=onlineboutique-network-range
 ALLOYDB_CLUSTER_NAME=onlineboutique-cluster
 ALLOYDB_INSTANCE_NAME=onlineboutique-instance

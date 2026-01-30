@@ -17,17 +17,10 @@
 # ----------------------------------------------------------
 
 # [START gke_release_kubernetes_manifests_microservices_demo]
-apiVersion: v1
-kind: Namespace
-metadata:
-  namespace: shop-demo
-  name: shop-demo
----
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: currencyservice
   labels:
     app: currencyservice
@@ -82,7 +75,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: currencyservice
   labels:
     app: currencyservice
@@ -98,13 +90,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: currencyservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: loadgenerator
   labels:
     app: loadgenerator
@@ -187,13 +177,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: loadgenerator
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: productcatalogservice
   labels:
     app: productcatalogservice
@@ -247,7 +235,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: productcatalogservice
   labels:
     app: productcatalogservice
@@ -263,13 +250,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: productcatalogservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: checkoutservice
   labels:
     app: checkoutservice
@@ -332,7 +317,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: checkoutservice
   labels:
     app: checkoutservice
@@ -348,13 +332,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: checkoutservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: shippingservice
   labels:
     app: shippingservice
@@ -408,7 +390,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: shippingservice
   labels:
     app: shippingservice
@@ -424,13 +405,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: shippingservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: cartservice
   labels:
     app: cartservice
@@ -485,7 +464,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: cartservice
   labels:
     app: cartservice
@@ -501,13 +479,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: cartservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: redis-cart
   labels:
     app: redis-cart
@@ -562,7 +538,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: redis-cart
   labels:
     app: redis-cart
@@ -578,7 +553,6 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: emailservice
   labels:
     app: emailservice
@@ -634,7 +608,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: emailservice
   labels:
     app: emailservice
@@ -650,13 +623,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: emailservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: paymentservice
   labels:
     app: paymentservice
@@ -710,7 +681,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: paymentservice
   labels:
     app: paymentservice
@@ -726,13 +696,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: paymentservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: frontend
   labels:
     app: frontend
@@ -826,7 +794,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: frontend
   labels:
     app: frontend
@@ -842,7 +809,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: frontend-external
   labels:
     app: frontend
@@ -858,13 +824,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: frontend
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: recommendationservice
   labels:
     app: recommendationservice
@@ -922,7 +886,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: recommendationservice
   labels:
     app: recommendationservice
@@ -938,13 +901,11 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: recommendationservice
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: shop-demo
   name: adservice
   labels:
     app: adservice
@@ -1000,7 +961,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: shop-demo
   name: adservice
   labels:
     app: adservice
@@ -1016,6 +976,5 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: shop-demo
   name: adservice
 # [END gke_release_kubernetes_manifests_microservices_demo]

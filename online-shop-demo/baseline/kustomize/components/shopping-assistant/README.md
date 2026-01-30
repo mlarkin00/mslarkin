@@ -8,9 +8,9 @@ This demo adds a new service to Online Boutique called `shoppingassistantservice
 
 1. Set some environment variables.
     ```sh
-    export PROJECT_ID=<project_id>
-    export PROJECT_NUMBER=<project_number>
-    export PGPASSWORD=<pgpassword>
+    export PROJECT_ID=mslarkin-ext
+    export PROJECT_NUMBER=79309377625
+    export PGPASSWORD=onlineshoppgpassword
     ```
 
     **Note**: The project ID and project number of your Google Cloud project can be found in the Console. The PostgreSQL password can be set to anything you want, but make sure to note it down.
@@ -65,7 +65,7 @@ This demo adds a new service to Online Boutique called `shoppingassistantservice
         --zone=us-central1-a \
         --machine-type=e2-micro \
         --image-family=debian-12 \
-        --image-project=debian-cloud 
+        --image-project=debian-cloud
     ```
 
 1. SSH into the VM. From here until we exit, all steps happen in the VM.
@@ -117,7 +117,7 @@ This demo adds a new service to Online Boutique called `shoppingassistantservice
     ```sh
     nano kubernetes-manifests/kustomization.yaml # make the modifications below
     ```
-    
+
     ```yaml
     # ...head of the file
     components: # remove this comment
