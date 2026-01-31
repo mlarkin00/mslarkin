@@ -67,7 +67,9 @@ languages that talk to each other over gRPC.
 
    ```sh
    gcloud container clusters create-auto online-boutique \
-     --project=${PROJECT_ID} --region=${REGION}
+     --project=${PROJECT_ID} --region=${REGION} \
+     --network=shop-demo-network \
+     --subnetwork=shop-demo-network
    ```
 
    Creating the cluster may take a few minutes.

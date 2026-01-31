@@ -7,7 +7,7 @@ PROJECT_ID="${PROJECT_ID:-mslarkin-ext}"
 NAMESPACE="${NAMESPACE:-shop-demo-ns}"
 CLUSTER_NAME="${CLUSTER_NAME:-onlineboutique-cluster}" # AlloyDB Cluster
 INSTANCE_NAME="${INSTANCE_NAME:-onlineboutique-instance}" # AlloyDB Instance
-ALLOYDB_NETWORK="${ALLOYDB_NETWORK:-default}"
+ALLOYDB_NETWORK="${ALLOYDB_NETWORK:-shop-demo-network}"
 ALLOYDB_SERVICE_NAME="${ALLOYDB_SERVICE_NAME:-onlineboutique-network-range}"
 
 # Service Accounts

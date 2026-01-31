@@ -30,7 +30,9 @@ This demo adds a new service to Online Boutique called `shoppingassistantservice
 1. Create a GKE Autopilot cluster. This may take a few minutes.
     ```sh
     gcloud container clusters create-auto cymbal-shops \
-        --region=us-central1
+        --region=us-central1 \
+        --network=shop-demo-network \
+        --subnetwork=shop-demo-network
     ```
 
 1. Change your Kubernetes context to your newly created GKE cluster.
