@@ -32,12 +32,12 @@ steps:
   args:
   - '-c'
   - >
-    gcloud container clusters get-credentials --zone=$_ZONE $_CLUSTER;
-    skaffold run -f=skaffold.yaml --default-repo=gcr.io/$PROJECT_ID;
+    gcloud container clusters get-credentials --zone=$_REGION $_CLUSTER;
+    skaffold run -f=skaffold.yaml --default-repo=us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo;
 
 # Add more power, and more time, for heavy Skaffold build
 timeout: '3600s'
 options:
-  machineType: 'N1_HIGHCPU_8'
-  
+  machineType: 'E2_HIGHCPU_8'
+
 # [END cloudbuild_microservice_demo_cloudbuild]
