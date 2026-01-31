@@ -1,57 +1,85 @@
 apiVersion: v1
-kind: ServiceAccount
+kind: Namespace
 metadata:
-  name: adservice
+  name: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: adservice
+  namespace: shop-demo-ns
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com
   name: cartservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: checkoutservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: currencyservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: emailservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: frontend
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: loadgenerator
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: paymentservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com
   name: productcatalogservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: recommendationservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: shippingservice
+  namespace: shop-demo-ns
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com
+  name: shoppingassistantservice
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 data:
@@ -65,6 +93,7 @@ data:
 kind: ConfigMap
 metadata:
   name: collector-gateway-config-template
+  namespace: shop-demo-ns
 ---
 apiVersion: v1
 kind: Service
@@ -72,6 +101,7 @@ metadata:
   labels:
     app: adservice
   name: adservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -87,6 +117,7 @@ metadata:
   labels:
     app: cartservice
   name: cartservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -102,6 +133,7 @@ metadata:
   labels:
     app: checkoutservice
   name: checkoutservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -117,6 +149,7 @@ metadata:
   labels:
     app: currencyservice
   name: currencyservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -132,6 +165,7 @@ metadata:
   labels:
     app: emailservice
   name: emailservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -147,6 +181,7 @@ metadata:
   labels:
     app: frontend
   name: frontend
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: http
@@ -162,6 +197,7 @@ metadata:
   labels:
     app: frontend
   name: frontend-external
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: http
@@ -175,6 +211,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: opentelemetrycollector
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc-otlp
@@ -191,6 +228,7 @@ metadata:
   labels:
     app: paymentservice
   name: paymentservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -206,6 +244,7 @@ metadata:
   labels:
     app: productcatalogservice
   name: productcatalogservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -221,6 +260,7 @@ metadata:
   labels:
     app: recommendationservice
   name: recommendationservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -234,23 +274,9 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: redis-cart
-  name: redis-cart
-spec:
-  ports:
-  - name: tcp-redis
-    port: 6379
-    targetPort: 6379
-  selector:
-    app: redis-cart
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
     app: shippingservice
   name: shippingservice
+  namespace: shop-demo-ns
 spec:
   ports:
   - name: grpc
@@ -260,12 +286,29 @@ spec:
     app: shippingservice
   type: ClusterIP
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: shoppingassistantservice
+  name: shoppingassistantservice
+  namespace: shop-demo-ns
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: shoppingassistantservice
+  type: ClusterIP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     app: adservice
   name: adservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -321,6 +364,7 @@ metadata:
   labels:
     app: cartservice
   name: cartservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -332,8 +376,15 @@ spec:
     spec:
       containers:
       - env:
-        - name: REDIS_ADDR
-          value: redis-cart:6379
+        - name: ALLOYDB_PRIMARY_IP
+        - name: ALLOYDB_DATABASE_NAME
+          value: carts
+        - name: ALLOYDB_TABLE_NAME
+          value: cart_items
+        - name: ALLOYDB_SECRET_NAME
+          value: alloydb-secret
+        - name: PROJECT_ID
+          value: mslarkin-ext
         image: us-central1-docker.pkg.dev/google-samples/microservices-demo/cartservice:v0.10.4
         livenessProbe:
           grpc:
@@ -375,6 +426,7 @@ metadata:
   labels:
     app: checkoutservice
   name: checkoutservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -445,6 +497,7 @@ metadata:
   labels:
     app: currencyservice
   name: currencyservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -503,6 +556,7 @@ metadata:
   labels:
     app: emailservice
   name: emailservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -562,6 +616,7 @@ metadata:
   labels:
     app: frontend
   name: frontend
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -575,6 +630,8 @@ spec:
     spec:
       containers:
       - env:
+        - name: ENABLE_ASSISTANT
+          value: "true"
         - name: ENABLE_TRACING
           value: "1"
         - name: COLLECTOR_SERVICE_ADDR
@@ -648,6 +705,7 @@ metadata:
   labels:
     app: loadgenerator
   name: loadgenerator
+  namespace: shop-demo-ns
 spec:
   replicas: 1
   selector:
@@ -728,6 +786,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: opentelemetrycollector
+  namespace: shop-demo-ns
 spec:
   replicas: 1
   selector:
@@ -794,6 +853,7 @@ metadata:
   labels:
     app: paymentservice
   name: paymentservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -851,6 +911,7 @@ metadata:
   labels:
     app: productcatalogservice
   name: productcatalogservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -862,6 +923,20 @@ spec:
     spec:
       containers:
       - env:
+        - name: ALLOYDB_CLUSTER_NAME
+          value: onlineboutique-cluster
+        - name: ALLOYDB_INSTANCE_NAME
+          value: onlineboutique-instance
+        - name: ALLOYDB_DATABASE_NAME
+          value: products
+        - name: ALLOYDB_TABLE_NAME
+          value: catalog_items
+        - name: ALLOYDB_SECRET_NAME
+          value: alloydb-secret
+        - name: PROJECT_ID
+          value: mslarkin-ext
+        - name: REGION
+          value: us-west1
         - name: COLLECTOR_SERVICE_ADDR
           value: opentelemetrycollector:4317
         - name: OTEL_SERVICE_NAME
@@ -910,6 +985,7 @@ metadata:
   labels:
     app: recommendationservice
   name: recommendationservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -969,62 +1045,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: redis-cart
-  name: redis-cart
-spec:
-  selector:
-    matchLabels:
-      app: redis-cart
-  template:
-    metadata:
-      labels:
-        app: redis-cart
-    spec:
-      containers:
-      - image: redis:alpine
-        livenessProbe:
-          periodSeconds: 5
-          tcpSocket:
-            port: 6379
-        name: redis
-        ports:
-        - containerPort: 6379
-        readinessProbe:
-          periodSeconds: 5
-          tcpSocket:
-            port: 6379
-        resources:
-          limits:
-            cpu: 125m
-            memory: 256Mi
-          requests:
-            cpu: 70m
-            memory: 200Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          privileged: false
-          readOnlyRootFilesystem: true
-        volumeMounts:
-        - mountPath: /data
-          name: redis-data
-      securityContext:
-        fsGroup: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        runAsUser: 1000
-      volumes:
-      - emptyDir: {}
-        name: redis-data
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
     app: shippingservice
   name: shippingservice
+  namespace: shop-demo-ns
 spec:
   selector:
     matchLabels:
@@ -1069,3 +1092,67 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
       serviceAccountName: shippingservice
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: shoppingassistantservice
+  name: shoppingassistantservice
+  namespace: shop-demo-ns
+spec:
+  selector:
+    matchLabels:
+      app: shoppingassistantservice
+  template:
+    metadata:
+      labels:
+        app: shoppingassistantservice
+    spec:
+      containers:
+      - env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: ai-studio-api-key
+        - name: ALLOYDB_CLUSTER_NAME
+          value: onlineboutique-cluster
+        - name: ALLOYDB_INSTANCE_NAME
+          value: onlineboutique-instance
+        - name: ALLOYDB_DATABASE_NAME
+          value: products
+        - name: ALLOYDB_TABLE_NAME
+          value: catalog_items
+        - name: ALLOYDB_SECRET_NAME
+          value: alloydb-secret
+        - name: PROJECT_ID
+          value: mslarkin-ext
+        - name: REGION
+          value: us-west1
+        image: shoppingassistantservice
+        name: server
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      serviceAccountName: shoppingassistantservice
+      terminationGracePeriodSeconds: 5

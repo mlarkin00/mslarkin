@@ -49,21 +49,24 @@ spec:
           containerPort: 8080
         env:
         - name: GOOGLE_API_KEY
-          value: GOOGLE_API_KEY_VAL
+          valueFrom:
+            secretKeyRef:
+              name: ai-studio-api-key
+              key: latest
         - name: ALLOYDB_CLUSTER_NAME
-          value: ALLOYDB_CLUSTER_NAME_VAL
+          value: onlineboutique-cluster
         - name: ALLOYDB_INSTANCE_NAME
-          value: ALLOYDB_INSTANCE_NAME_VAL
+          value: onlineboutique-instance
         - name: ALLOYDB_DATABASE_NAME
-          value: ALLOYDB_DATABASE_NAME_VAL
+          value: products
         - name: ALLOYDB_TABLE_NAME
-          value: ALLOYDB_TABLE_NAME_VAL
+          value: catalog_items
         - name: ALLOYDB_SECRET_NAME
-          value: ALLOYDB_SECRET_NAME_VAL
+          value: alloydb-secret
         - name: PROJECT_ID
-          value: PROJECT_ID_VAL
+          value: mslarkin-ext
         - name: REGION
-          value: REGION_VAL
+          value: us-west1
         resources:
           requests:
             cpu: 100m
@@ -92,4 +95,4 @@ kind: ServiceAccount
 metadata:
   name: shoppingassistantservice
   annotations:
-    iam.gke.io/gcp-service-account: ALLOYDB_USER_GSA_ID
+    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com

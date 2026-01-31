@@ -5,10 +5,6 @@
     },
     {
       "path": "online-shop-demo"
-    },
-    {
-      "name": "microservices-demo",
-      "path": "../microservices-demo"
     }
   ]
 }
