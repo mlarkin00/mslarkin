@@ -109,7 +109,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"9555":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"9555":"k8s1-e8970022-shop-demo-ns-adservice-9555-77566ed9"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: adservice
   name: adservice
@@ -134,7 +134,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"7070":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"7070":"k8s1-e8970022-shop-demo-ns-cartservice-7070-97397de8"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: cartservice
   name: cartservice
@@ -159,7 +159,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"5050":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"5050":"k8s1-e8970022-shop-demo-ns-checkoutservice-5050-dbaf7d28"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: checkoutservice
   name: checkoutservice
@@ -184,7 +184,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"7000":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"7000":"k8s1-e8970022-shop-demo-ns-currencyservice-7000-acffa976"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: currencyservice
   name: currencyservice
@@ -209,7 +209,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"5000":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"5000":"k8s1-e8970022-shop-demo-ns-emailservice-5000-ec34b332"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: emailservice
   name: emailservice
@@ -234,7 +234,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"80":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-e8970022-shop-demo-ns-frontend-80-5f37ea44"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: frontend
   name: frontend
@@ -259,7 +259,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"80":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-e8970022-shop-demo-ns-frontend-external-80-85f9f335"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   finalizers:
   - gke.networking.io/l4-netlb-v1
   - service.kubernetes.io/load-balancer-cleanup
@@ -289,7 +289,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"4317":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"4317":"k8s1-e8970022-shop-demo-ns-opentelemetrycollector-4317-e7dd1fd0"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   name: opentelemetrycollector
   namespace: shop-demo-ns
 spec:
@@ -312,7 +312,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"50051":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"50051":"k8s1-e8970022-shop-demo-ns-paymentservice-50051-c291588c"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: paymentservice
   name: paymentservice
@@ -337,7 +337,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"3550":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"3550":"k8s1-e8970022-shop-demo-ns-productcatalogservice-3550-2dc43339"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: productcatalogservice
   name: productcatalogservice
@@ -362,7 +362,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"8080":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"8080":"k8s1-e8970022-shop-demo-ns-recommendationservice-8080-a170d1f5"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: recommendationservice
   name: recommendationservice
@@ -387,7 +387,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"50051":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"50051":"k8s1-e8970022-shop-demo-ns-shippingservice-50051-e56469b8"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: shippingservice
   name: shippingservice
@@ -412,7 +412,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"80":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-e8970022-shop-demo-ns-shoppingassistantservice-80-e8f9a1f3"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
+
   labels:
     app: shoppingassistantservice
   name: shoppingassistantservice
