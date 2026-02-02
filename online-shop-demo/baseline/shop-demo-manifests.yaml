@@ -109,7 +109,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"9555":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"9555":"k8s1-75c55688-shop-demo-ns-adservice-9555-d6e7ebe3"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"9555":"k8s1-e8970022-shop-demo-ns-adservice-9555-77566ed9"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: adservice
   name: adservice
@@ -134,7 +134,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"7070":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"7070":"k8s1-75c55688-shop-demo-ns-cartservice-7070-b9b83d33"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"7070":"k8s1-e8970022-shop-demo-ns-cartservice-7070-97397de8"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: cartservice
   name: cartservice
@@ -159,7 +159,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"5050":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"5050":"k8s1-75c55688-shop-demo-ns-checkoutservice-5050-ce5d3c2e"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"5050":"k8s1-e8970022-shop-demo-ns-checkoutservice-5050-dbaf7d28"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: checkoutservice
   name: checkoutservice
@@ -184,7 +184,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"7000":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"7000":"k8s1-75c55688-shop-demo-ns-currencyservice-7000-5d5e9c0d"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"7000":"k8s1-e8970022-shop-demo-ns-currencyservice-7000-acffa976"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: currencyservice
   name: currencyservice
@@ -209,7 +209,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"5000":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"5000":"k8s1-75c55688-shop-demo-ns-emailservice-5000-54bed16c"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"5000":"k8s1-e8970022-shop-demo-ns-emailservice-5000-ec34b332"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: emailservice
   name: emailservice
@@ -234,7 +234,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"80":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-75c55688-shop-demo-ns-frontend-80-c84b93df"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-e8970022-shop-demo-ns-frontend-80-5f37ea44"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: frontend
   name: frontend
@@ -259,7 +259,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"80":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-75c55688-shop-demo-ns-frontend-external-80-89fdd025"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-e8970022-shop-demo-ns-frontend-external-80-85f9f335"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   finalizers:
   - gke.networking.io/l4-netlb-v1
   - service.kubernetes.io/load-balancer-cleanup
@@ -289,7 +289,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"4317":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"4317":"k8s1-75c55688-shop-demo-ns-opentelemetrycollector-4317-3ff2c3b0"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"4317":"k8s1-e8970022-shop-demo-ns-opentelemetrycollector-4317-e7dd1fd0"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   name: opentelemetrycollector
   namespace: shop-demo-ns
 spec:
@@ -312,7 +312,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"50051":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"50051":"k8s1-75c55688-shop-demo-ns-paymentservice-50051-38019399"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"50051":"k8s1-e8970022-shop-demo-ns-paymentservice-50051-c291588c"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: paymentservice
   name: paymentservice
@@ -337,7 +337,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"3550":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"3550":"k8s1-75c55688-shop-demo-ns-productcatalogservice-3550-d90c6c61"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"3550":"k8s1-e8970022-shop-demo-ns-productcatalogservice-3550-2dc43339"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: productcatalogservice
   name: productcatalogservice
@@ -362,7 +362,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"8080":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"8080":"k8s1-75c55688-shop-demo-ns-recommendationservice-8080-dd3850d4"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"8080":"k8s1-e8970022-shop-demo-ns-recommendationservice-8080-a170d1f5"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: recommendationservice
   name: recommendationservice
@@ -387,7 +387,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"50051":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"50051":"k8s1-75c55688-shop-demo-ns-shippingservice-50051-d2ea8521"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"50051":"k8s1-e8970022-shop-demo-ns-shippingservice-50051-e56469b8"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: shippingservice
   name: shippingservice
@@ -412,7 +412,7 @@ kind: Service
 metadata:
   annotations:
     cloud.google.com/neg: '{"ingress":true,"exposed_ports":{"80":{}}}'
-    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-75c55688-shop-demo-ns-shoppingassistantservice-80-f6289d71"},"zones":["us-central1-b","us-central1-c","us-central1-f"]}'
+    cloud.google.com/neg-status: '{"network_endpoint_groups":{"80":"k8s1-e8970022-shop-demo-ns-shoppingassistantservice-80-e8f9a1f3"},"zones":["us-west1-a","us-west1-b","us-west1-c"]}'
   labels:
     app: shoppingassistantservice
   name: shoppingassistantservice
@@ -484,6 +484,15 @@ spec:
           periodSeconds: 15
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 300m
+            ephemeral-storage: 1Gi
+            memory: 300Mi
+          requests:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 205Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -575,6 +584,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 300m
+            ephemeral-storage: 1Gi
+            memory: 205Mi
+          requests:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 205Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -677,6 +695,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -766,6 +793,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -854,6 +890,15 @@ spec:
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -974,6 +1019,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1043,6 +1097,15 @@ spec:
         image: us-central1-docker.pkg.dev/google-samples/microservices-demo/loadgenerator:v0.10.4
         imagePullPolicy: IfNotPresent
         name: main
+        resources:
+          limits:
+            cpu: 500m
+            ephemeral-storage: 1Gi
+            memory: 512Mi
+          requests:
+            cpu: 300m
+            ephemeral-storage: 1Gi
+            memory: 308Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1132,6 +1195,13 @@ spec:
         image: otel/opentelemetry-collector-contrib:0.143.1@sha256:f051aff195ad50ed5ad9d95bcdd51d7258200c937def3797cf830366ed62e034
         imagePullPolicy: IfNotPresent
         name: otel-gateway
+        resources:
+          limits:
+            ephemeral-storage: 1Gi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 1Gi
+            memory: 2Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1263,6 +1333,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1367,6 +1446,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1457,6 +1545,15 @@ spec:
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 450Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 220Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1539,6 +1636,15 @@ spec:
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 103Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -1623,6 +1729,15 @@ spec:
         - containerPort: 8080
           name: http
           protocol: TCP
+        resources:
+          limits:
+            cpu: 200m
+            ephemeral-storage: 1Gi
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            ephemeral-storage: 1Gi
+            memory: 256Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
