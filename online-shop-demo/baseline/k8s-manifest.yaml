@@ -310,7 +310,7 @@ spec:
         - env:
             - name: PORT
               value: "9555"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/adservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/adservice:latest
           livenessProbe:
             grpc:
               port: 9555
@@ -378,7 +378,7 @@ spec:
               value: alloydb-secret
             - name: PROJECT_ID
               value: mslarkin-ext
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/cartservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/cartservice:latest
           livenessProbe:
             grpc:
               port: 7070
@@ -458,7 +458,7 @@ spec:
               value: currencyservice:7000
             - name: CART_SERVICE_ADDR
               value: cartservice:7070
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/checkoutservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/checkoutservice:latest
           livenessProbe:
             grpc:
               port: 5050
@@ -520,7 +520,7 @@ spec:
               value: "1"
             - name: PORT
               value: "7000"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/currencyservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/currencyservice:latest
           livenessProbe:
             grpc:
               port: 7000
@@ -584,7 +584,7 @@ spec:
               value: "1"
             - name: PORT
               value: "8080"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/emailservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/emailservice:latest
           livenessProbe:
             grpc:
               port: 8080
@@ -671,7 +671,7 @@ spec:
               value: adservice:9555
             - name: SHOPPING_ASSISTANT_SERVICE_ADDR
               value: shoppingassistantservice:80
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/frontend:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/frontend:latest
           livenessProbe:
             httpGet:
               httpHeaders:
@@ -813,7 +813,7 @@ spec:
               value: "1"
             - name: PORT
               value: "50051"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/paymentservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/paymentservice:latest
           livenessProbe:
             grpc:
               port: 50051
@@ -892,7 +892,7 @@ spec:
               value: "1"
             - name: PORT
               value: "3550"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/productcatalogservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/productcatalogservice:latest
           livenessProbe:
             grpc:
               port: 3550
@@ -957,7 +957,7 @@ spec:
               value: "8080"
             - name: PRODUCT_CATALOG_SERVICE_ADDR
               value: productcatalogservice:3550
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/recommendationservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/recommendationservice:latest
           livenessProbe:
             grpc:
               port: 8080
@@ -1016,7 +1016,7 @@ spec:
         - env:
             - name: PORT
               value: "50051"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/shippingservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/shippingservice:latest
           livenessProbe:
             grpc:
               port: 50051
@@ -1090,7 +1090,7 @@ spec:
               value: mslarkin-ext
             - name: REGION
               value: us-west1
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/shoppingassistantservice:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/shoppingassistantservice:latest
           name: server
           ports:
             - containerPort: 8080
@@ -1098,10 +1098,10 @@ spec:
           resources:
             limits:
               cpu: 200m
-              memory: 128Mi
+              memory: 512Mi
             requests:
               cpu: 100m
-              memory: 64Mi
+              memory: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -1148,7 +1148,7 @@ spec:
               value: "10"
             - name: RATE
               value: "1"
-          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/loadgenerator:8d8c975
+          image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/loadgenerator:latest
           name: main
           resources:
             limits:
