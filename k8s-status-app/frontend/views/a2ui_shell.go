@@ -1,13 +1,15 @@
 package views
 
 import (
+	"net/http"
+
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
     "k8s-status-frontend/components"
 )
 
-func A2UIShell(prompt string) Node {
-    return components.Layout("GKE Status - A2UI",
+func A2UIShell(r *http.Request, prompt string) Node {
+    return components.Layout(r, "GKE Status - A2UI",
         Div(ID("a2ui-root"), Class("min-h-screen p-4"),
             // Hidden input to store initial prompt if needed,
             // or we script it directly.

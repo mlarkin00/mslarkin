@@ -1,6 +1,8 @@
 package views
 
 import (
+	"net/http"
+
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
     "k8s-status-frontend/components"
@@ -12,20 +14,20 @@ type DashboardData struct {
     Clusters []models.Cluster
 }
 
-func Dashboard(data DashboardData) Node {
-    return components.Layout("Dashboard - " + data.Project,
+func Dashboard(r *http.Request, data DashboardData) Node {
+    return components.Layout(r, "Dashboard - "+data.Project,
         Div(
             H2(Class("text-2xl font-bold mb-4"), Text("Project: "+data.Project)),
-            Div(Class("flex flex-col gap-4"),
+            Div(Class("flex-col gap-4 flex"), // Fixed class order and name for clarity? "flex flex-col gap-4" is better but staying safe
                 Map(data.Clusters, func(c models.Cluster) Node {
-                    return ClusterCard(c)
+                    return ClusterCard(r, c)
                 }),
             ),
         ),
     )
 }
 
-func ClusterCard(c models.Cluster) Node {
+func ClusterCard(r *http.Request, c models.Cluster) Node {
     return Div(Class("card bg-base-100 shadow-xl"),
         Div(Class("card-body"),
             H2(Class("card-title"), Text(c.Name),
@@ -34,7 +36,7 @@ func ClusterCard(c models.Cluster) Node {
             P(Text("Location: "+c.Location)),
 
             Div(
-                Attr("hx-get", components.AppLink("/partials/workloads?cluster="+c.Name+"&namespace=agent-ns")),
+                Attr("hx-get", components.ResolveURL(r, "/partials/workloads?cluster="+c.Name+"&namespace=agent-ns")),
                 Attr("hx-trigger", "load"),
                 Attr("hx-swap", "innerHTML"),
                 Span(Class("loading loading-spinner"), Text("Loading workloads...")),

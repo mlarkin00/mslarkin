@@ -31,6 +31,13 @@ pathMatchers:
   pathRules:
   - paths:
     - /k8s-status
+    urlRedirect:
+      pathRedirect: /k8s-status/
+      stripQuery: false
+  - paths:
     - /k8s-status/*
+    routeAction:
+      urlRewrite:
+        pathPrefixRewrite: /k8s-status-app/
     service: https://www.googleapis.com/compute/v1/projects/mslarkin-ext/global/backendServices/k8s-status-service-backend
 selfLink: https://www.googleapis.com/compute/v1/projects/mslarkin-ext/global/urlMaps/mslarkin-ext-lb

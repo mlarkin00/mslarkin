@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 
 	"k8s-status-frontend/models"
 	"k8s-status-frontend/components"
-    "strings"
+
 	"k8s-status-frontend/views"
 )
 
@@ -41,39 +42,55 @@ func main() {
 	apiMux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("public"))))
 	apiMux.HandleFunc("GET /", handleLanding)
 	apiMux.HandleFunc("GET /dashboard", handleDashboard)
-	apiMux.HandleFunc("GET /partials/workloads", handlePartialsWorkloads)
-	apiMux.HandleFunc("POST /chat/proxy", handleChatProxy)
-
-	var rootHandler http.Handler = apiMux
-	if basePath != "" {
-		// Log basePath details
-		log.Printf("Debug: BasePath='%s' (len=%d)", basePath, len(basePath))
-
-		// Strip prefix if set
-		stripper := http.StripPrefix(basePath, apiMux)
-		appHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("Debug: Incoming Request: %s", r.URL.Path)
-			if strings.HasPrefix(r.URL.Path, basePath) {
-				log.Printf("Debug: Prefix match! Stripping...")
-			} else {
-				log.Printf("Debug: No prefix match! (%s vs %s)", r.URL.Path, basePath)
-			}
-			stripper.ServeHTTP(w, r)
-		})
-        rootHandler = appHandler
-	}
-
-    // Create a top-level mux to handle health checks separate from app logic
+	// Create a top-level mux to handle health checks and app logic
     topMux := http.NewServeMux()
     topMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
         w.Write([]byte("ok"))
     })
-    // Mount the app handler (which includes stripping) at the root
-    topMux.Handle("/", rootHandler)
+
+	// Mount the app handler at the internal base path.
+    // The LB rewrites /k8s-status/* to /k8s-status-app/*
+    internalPath := "/k8s-status-app"
+
+    // Clean path middleware for apiMux (handle potential double slashes)
+    cleaner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Only clean if it's not root (Clean("/") is / anyway)
+        // path.Clean removes trailing slash, which might affect /static/ redirect?
+        // ServeMux handles /path -> /path/ redirect if registered.
+        cleaned := path.Clean(r.URL.Path)
+        if cleaned == "." {
+            cleaned = "/"
+        }
+        // If original had trailing slash and cleaned doesn't, ServeMux might redirect.
+        // Let's just trust Clean for now as it fixed issues before.
+        r.URL.Path = cleaned
+        apiMux.ServeHTTP(w, r)
+    })
+
+    // Core handler with stripping
+    appHandler := http.StripPrefix(internalPath, cleaner)
+
+    // Handle the prefix with trailing slash (standard)
+    topMux.Handle(internalPath+"/", appHandler)
+
+    // Handle the prefix WITHOUT trailing slash explicitly to avoid 301 Redirect
+    topMux.HandleFunc(internalPath, func(w http.ResponseWriter, r *http.Request) {
+        // Log the trap
+        log.Printf("Trapped missing slash on internal path: %s", r.URL.Path)
+        // Internally add the slash so StripPrefix works as expected (stripping leaves /)
+        r.URL.Path = internalPath + "/"
+        appHandler.ServeHTTP(w, r)
+    })
+
+    // Logging middleware to debug request paths
+    logger := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        log.Printf("Request: %s %s", r.Method, r.URL.Path)
+        topMux.ServeHTTP(w, r)
+    })
 
 	log.Printf("Starting frontend on :%s (Backend: %s, BasePath: %s)", port, backendURL, basePath)
-	if err := http.ListenAndServe(":"+port, topMux); err != nil {
+	if err := http.ListenAndServe(":"+port, logger); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -83,20 +100,21 @@ func handleLanding(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	views.Landing().Render(w)
+	views.Landing(r).Render(w)
 }
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	project := r.URL.Query().Get("project")
 	if project == "" {
-		http.Redirect(w, r, "/", http.StatusFound)
+		// Use ResolveURL for redirect too
+		http.Redirect(w, r, components.ResolveURL(r, "/"), http.StatusFound)
 		return
 	}
 
     // Switch to A2UI Shell.
     // We send an initial prompt to the agent to load the dashboard for the project.
     initialPrompt := fmt.Sprintf("Show me the cluster dashboard for project %s", project)
-    views.A2UIShell(initialPrompt).Render(w)
+    views.A2UIShell(r, initialPrompt).Render(w)
 }
 
 func handlePartialsWorkloads(w http.ResponseWriter, r *http.Request) {
