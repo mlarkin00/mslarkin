@@ -1,3 +1,11 @@
+######
+# # 1. Set the variable (if not already set)
+# export PROJECT_ID=$(gcloud config get-value project)
+
+# 2. Substitute and apply
+# envsubst '${PROJECT_ID}' < baseline/shop-demo-manifests.yaml | kubectl apply -f -
+######
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -13,7 +21,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   annotations:
-    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: alloydb-user-sa@${PROJECT_ID}.iam.gserviceaccount.com
   name: cartservice
   namespace: shop-demo-ns
 ---
@@ -57,7 +65,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   annotations:
-    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: alloydb-user-sa@${PROJECT_ID}.iam.gserviceaccount.com
   name: productcatalogservice
   namespace: shop-demo-ns
 ---
@@ -77,7 +85,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   annotations:
-    iam.gke.io/gcp-service-account: alloydb-user-sa@mslarkin-ext.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: alloydb-user-sa@${PROJECT_ID}.iam.gserviceaccount.com
   name: shoppingassistantservice
   namespace: shop-demo-ns
 ---
@@ -559,7 +567,7 @@ spec:
         - name: ALLOYDB_SECRET_NAME
           value: alloydb-secret
         - name: PROJECT_ID
-          value: mslarkin-ext
+          value: ${PROJECT_ID}
         image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/cartservice:latest
         imagePullPolicy: Always
         livenessProbe:
@@ -1411,7 +1419,7 @@ spec:
         - name: ALLOYDB_SECRET_NAME
           value: alloydb-secret
         - name: PROJECT_ID
-          value: mslarkin-ext
+          value: ${PROJECT_ID}
         - name: REGION
           value: us-west1
         - name: COLLECTOR_SERVICE_ADDR
@@ -1719,7 +1727,7 @@ spec:
         - name: ALLOYDB_SECRET_NAME
           value: alloydb-secret
         - name: PROJECT_ID
-          value: mslarkin-ext
+          value: ${PROJECT_ID}
         - name: REGION
           value: us-west1
         image: us-west1-docker.pkg.dev/mslarkin-ext/online-shop-demo/shoppingassistantservice:latest
