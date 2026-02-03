@@ -12,7 +12,7 @@ ALLOYDB_PRODUCTS_TABLE_NAME="catalog_items"
 MODEL="text-embedding-004"
 
 # Path to scripts
-SCRIPTS_DIR="./kustomize/components/shopping-assistant/scripts"
+SCRIPTS_DIR="." #"./kustomize/components/shopping-assistant/scripts"
 
 # Check dependencies
 if ! command -v psql &> /dev/null; then
