@@ -54,3 +54,19 @@ alias gcc-demo='gcloud config configurations activate mslarkin-demo'
 # export CLOUDSDK_AUTH_ID_TOKEN="$(gcloud auth print-identity-token)"
 
 export PATH=$PATH:/home/matthewlarkin/local_tools
+
+######
+# Setup prompt to show gcloud config
+######
+# Function to get the active gcloud config
+get_gcloud_config() {
+  # Check if the config file exists to avoid errors
+  if [ -f "$HOME/.config/gcloud/active_config" ]; then
+    echo "($(cat $HOME/.config/gcloud/active_config)) "
+  fi
+}
+
+# Custom PS1 Prompt
+# \u = user, \h = host, \w = current working directory
+# The \e[...m sequences add color (green for user/host, blue for directory, yellow for gcloud)
+export PS1="\[\e[32m\]\u@\h \[\e[34m\]\w \[\e[33m\]\$(get_gcloud_config)\[\e[0m\]$ "
