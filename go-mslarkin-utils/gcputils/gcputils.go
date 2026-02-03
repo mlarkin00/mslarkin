@@ -158,7 +158,7 @@ func GetInstanceId() string {
 
 }
 
-func GetServiceId() string {
+func GetRunServiceId() string {
 	if os.Getenv("K_SERVICE") == "" {
 		return os.Getenv("K_SERVICE")
 	} else {
@@ -166,7 +166,7 @@ func GetServiceId() string {
 	}
 }
 
-func GetRevisionId() string {
+func GetRunRevisionId() string {
 	if os.Getenv("K_REVISION") == "" {
 		return os.Getenv("K_REVISION")
 	} else {
@@ -195,8 +195,8 @@ func GetRunService(service string, projectId string, region string) (*runpb.Serv
 
 }
 
-func GetServiceUrl(service string, projectId string, region string) string {
-	runService, err := GetRunService("pubsub-pull-subscriber", "mslarkin-ext", "us-central1")
+func GetRunServiceUrl(service string, projectId string, region string) string {
+	runService, err := GetRunService(service, projectId, region)
 	if err != nil {
 		fmt.Printf("Error getting service:\n")
 		panic(err)
@@ -204,7 +204,7 @@ func GetServiceUrl(service string, projectId string, region string) string {
 	return runService.Uri
 }
 
-func GetLatestRevision(service string, projectId string, region string) string {
+func GetRunLatestRevision(service string, projectId string, region string) string {
 	runService, _ := GetRunService(service, projectId, region)
 	return parsePath(runService.LatestReadyRevision)
 }
@@ -229,7 +229,7 @@ func GetMetricInterval(intervalSeconds int) *monitoringpb.TimeInterval {
 	}
 }
 
-func GetServiceFilter(monitoringMetric string, service string, region string) string {
+func GetRunServiceFilter(monitoringMetric string, service string, region string) string {
 	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
 		" AND resource.labels.service_name =\"%s\""+
 		" AND resource.labels.location =\"%s\"",
@@ -237,7 +237,7 @@ func GetServiceFilter(monitoringMetric string, service string, region string) st
 	return metricFilter
 }
 
-func GetRevisionFilter(monitoringMetric string, revision string, region string) string {
+func GetRunRevisionFilter(monitoringMetric string, revision string, region string) string {
 	metricFilter := fmt.Sprintf("metric.type=\"%s\""+
 		" AND resource.labels.revision_name =\"%s\""+
 		" AND resource.labels.location =\"%s\"",
@@ -343,13 +343,13 @@ func GetMetricRate(monitoringMetric string,
 	return data
 }
 
-func GetInstanceCount(service string, projectId string, region string) int {
+func GetRunInstanceCount(service string, projectId string, region string) int {
 	monitoringMetric := "run.googleapis.com/container/instance_count"
 	aggregationSeconds := 60
 	intervalSeconds := 240
 	groupBy := []string{"resource.labels.service_name"}
 
-	metricFilter := GetServiceFilter(monitoringMetric, service, region)
+	metricFilter := GetRunServiceFilter(monitoringMetric, service, region)
 
 	metricData := GetMetricMean(monitoringMetric,
 		metricFilter,

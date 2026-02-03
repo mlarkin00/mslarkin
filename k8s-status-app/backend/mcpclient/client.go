@@ -4,6 +4,7 @@ package mcpclient
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -39,18 +40,37 @@ const (
 	CacheTTL       = 30 * time.Second
 )
 
-// TokenInjectorTransport is a custom http.RoundTripper that injects
-// the OIDC Authorization header into every request.
-type TokenInjectorTransport struct {
+// IDTokenTransport injects an OIDC ID token.
+type IDTokenTransport struct {
 	Base     http.RoundTripper
 	Audience string
 }
 
-// RoundTrip executes a single HTTP transaction, adding the Bearer token.
-func (t *TokenInjectorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *IDTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	token, err := auth.GetIDToken(req.Context(), t.Audience)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ID token: %w", err)
+	}
+
+	req2 := req.Clone(req.Context())
+	req2.Header.Set("Authorization", "Bearer "+token)
+
+	base := t.Base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	return base.RoundTrip(req2)
+}
+
+// AccessTokenTransport injects an OAuth2 access token.
+type AccessTokenTransport struct {
+	Base http.RoundTripper
+}
+
+func (t *AccessTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	token, err := auth.GetAccessToken(req.Context())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}
 
 	req2 := req.Clone(req.Context())
@@ -70,38 +90,40 @@ func NewMCPClient(ctx context.Context) (*MCPClient, error) {
 		cache: make(map[string]cacheEntry),
 	}
 
-	// Initialize OneMCP
-	oneTrans := &mcp.SSEClientTransport{
+	// Initialize OneMCP with Access Token (OAuth2)
+	// User suggested using streaminghttp transport.
+	oneTrans := &mcp.StreamableClientTransport{
 		Endpoint: OneMCPEndpoint,
 		HTTPClient: &http.Client{
-			Transport: &TokenInjectorTransport{Audience: OneMCPEndpoint},
+			Transport: &AccessTokenTransport{},
 			Timeout:   120 * time.Second,
 		},
 	}
 	client.OneMCP = mcp.NewClient(&mcp.Implementation{Name: "k8s-status-backend-onemcp", Version: "1.0.0"}, nil)
 	oneSession, err := client.OneMCP.Connect(ctx, oneTrans, nil)
 	if err != nil {
-		// Log error but allow to proceed if one server is down?
-		// For now, strict failure.
-		return nil, fmt.Errorf("failed to connect to OneMCP: %w", err)
+		log.Printf("Warning: Failed to connect to OneMCP: %v", err)
+	} else {
+		client.OneMCPSession = oneSession
 	}
-	client.OneMCPSession = oneSession
 
-	// Initialize OSSMCP
-	ossTrans := &mcp.SSEClientTransport{
+	// Initialize OSSMCP with ID Token (OIDC)
+	// Use the IAP Client ID as the audience for authentication.
+	const ossMcpIAPClientID = "79309377625-i17s6rtmlmi6t3dg61b69nvfsvss8cdp.apps.googleusercontent.com"
+	ossTrans := &mcp.StreamableClientTransport{
 		Endpoint: OSSMCPEndpoint,
 		HTTPClient: &http.Client{
-			Transport: &TokenInjectorTransport{Audience: OSSMCPEndpoint},
+			Transport: &IDTokenTransport{Audience: ossMcpIAPClientID},
 			Timeout:   120 * time.Second,
 		},
 	}
 	client.OSSMCP = mcp.NewClient(&mcp.Implementation{Name: "k8s-status-backend-ossmcp", Version: "1.0.0"}, nil)
 	ossSession, err := client.OSSMCP.Connect(ctx, ossTrans, nil)
 	if err != nil {
-		oneSession.Close()
-		return nil, fmt.Errorf("failed to connect to OSSMCP: %w", err)
+		log.Printf("Warning: Failed to connect to OSSMCP: %v", err)
+	} else {
+		client.OSSMCPSession = ossSession
 	}
-	client.OSSMCPSession = ossSession
 
 	return client, nil
 }
@@ -139,6 +161,9 @@ func (c *MCPClient) setCached(key string, data interface{}) {
 // ListClusters retrieves the list of clusters from OneMCP.
 // It uses caching to reduce latency.
 func (c *MCPClient) ListClusters(ctx context.Context, projectID string) ([]models.Cluster, error) {
+	if c.OneMCPSession == nil {
+		return nil, fmt.Errorf("OneMCP session is not available")
+	}
 	key := "clusters:" + projectID
 	if data, ok := c.getCached(key); ok {
 		return data.([]models.Cluster), nil
@@ -169,6 +194,9 @@ func (c *MCPClient) ListClusters(ctx context.Context, projectID string) ([]model
 // ListWorkloads retrieves the list of workloads from OSSMCP.
 // It uses caching to reduce latency.
 func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string) ([]models.Workload, error) {
+	if c.OSSMCPSession == nil {
+		return nil, fmt.Errorf("OSSMCP session is not available")
+	}
 	key := fmt.Sprintf("workloads:%s:%s", cluster, namespace)
 	if data, ok := c.getCached(key); ok {
 		return data.([]models.Workload), nil

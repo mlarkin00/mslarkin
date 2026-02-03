@@ -7,6 +7,7 @@ import (
 
 	"cloud.google.com/go/compute/metadata"
 	"google.golang.org/api/idtoken"
+	"golang.org/x/oauth2/google"
 )
 
 // GetIDToken fetches an OIDC ID token for the given audience.
@@ -39,5 +40,21 @@ func GetIDToken(ctx context.Context, audience string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get token: %w", err)
 	}
+	return token.AccessToken, nil
+}
+
+// GetAccessToken fetches an OAuth2 access token with the cloud-platform scope.
+func GetAccessToken(ctx context.Context) (string, error) {
+	// Use google.FindDefaultCredentials which handles ADC and GKE Metadata automatically.
+	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return "", fmt.Errorf("failed to find default credentials: %w", err)
+	}
+
+	token, err := creds.TokenSource.Token()
+	if err != nil {
+		return "", fmt.Errorf("failed to get token: %w", err)
+	}
+
 	return token.AccessToken, nil
 }

@@ -27,6 +27,7 @@ func NewChatService(ctx context.Context, projectID, location, modelName string, 
 	model, err := gemini.NewModel(ctx, modelName, &genai.ClientConfig{
 		Project:  projectID,
 		Location: location,
+		Backend:  genai.BackendVertexAI,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Gemini model: %w", err)
