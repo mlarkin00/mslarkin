@@ -14,8 +14,8 @@ func Layout(title string, body Node) Node {
 			Script(Attr("src", "https://cdn.tailwindcss.com")),
             // Import A2UI as ES module
             Script(Type("module"), Raw(`
-                import { Client } from '/static/js/a2ui-core.js';
-                import '/static/js/a2ui-lit.js';
+                import { Client } from '`+AppLink("/static/js/a2ui-core.js")+`';
+                import '`+AppLink("/static/js/a2ui-lit.js")+`';
                 // Expose Client if needed globally or just ensure registration
             `)),
 			Script(Raw(`
@@ -35,7 +35,7 @@ func Layout(title string, body Node) Node {
                     const sessionID = localStorage.getItem('chat_session') || 'default';
 
                     try {
-                        const response = await fetch('/chat/proxy', {
+                        const response = await fetch('`+AppLink("/chat/proxy")+`', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify({message: message, session: sessionID})

@@ -30,6 +30,8 @@ spec:
           value: "8081"
         - name: BACKEND_URL
           value: "http://k8s-status-backend"
+        - name: BASE_PATH
+          value: "/k8s-status"
 ---
 apiVersion: v1
 kind: Service

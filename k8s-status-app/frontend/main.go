@@ -10,10 +10,15 @@ import (
 	"os"
 
 	"k8s-status-frontend/models"
+	"k8s-status-frontend/components"
+    "strings"
 	"k8s-status-frontend/views"
 )
 
-var backendURL string
+var (
+	backendURL string
+	basePath   string
+)
 
 func main() {
 	backendURL = os.Getenv("BACKEND_URL")
@@ -26,15 +31,49 @@ func main() {
 		port = "8081"
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("public"))))
-	mux.HandleFunc("GET /", handleLanding)
-	mux.HandleFunc("GET /dashboard", handleDashboard)
-	mux.HandleFunc("GET /partials/workloads", handlePartialsWorkloads)
-	mux.HandleFunc("POST /chat/proxy", handleChatProxy)
+	basePath = os.Getenv("BASE_PATH")
+	// If basePath is set (e.g. /k8s-status), we generally want to remove trailing slash for consistency
+	// but components.AppLink handles it.
+	components.BasePath = basePath
 
-	log.Printf("Starting frontend on :%s (Backend: %s)", port, backendURL)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	// register handlers on a sub-mux to keep them clean
+	apiMux := http.NewServeMux()
+	apiMux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("public"))))
+	apiMux.HandleFunc("GET /", handleLanding)
+	apiMux.HandleFunc("GET /dashboard", handleDashboard)
+	apiMux.HandleFunc("GET /partials/workloads", handlePartialsWorkloads)
+	apiMux.HandleFunc("POST /chat/proxy", handleChatProxy)
+
+	var rootHandler http.Handler = apiMux
+	if basePath != "" {
+		// Log basePath details
+		log.Printf("Debug: BasePath='%s' (len=%d)", basePath, len(basePath))
+
+		// Strip prefix if set
+		stripper := http.StripPrefix(basePath, apiMux)
+		appHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("Debug: Incoming Request: %s", r.URL.Path)
+			if strings.HasPrefix(r.URL.Path, basePath) {
+				log.Printf("Debug: Prefix match! Stripping...")
+			} else {
+				log.Printf("Debug: No prefix match! (%s vs %s)", r.URL.Path, basePath)
+			}
+			stripper.ServeHTTP(w, r)
+		})
+        rootHandler = appHandler
+	}
+
+    // Create a top-level mux to handle health checks separate from app logic
+    topMux := http.NewServeMux()
+    topMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte("ok"))
+    })
+    // Mount the app handler (which includes stripping) at the root
+    topMux.Handle("/", rootHandler)
+
+	log.Printf("Starting frontend on :%s (Backend: %s, BasePath: %s)", port, backendURL, basePath)
+	if err := http.ListenAndServe(":"+port, topMux); err != nil {
 		log.Fatal(err)
 	}
 }

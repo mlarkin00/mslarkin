@@ -34,7 +34,7 @@ func ClusterCard(c models.Cluster) Node {
             P(Text("Location: "+c.Location)),
 
             Div(
-                Attr("hx-get", "/partials/workloads?cluster="+c.Name+"&namespace=agent-ns"),
+                Attr("hx-get", components.AppLink("/partials/workloads?cluster="+c.Name+"&namespace=agent-ns")),
                 Attr("hx-trigger", "load"),
                 Attr("hx-swap", "innerHTML"),
                 Span(Class("loading loading-spinner"), Text("Loading workloads...")),
