@@ -1,0 +1,23 @@
+steps:
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:$COMMIT_SHA', '-t', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:latest', '.']
+  dir: 'backend'
+
+# Push the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:$COMMIT_SHA']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:latest']
+
+# Deploy to GKE
+- name: 'gcr.io/cloud-builders/kubectl'
+  args: ['apply', '-f', 'deploy/backend.yaml']
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=us-west1'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=ai-auto-cluster'
+  - 'CLOUDSDK_CORE_PROJECT=mslarkin-ext'
+
+images:
+- 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:$COMMIT_SHA'
+- 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:latest'

@@ -25,7 +25,7 @@ spec:
       serviceAccountName: k8s-status-backend-sa
       containers:
       - name: backend
-        image: gcr.io/mslarkin-ext/k8s-status-backend:latest
+        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/k8s-status-backend:latest
         ports:
         - containerPort: 8080
         env:
