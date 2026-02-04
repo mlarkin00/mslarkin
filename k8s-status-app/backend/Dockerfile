@@ -2,14 +2,13 @@
 FROM golang:1.24 as builder
 WORKDIR /workspace
 
-# Copy shared utils
-COPY go-mslarkin-utils ./go-mslarkin-utils
+
 
 # Copy backend
-COPY k8s-status-app/backend ./k8s-status-app/backend
+COPY . .
 
 # set working directory to backend
-WORKDIR /workspace/k8s-status-app/backend
+WORKDIR /workspace
 
 # Build
 RUN go mod download
@@ -17,6 +16,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -o server .
 
 # Use distroless for a minimal and secure runtime image
 FROM gcr.io/distroless/static-debian12
-COPY --from=builder /workspace/k8s-status-app/backend/server /server
+COPY --from=builder /workspace/server /server
 ENV PORT=8080
 ENTRYPOINT ["/server"]

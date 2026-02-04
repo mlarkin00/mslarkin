@@ -11,7 +11,7 @@ import (
 	"k8s-status-backend/api"
 	"k8s-status-backend/chat"
 	"k8s-status-backend/mcpclient"
-	"mslarkin.com/gcputils"
+	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
 )
 
 // main is the application entry point. It sets up environment variables,

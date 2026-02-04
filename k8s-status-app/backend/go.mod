@@ -8,10 +8,8 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.2.0
 	google.golang.org/adk v0.3.0
 	google.golang.org/genai v1.43.0
-	mslarkin.com/gcputils v0.0.0-00010101000000-000000000000
-)
 
-replace mslarkin.com/gcputils => ../../go-mslarkin-utils/gcputils
+)
 
 require (
 	cloud.google.com/go v0.123.0 // indirect
