@@ -1,3 +1,5 @@
+// Package main is the entry point for the k8s-status-backend service.
+// It initializes the MCP client, Chat service, and starts the HTTP server.
 package main
 
 import (
@@ -12,6 +14,8 @@ import (
 	"mslarkin.com/gcputils"
 )
 
+// main is the application entry point. It sets up environment variables,
+// initializes the MCP client and Chat service, and starts the HTTP server.
 func main() {
 	ctx := context.Background()
 

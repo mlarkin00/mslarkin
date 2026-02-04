@@ -15,12 +15,14 @@ import (
 )
 
 // Server holds dependencies for the API handlers.
+// It orchestrates calls to the MCPClient and ChatService.
 type Server struct {
 	MCPClient *mcpclient.MCPClient
 	Chat      *chat.ChatService
 }
 
 // ListProjects returns a list of projects.
+// It currently reads from the PROJECT_IDS environment variable.
 func (s *Server) ListProjects(w http.ResponseWriter, r *http.Request) {
 	// Dynamically fetch projects from env or default
 	raw := os.Getenv("PROJECT_IDS")
@@ -144,6 +146,7 @@ func (s *Server) GetWorkload(w http.ResponseWriter, r *http.Request) {
 	workload, err := s.MCPClient.GetWorkload(r.Context(), cluster, namespace, name)
 	if err != nil {
 		log.Printf("Error getting workload: %v", err)
+        // Check if it's a "not found" error to return 404
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

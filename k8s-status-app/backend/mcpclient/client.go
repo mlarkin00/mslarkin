@@ -27,6 +27,7 @@ type MCPSession interface {
 
 // MCPClient wraps connections to multiple MCP servers and provides
 // high-level methods to interact with them, including caching.
+// It manages sessions for both OneMCP (Google's MCP) and OSSMCP (Open Source MCP).
 type MCPClient struct {
 	// OneMCP is the client for the GKE OneMCP server.
 	OneMCP        *mcp.Client
@@ -95,7 +96,8 @@ func (t *AccessTokenTransport) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 // NewMCPClient initializes connections to both OneMCP and OSSMCP servers.
-// It sets up OIDC authentication and SSE transport.
+// It acts as a factory, setting up OIDC authentication and SSE transport
+// for secure communication with the MCP servers.
 func NewMCPClient(ctx context.Context) (*MCPClient, error) {
 	client := &MCPClient{
 		cache: make(map[string]cacheEntry),
@@ -194,7 +196,8 @@ func (c *MCPClient) setCached(key string, data interface{}) {
 }
 
 // ListClusters retrieves the list of clusters from OneMCP.
-// It uses caching to reduce latency.
+// It uses caching to reduce latency by storing results for a short period.
+// The projectID parameter specifies which Google Cloud project to query.
 func (c *MCPClient) ListClusters(ctx context.Context, projectID string) ([]models.Cluster, error) {
 	if c.OneMCPSession == nil {
 		return nil, fmt.Errorf("OneMCP session is not available")
@@ -257,8 +260,9 @@ func (c *MCPClient) ListClusters(ctx context.Context, projectID string) ([]model
 	return clusters, nil
 }
 
-// ListWorkloads retrieves the list of workloads from OSSMCP.
-// It uses caching to reduce latency.
+// ListWorkloads retrieves the list of workloads from OSSMCP for a given cluster and namespace.
+// It uses caching to reduce latency. Note: Currently defaults to listing mostly Deployment types
+// as per the limitations of the current mock/demo implementation.
 func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string) ([]models.Workload, error) {
 	if c.OSSMCPSession == nil {
 		return nil, fmt.Errorf("OSSMCP session is not available")
@@ -292,7 +296,8 @@ func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string
 	return workloads, nil
 }
 
-// GetWorkload retrieves specific workload details.
+// GetWorkload retrieves specific workload details by name.
+// It currently filters the results from ListWorkloads.
 func (c *MCPClient) GetWorkload(ctx context.Context, cluster, namespace, name string) (*models.Workload, error) {
 	// Reusing ListWorkloads and filtering for simplicity as we don't have direct Get URI construction logic for OSSMCP handy without more research.
 	// In production, we should construct the URI and call ReadResource if possible.
@@ -309,6 +314,7 @@ func (c *MCPClient) GetWorkload(ctx context.Context, cluster, namespace, name st
 }
 
 // ListPods retrieves pods for a specific workload.
+// It mimics filtering logic as the underlying MCP might return all resources.
 func (c *MCPClient) ListPods(ctx context.Context, cluster, namespace, workloadName string) ([]models.Pod, error) {
 	if c.OSSMCPSession == nil {
 		return nil, fmt.Errorf("OSSMCP session is not available")
@@ -355,7 +361,8 @@ func (c *MCPClient) ListPods(ctx context.Context, cluster, namespace, workloadNa
 	return pods, nil
 }
 
-// ListTools returns a combined list of tools from all connected MCP servers.
+// ListTools returns a combined list of tools from all connected MCP servers (OneMCP and OSSMCP).
+// This allows the backend to expose a unified toolset to agents or other clients.
 func (c *MCPClient) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
 	var allTools []*mcp.Tool
 
@@ -450,6 +457,7 @@ func (c *MCPClient) ListResources(ctx context.Context) ([]*mcp.Resource, error) 
 }
 
 // CallGenericTool calls a tool on the appropriate server.
+// It attempts to call the tool on OneMCP first, and falls back to OSSMCP if not found or if OneMCP fails.
 func (c *MCPClient) CallGenericTool(ctx context.Context, name string, args map[string]interface{}) (*mcp.CallToolResult, error) {
 	// Try OneMCP first
 	if c.OneMCPSession != nil {

@@ -1,3 +1,4 @@
+// Package components provides reusable UI components and helpers.
 package components
 
 import (

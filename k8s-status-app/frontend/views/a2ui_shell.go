@@ -8,6 +8,8 @@ import (
     "k8s-status-frontend/components"
 )
 
+// A2UIShell renders the container for the AI Agent UI (A2UI).
+// It includes the client-side JavaScript to interact with the Agent via the proxy.
 func A2UIShell(r *http.Request, prompt string) Node {
     return components.Layout(r, "GKE Status - A2UI",
         Div(ID("a2ui-root"), Class("min-h-screen p-4"),

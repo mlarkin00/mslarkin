@@ -1,5 +1,6 @@
 package models
 
+// Cluster represents a GKE cluster.
 type Cluster struct {
 	Name      string `json:"name"`
 	ProjectID string `json:"projectId"`
@@ -7,6 +8,7 @@ type Cluster struct {
 	Status    string `json:"status"`
 }
 
+// Workload represents a Kubernetes workload (e.g., Deployment, Service).
 type Workload struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`

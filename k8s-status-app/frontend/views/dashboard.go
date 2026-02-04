@@ -9,11 +9,13 @@ import (
     "k8s-status-frontend/models"
 )
 
+// DashboardData holds the data required to render the Dashboard view.
 type DashboardData struct {
     Project string
     Clusters []models.Cluster
 }
 
+// Dashboard renders the main project dashboard with a list of clusters.
 func Dashboard(r *http.Request, data DashboardData) Node {
     return components.Layout(r, "Dashboard - "+data.Project,
         Div(
@@ -27,6 +29,7 @@ func Dashboard(r *http.Request, data DashboardData) Node {
     )
 }
 
+// ClusterCard renders a card component for a single cluster.
 func ClusterCard(r *http.Request, c models.Cluster) Node {
     return Div(Class("card bg-base-100 shadow-xl"),
         Div(Class("card-body"),
@@ -45,6 +48,7 @@ func ClusterCard(r *http.Request, c models.Cluster) Node {
     )
 }
 
+// WorkloadsList renders a table of workloads.
 func WorkloadsList(workloads []models.Workload) Node {
     return Div(Class("overflow-x-auto"),
         Table(Class("table table-xs"),

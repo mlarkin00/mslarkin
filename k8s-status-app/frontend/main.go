@@ -1,3 +1,5 @@
+// Package main is the entry point for the k8s-status-frontend service.
+// It serves the HTML UI and proxies chat requests to the backend.
 package main
 
 import (
@@ -21,6 +23,7 @@ var (
 	basePath   string
 )
 
+// main initializes the frontend server, sets up routing, and starts listening.
 func main() {
 	backendURL = os.Getenv("BACKEND_URL")
 	if backendURL == "" {
@@ -72,6 +75,7 @@ func main() {
 	}
 }
 
+// handleLanding renders the landing/welcome page.
 func handleLanding(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -80,6 +84,7 @@ func handleLanding(w http.ResponseWriter, r *http.Request) {
 	views.Landing(r).Render(w)
 }
 
+// handleDashboard renders the main dashboard view for a specific project.
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	project := r.URL.Query().Get("project")
 	log.Printf("DEBUG: Loading dashboard for project: %s", project)
@@ -118,6 +123,7 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
     views.Dashboard(r, views.DashboardData{Project: project, Clusters: clusters}).Render(w)
 }
 
+// handlePartialsWorkloads fetches and renders the workloads list partial (for HTMX).
 func handlePartialsWorkloads(w http.ResponseWriter, r *http.Request) {
 	cluster := r.URL.Query().Get("cluster")
 	namespace := r.URL.Query().Get("namespace")
@@ -139,6 +145,8 @@ func handlePartialsWorkloads(w http.ResponseWriter, r *http.Request) {
 	views.WorkloadsList(workloads).Render(w)
 }
 
+// handleChatProxy proxies chat requests to the backend API.
+// It supports streaming responses.
 func handleChatProxy(w http.ResponseWriter, r *http.Request) {
 	targetURL := fmt.Sprintf("%s/api/chat", backendURL)
 

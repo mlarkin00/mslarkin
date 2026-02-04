@@ -7,6 +7,7 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
+// Layout provides the base HTML structure (head, body, navbar) for all pages.
 func Layout(r *http.Request, title string, body Node) Node {
 	return HTML(
 		Head(
@@ -32,10 +33,12 @@ func Layout(r *http.Request, title string, body Node) Node {
 	)
 }
 
+// Container wraps content in a centered container.
 func Container(children ...Node) Node {
 	return Div(Class("container mx-auto p-4"), Group(children))
 }
 
+// Navbar renders the top navigation bar.
 func Navbar() Node {
 	return Div(Class("navbar bg-base-100 shadow-lg mb-4"),
 		Div(Class("flex-1"),
@@ -44,6 +47,7 @@ func Navbar() Node {
 	)
 }
 
+// ChatWidget renders the floating AI chat widget.
 func ChatWidget() Node {
 	return Div(Class("fixed bottom-4 right-4 w-96 bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden z-50 flex flex-col"),
 		Div(Class("bg-blue-600 text-white p-3 font-bold flex justify-between items-center"),

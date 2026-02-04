@@ -15,10 +15,13 @@ import (
 	"k8s-status-backend/tools"
 )
 
+// ChatService handles the interaction with the Gemini agent.
 type ChatService struct {
 	Runner *runner.Runner
 }
 
+// NewChatService creates a new ChatService.
+// It initializes the Gemini model, tool definitions, and the agent runner.
 func NewChatService(ctx context.Context, projectID, location, modelName string, mcpClient *mcpclient.MCPClient) (*ChatService, error) {
 	if modelName == "" {
 		modelName = "gemini-1.5-pro-002"
@@ -57,6 +60,8 @@ func NewChatService(ctx context.Context, projectID, location, modelName string, 
 	return &ChatService{Runner: r}, nil
 }
 
+// Chat sends a message to the agent and returns a stream of events.
+// It maintains session context using the sessionID.
 func (s *ChatService) Chat(ctx context.Context, sessionID string, message string) (iter.Seq2[*session.Event, error], error) {
 	content := &genai.Content{
 		Parts: []*genai.Part{
@@ -67,6 +72,8 @@ func (s *ChatService) Chat(ctx context.Context, sessionID string, message string
 	return s.Runner.Run(ctx, "user", sessionID, content, agent.RunConfig{}), nil
 }
 
+// buildInstruction constructs the system instruction for the agent.
+// It incorporates available MCP tools, prompts, and resources into the prompt context.
 func buildInstruction(ctx context.Context, client *mcpclient.MCPClient) string {
 	baseInstruction := `You are a helpful AI assistant for the GKE Demo.
 You MUST output your response as a JSON object strictly following the A2UI format.

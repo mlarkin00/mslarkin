@@ -1,3 +1,5 @@
+# Service Account for the Backend
+# Annotated for Workload Identity
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -5,6 +7,7 @@ metadata:
   annotations:
     iam.gke.io/gcp-service-account: k8s-status-backend-sa@mslarkin-ext.iam.gserviceaccount.com
 ---
+# Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,6 +36,7 @@ spec:
         - name: PROJECT_IDS
           value: "mslarkin-ext,mslarkin-demo"
 ---
+# Backend Service (ClusterIP)
 apiVersion: v1
 kind: Service
 metadata:

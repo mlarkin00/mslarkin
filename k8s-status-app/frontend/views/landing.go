@@ -8,6 +8,7 @@ import (
     "k8s-status-frontend/components"
 )
 
+// Landing renders the home page with a form to select a project.
 func Landing(r *http.Request) Node {
     return components.Layout(r, "GKE Status - Home",
         Div(Class("hero min-h-screen bg-base-200"),

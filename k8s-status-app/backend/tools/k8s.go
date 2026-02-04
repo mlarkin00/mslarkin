@@ -11,14 +11,18 @@ import (
 	"k8s-status-backend/mcpclient"
 )
 
+// K8sTools provides a set of tools for the agent to interact with Kubernetes.
+// It wraps the MCPClient to expose functions like listing clusters and workloads.
 type K8sTools struct {
 	Client *mcpclient.MCPClient
 }
 
+// NewK8sTools creates a new K8sTools instance.
 func NewK8sTools(client *mcpclient.MCPClient) *K8sTools {
 	return &K8sTools{Client: client}
 }
 
+// GetTools returns the list of tools definition for the agent.
 func (t *K8sTools) GetTools() []tool.Tool {
 	listClusters, _ := functiontool.New(functiontool.Config{
 		Name: "list_clusters",
@@ -43,6 +47,8 @@ type CallMCPToolArgs struct {
 	Arguments map[string]interface{} `json:"arguments"`
 }
 
+// CallMCPTool allows the agent to call any available generic MCP tool.
+// It acts as a bridge to dynamic MCP tools not explicitly wrapped.
 func (t *K8sTools) CallMCPTool(ctx tool.Context, args CallMCPToolArgs) (a2ui.Component, error) {
 	if args.Name == "" {
 		return a2ui.Text("Tool name required"), fmt.Errorf("tool name required")
@@ -73,6 +79,8 @@ type ListClustersArgs struct {
 	ProjectID string `json:"project_id"`
 }
 
+// ListClusters lists the GKE clusters in the project.
+// It uses the K8s K8sClient (via MCP) to fetch cluster details.
 func (t *K8sTools) ListClusters(ctx tool.Context, args ListClustersArgs) (a2ui.Component, error) {
 	projectID := args.ProjectID
 	if projectID == "" {
@@ -104,6 +112,7 @@ type ListWorkloadsArgs struct {
 	Namespace string `json:"namespace"`
 }
 
+// ListWorkloads lists the workloads in a specific cluster and namespace.
 func (t *K8sTools) ListWorkloads(ctx tool.Context, args ListWorkloadsArgs) (a2ui.Component, error) {
 	if args.Cluster == "" {
 		return a2ui.Text("Cluster name required"), fmt.Errorf("cluster argument required")
