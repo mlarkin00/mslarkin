@@ -1,5 +1,6 @@
-// module github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils
-module mslarkin.com/gcputils
+module github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils
+
+// module mslarkin.com/gcputils
 
 go 1.24.0
 
