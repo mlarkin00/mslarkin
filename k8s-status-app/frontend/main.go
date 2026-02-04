@@ -110,27 +110,21 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
     // initialPrompt := fmt.Sprintf("Show me the cluster dashboard for project %s", project)
     // views.A2UIShell(r, initialPrompt).Render(w)
 
-    // RECOVERY: Render Dashboard directly for now
-    // We need to fetch the data first? Or does the dashboard view do HTMX?
-    // Dashboard view has ClusterCard which does hx-get to /partials/workloads
-    // But it needs a list of clusters.
-    // We can assume a default cluster list or fetch it from backend if we have a robust backend client.
-    // For now, let's render the Dashboard view with empty clusters and let the user interact?
-    // Wait, DashboardData needs Clusters []models.Cluster.
-    // If we don't fetch them, the user sees nothing.
-    // The previous code didn't do a backend fetch for clusters here?
-    // It seems A2UI was supposed to handle it.
-    // Let's check dashboard.go again. It iterates over data.Clusters.
-    // If we want to show something, we should probably fetch the cluster list from the backend
-    // OR just show a static list if we know it (e.g. from context?).
-    // The backend has /api/clusters?
-    // Let's assuming we just want to fix the blank page first.
-    // We can pass a dummy cluster "ai-auto-cluster" so the user sees *something* and the HTMX triggers.
+    // Fetch clusters from backend
+	client := &http.Client{Transport: &LogTransport{}}
+	resp, err := client.Get(fmt.Sprintf("%s/api/clusters?project=%s", backendURL, url.QueryEscape(project)))
+	var clusters []models.Cluster
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch clusters: %v", err)
+		// Fallback to empty list or handle error gracefully in UI
+	} else {
+		defer resp.Body.Close()
+		if err := json.NewDecoder(resp.Body).Decode(&clusters); err != nil {
+			log.Printf("ERROR: Failed to decode clusters: %v", err)
+		}
+	}
 
-    // Fetch real clusters if possible, but for recovery:
-    clusters := []models.Cluster{
-        {Name: "ai-auto-cluster", Location: "us-central1", Status: "Active"},
-    }
+    // If fetch failed or returned empty, clusters is nil/empty, which is handled by the view (shows empty state)
     views.Dashboard(r, views.DashboardData{Project: project, Clusters: clusters}).Render(w)
 }
 

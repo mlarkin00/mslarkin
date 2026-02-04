@@ -231,12 +231,19 @@ func (c *MCPClient) ListClusters(ctx context.Context, projectID string) ([]model
          }
     }
 
-    // If not in StructuredContent, check Content (fallback/robustness)
-    // OneMCP seemingly returns StructuredContent based on tests.
-
     if contentMap != nil {
+        // DEBUG: Log the raw content map keys and clusters list size
+        keys := make([]string, 0, len(contentMap))
+        for k := range contentMap {
+            keys = append(keys, k)
+        }
+        log.Printf("DEBUG: ListClusters structure keys: %v", keys)
         if clustersAny, ok := contentMap["clusters"]; ok {
             if clustersList, ok := clustersAny.([]interface{}); ok {
+                log.Printf("DEBUG: Found %d clusters in response", len(clustersList))
+                for i, c := range clustersList {
+                     log.Printf("DEBUG: Cluster %d: %+v", i, c)
+                }
                 for _, cAny := range clustersList {
                     if cMap, ok := cAny.(map[string]interface{}); ok {
                         name, _ := cMap["name"].(string)
