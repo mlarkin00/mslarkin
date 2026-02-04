@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '../services/api';
 import ClusterCard from '../components/ClusterCard.vue';
 import WorkloadTable from '../components/WorkloadTable.vue';
@@ -7,6 +7,11 @@ import WorkloadTable from '../components/WorkloadTable.vue';
 const clusters = ref([]);
 const loading = ref(true);
 const error = ref(null);
+const activeClusterName = ref(null);
+
+const activeCluster = computed(() => {
+  return clusters.value.find(c => c.cluster_name === activeClusterName.value) || null;
+});
 
 const fetchData = async () => {
   try {
@@ -14,6 +19,14 @@ const fetchData = async () => {
     error.value = null;
     const response = await api.getStatus();
     clusters.value = response.data;
+
+    // Set default active cluster if none selected or current selection is gone
+    if (clusters.value.length > 0) {
+      const currentExists = clusters.value.some(c => c.cluster_name === activeClusterName.value);
+      if (!activeClusterName.value || !currentExists) {
+        activeClusterName.value = clusters.value[0].cluster_name;
+      }
+    }
   } catch (err) {
     error.value = "Failed to fetch cluster status. Is backend running?";
     console.error(err);
@@ -46,15 +59,35 @@ onMounted(() => {
       Loading cluster data...
     </div>
 
-    <div v-else class="cluster-list">
-      <div v-for="cluster in clusters" :key="cluster.cluster_name" class="cluster-section">
-        <ClusterCard :cluster="cluster" />
+    <div v-else-if="clusters.length > 0" class="cluster-tabs-container">
+      <div class="tab-bar">
+        <button
+          v-for="cluster in clusters"
+          :key="cluster.cluster_name"
+          class="tab-btn"
+          :class="{ active: activeClusterName === cluster.cluster_name }"
+          @click="activeClusterName = cluster.cluster_name"
+        >
+          {{ cluster.cluster_name }}
+          <span
+            class="status-dot"
+            :class="cluster.error ? 'error' : 'success'"
+          ></span>
+        </button>
+      </div>
+
+      <div v-if="activeCluster" class="cluster-content">
+        <ClusterCard :cluster="activeCluster" />
 
         <div class="workloads-section">
           <h4>Workloads</h4>
-          <WorkloadTable :workloads="cluster.workloads || []" />
+          <WorkloadTable :workloads="activeCluster.workloads || []" />
         </div>
       </div>
+    </div>
+
+    <div v-else class="empty-state">
+      No clusters found.
     </div>
   </div>
 </template>
@@ -101,11 +134,62 @@ h1 {
   border: 1px solid #f6aea9;
 }
 
-.cluster-section {
-  margin-bottom: 3rem;
-  background: var(--color-background);
-  padding: 1rem;
-  border-radius: 8px;
+/* Tab Styles */
+.cluster-tabs-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  background-color: var(--color-background-soft);
+  color: var(--color-text);
+}
+
+.tab-btn.active {
+  border-bottom-color: #1a73e8;
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.success {
+  background-color: #1e8e3e;
+}
+
+.status-dot.error {
+  background-color: #c5221f;
+}
+
+.cluster-content {
+  animation: fadeIn 0.3s ease;
 }
 
 .workloads-section {
@@ -118,5 +202,10 @@ h4 {
   color: var(--color-heading);
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.5rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
