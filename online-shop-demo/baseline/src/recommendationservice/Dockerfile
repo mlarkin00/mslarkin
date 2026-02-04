@@ -19,7 +19,7 @@ FROM base AS builder
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN apk update \
+RUN apk update && apk upgrade \
     && apk add --no-cache g++ linux-headers \
     && rm -rf /var/cache/apk/*
 
@@ -34,6 +34,7 @@ ENV PYTHONUNBUFFERED=1
 
 RUN apk update \
     && apk add --no-cache libstdc++ \
+    && apk add --no-cache --upgrade openssl \
     && rm -rf /var/cache/apk/*
 
 # get packages

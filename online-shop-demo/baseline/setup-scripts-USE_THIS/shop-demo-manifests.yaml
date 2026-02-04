@@ -3,7 +3,7 @@
 # export PROJECT_ID=$(gcloud config get-value project)
 
 # 2. Substitute and apply
-# envsubst '${PROJECT_ID}' < baseline/shop-demo-manifests.yaml | kubectl apply -f -
+# envsubst '${PROJECT_ID}' < ./shop-demo-manifests.yaml | kubectl apply -f -
 ######
 
 apiVersion: v1
