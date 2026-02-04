@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"k8s-status-backend/auth"
 	"k8s-status-backend/models"
+	"mslarkin.com/gcputils"
 )
 
 // MCPSession defines the interface for an MCP client session.
@@ -56,7 +56,7 @@ type IDTokenTransport struct {
 }
 
 func (t *IDTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	token, err := auth.GetIDToken(req.Context(), t.Audience)
+	token, err := gcputils.GetIDToken(req.Context(), t.Audience)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ID token: %w", err)
 	}
@@ -77,7 +77,7 @@ type AccessTokenTransport struct {
 }
 
 func (t *AccessTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	token, err := auth.GetAccessToken(req.Context())
+	token, err := gcputils.GetAccessToken(req.Context())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}

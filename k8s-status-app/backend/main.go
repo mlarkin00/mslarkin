@@ -9,6 +9,7 @@ import (
 	"k8s-status-backend/api"
 	"k8s-status-backend/chat"
 	"k8s-status-backend/mcpclient"
+	"mslarkin.com/gcputils"
 )
 
 func main() {
@@ -19,8 +20,9 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" {
+	projectID, err := gcputils.GetProjectId(ctx)
+	if err != nil {
+		log.Printf("Warning: Failed to get project ID: %v. Using default.", err)
 		projectID = "mslarkin-ext" // Default
 	}
 	location := os.Getenv("GOOGLE_CLOUD_LOCATION")
