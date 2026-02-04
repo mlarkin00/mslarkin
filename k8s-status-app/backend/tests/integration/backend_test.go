@@ -146,7 +146,7 @@ func TestWorkloadList_Logic(t *testing.T) {
 		OSSMCPSession: mockSession,
 	}
 
-	workloads, err := client.ListWorkloads(ctx, "ai-auto-cluster", "default")
+	workloads, err := client.ListWorkloads(ctx, "", "", "ai-auto-cluster", "default")
 	if err != nil {
 		t.Fatalf("Failed to list workloads: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestListPods_Logic(t *testing.T) {
 		OSSMCPSession: mockSession,
 	}
 
-	pods, err := client.ListPods(ctx, "ai-auto-cluster", "default", "checkout-service")
+	pods, err := client.ListPods(ctx, "", "", "ai-auto-cluster", "default", "checkout-service")
 	if err != nil {
 		t.Fatalf("Failed to list pods: %v", err)
 	}

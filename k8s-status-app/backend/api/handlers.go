@@ -58,12 +58,15 @@ func (s *Server) ListClusters(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ListWorkloads(w http.ResponseWriter, r *http.Request) {
 	cluster := r.URL.Query().Get("cluster")
 	namespace := r.URL.Query().Get("namespace")
+	project := r.URL.Query().Get("project")
+	location := r.URL.Query().Get("location")
+
 	if cluster == "" || namespace == "" {
 		http.Error(w, "cluster and namespace are required", http.StatusBadRequest)
 		return
 	}
 
-	workloads, err := s.MCPClient.ListWorkloads(r.Context(), cluster, namespace)
+	workloads, err := s.MCPClient.ListWorkloads(r.Context(), project, location, cluster, namespace)
 	if err != nil {
 		log.Printf("Error listing workloads: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -133,6 +136,8 @@ func (s *Server) ChatHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetWorkload(w http.ResponseWriter, r *http.Request) {
 	cluster := r.URL.Query().Get("cluster")
 	namespace := r.URL.Query().Get("namespace")
+	project := r.URL.Query().Get("project")
+	location := r.URL.Query().Get("location")
 	name := r.PathValue("name") // Go 1.22+ regex path match or just extracting from path manually if older.
 
 	// Check if r.PathValue is available (Go 1.22+). If not, we might need manual parsing or mux vars.
@@ -143,7 +148,7 @@ func (s *Server) GetWorkload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workload, err := s.MCPClient.GetWorkload(r.Context(), cluster, namespace, name)
+	workload, err := s.MCPClient.GetWorkload(r.Context(), project, location, cluster, namespace, name)
 	if err != nil {
 		log.Printf("Error getting workload: %v", err)
         // Check if it's a "not found" error to return 404
@@ -157,6 +162,8 @@ func (s *Server) GetWorkload(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ListPods(w http.ResponseWriter, r *http.Request) {
 	cluster := r.URL.Query().Get("cluster")
 	namespace := r.URL.Query().Get("namespace")
+	project := r.URL.Query().Get("project")
+	location := r.URL.Query().Get("location")
 	name := r.PathValue("name")
 
 	if cluster == "" || namespace == "" || name == "" {
@@ -164,7 +171,7 @@ func (s *Server) ListPods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pods, err := s.MCPClient.ListPods(r.Context(), cluster, namespace, name)
+	pods, err := s.MCPClient.ListPods(r.Context(), project, location, cluster, namespace, name)
 	if err != nil {
 		log.Printf("Error listing pods: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

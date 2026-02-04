@@ -39,7 +39,7 @@ func ClusterCard(r *http.Request, c models.Cluster) Node {
             P(Text("Location: "+c.Location)),
 
             Div(
-                Attr("hx-get", components.ResolveURL(r, "/partials/workloads?cluster="+c.Name+"&namespace=agent-ns")),
+                Attr("hx-get", components.ResolveURL(r, "/partials/workloads?cluster="+c.Name+"&location="+c.Location+"&project="+c.ProjectID+"&namespace=default")),
                 Attr("hx-trigger", "load"),
                 Attr("hx-swap", "innerHTML"),
                 Span(Class("loading loading-spinner"), Text("Loading workloads...")),

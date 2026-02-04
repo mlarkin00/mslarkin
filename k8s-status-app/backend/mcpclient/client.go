@@ -13,6 +13,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"k8s-status-backend/models"
 	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
+	"gopkg.in/yaml.v3"
+	"encoding/json"
 )
 
 // MCPSession defines the interface for an MCP client session.
@@ -267,14 +269,51 @@ func (c *MCPClient) ListClusters(ctx context.Context, projectID string) ([]model
 	return clusters, nil
 }
 
-// ListWorkloads retrieves the list of workloads from OSSMCP for a given cluster and namespace.
-// It uses caching to reduce latency. Note: Currently defaults to listing mostly Deployment types
-// as per the limitations of the current mock/demo implementation.
-func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string) ([]models.Workload, error) {
-	if c.OSSMCPSession == nil {
-		return nil, fmt.Errorf("OSSMCP session is not available")
+// ListWorkloads retrieves the list of workloads using OneMCP (kube_get) with fallback to OSSMCP.
+func (c *MCPClient) ListWorkloads(ctx context.Context, project, location, cluster, namespace string) ([]models.Workload, error) {
+	// 1. Try OneMCP if we have the context
+	if c.OneMCPSession != nil && project != "" && location != "" && cluster != "" {
+		key := fmt.Sprintf("workloads:onemcp:%s:%s:%s:%s", project, location, cluster, namespace)
+		if data, ok := c.getCached(key); ok {
+			return data.([]models.Workload), nil
+		}
+
+		parent := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", project, location, cluster)
+
+		// Fetch Deployments
+		deps, err := c.fetchK8sResources(ctx, parent, namespace, "deployments")
+		if err == nil {
+			// Fetch Services
+			svcs, err2 := c.fetchK8sResources(ctx, parent, namespace, "services")
+			if err2 == nil {
+				// Combine
+				workloads := make([]models.Workload, 0, len(deps)+len(svcs))
+				workloads = append(workloads, deps...)
+				workloads = append(workloads, svcs...)
+				c.setCached(key, workloads)
+				return workloads, nil
+			} else {
+                 log.Printf("Warning: Failed to fetch services from OneMCP: %v", err2)
+                 // If we got deployments, maybe return them? But let's fallback if partial success?
+                 // Usually if deployments work, services should too unless permission issue.
+                 // We'll proceed with fallback if we prefer completeness, or just use deployments.
+                 // Let's fallback if any fail to ensure consistency.
+            }
+		} else {
+             log.Printf("Warning: Failed to fetch deployments from OneMCP: %v", err)
+        }
 	}
-	key := fmt.Sprintf("workloads:%s:%s", cluster, namespace)
+
+	// 2. Fallback to OSSMCP
+	if c.OSSMCP == nil { // Was checking session but client check is fine too, or just session.
+        if c.OSSMCPSession == nil {
+		    return nil, fmt.Errorf("OSSMCP session is not available (and OneMCP failed or context missing)")
+        }
+	} else if c.OSSMCPSession == nil {
+         return nil, fmt.Errorf("OSSMCP session is not available")
+    }
+
+	key := fmt.Sprintf("workloads:ossmcp:%s:%s", cluster, namespace)
 	if data, ok := c.getCached(key); ok {
 		return data.([]models.Workload), nil
 	}
@@ -287,12 +326,10 @@ func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string
 
 	var workloads []models.Workload
 	for _, r := range result.Resources {
-        // Simple mock augmentation:
-        // In a real scenario, we might parse r.Annotations or call ReadResource + cache.
 		workloads = append(workloads, models.Workload{
 			Name:      r.Name,
 			Namespace: namespace,
-			Type:      "Deployment", // Defaulting to Deployment for demo (OSSMCP list didn't include type in this version)
+			Type:      "Deployment", // Defaulting to Deployment for demo
 			Status:    "Ready",      // Mocked status
             Ready:     "1/1",        // Mocked readiness
             Age:       "1d",         // Mocked age
@@ -303,12 +340,129 @@ func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string
 	return workloads, nil
 }
 
+func (c *MCPClient) fetchK8sResources(ctx context.Context, parent, namespace, resourceType string) ([]models.Workload, error) {
+    if c.OneMCPSession == nil {
+        return nil, fmt.Errorf("OneMCP session nil")
+    }
+
+    args := map[string]interface{}{
+		"parent":       parent,
+		"resourceType": resourceType,
+    }
+    if namespace != "" {
+        args["namespace"] = namespace
+    }
+
+	result, err := c.OneMCPSession.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "kube_get",
+		Arguments: args,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+    // Result should contain text content with YAML
+    var yamlContent string
+    if len(result.Content) > 0 {
+        if text, ok := result.Content[0].(*mcp.TextContent); ok {
+            yamlContent = text.Text
+        }
+    }
+
+    if yamlContent == "" {
+        // Try struct content fallback or error
+        return nil, fmt.Errorf("empty response from kube_get")
+    }
+
+    // Parse YAML
+    type K8sMetadata struct {
+        Name string `yaml:"name"`
+        Namespace string `yaml:"namespace"`
+        CreationTimestamp string `yaml:"creationTimestamp,omitempty"`
+    }
+    type K8sStatus struct {
+        Phase string `yaml:"phase"`
+        Replicas int `yaml:"replicas,omitempty"`
+        ReadyReplicas int `yaml:"readyReplicas,omitempty"`
+        AvailableReplicas int `yaml:"availableReplicas,omitempty"`
+    }
+    type K8sItem struct {
+        Kind string `yaml:"kind"`
+        Metadata K8sMetadata `yaml:"metadata"`
+        Status K8sStatus `yaml:"status"`
+    }
+    type K8sList struct {
+        Items []K8sItem `yaml:"items"`
+    }
+
+    var list K8sList
+
+	// OneMCP may return a JSON object with a list of YAML strings
+	type OneMCPResponse struct {
+		ResourcesYaml []string `json:"resourcesYaml"`
+	}
+	var resp OneMCPResponse
+	if err := json.Unmarshal([]byte(yamlContent), &resp); err == nil && len(resp.ResourcesYaml) > 0 {
+		for _, r := range resp.ResourcesYaml {
+			var item K8sItem
+			if err := yaml.Unmarshal([]byte(r), &item); err == nil {
+				list.Items = append(list.Items, item)
+			}
+		}
+	} else {
+		// Fallback to standard K8s List YAML
+		if err := yaml.Unmarshal([]byte(yamlContent), &list); err != nil {
+			return nil, fmt.Errorf("failed to parse YAML: %w", err)
+		}
+	}
+
+    var workloads []models.Workload
+    for _, item := range list.Items {
+        status := "Unknown"
+        ready := ""
+
+        switch item.Kind { // Or resourceType
+        case "Deployment":
+             if item.Status.Replicas == item.Status.ReadyReplicas {
+                 status = "Ready"
+             } else {
+                 status = "Progressing" // Simplified
+             }
+             ready = fmt.Sprintf("%d/%d", item.Status.ReadyReplicas, item.Status.Replicas)
+        case "Service":
+             status = "Active" // Services usually active
+             ready = "N/A"
+        default:
+             // Fallback if kind missing (sometimes lists don't set it on items?)
+             // Usually they do.
+             if resourceType == "services" {
+                 item.Kind = "Service"
+                 status = "Active"
+                 ready = "N/A"
+             } else {
+                 item.Kind = "Deployment"
+                 status = "Ready" // fallback
+                 ready = fmt.Sprintf("%d/%d", item.Status.ReadyReplicas, item.Status.Replicas)
+             }
+        }
+
+        workloads = append(workloads, models.Workload{
+            Name: item.Metadata.Name,
+            Namespace: item.Metadata.Namespace,
+            Type: item.Kind,
+            Status: status,
+            Ready: ready,
+            Age: "1d", // difficult to calc relative time without extra lib or parsing logic, keeping simple
+        })
+    }
+    return workloads, nil
+}
+
 // GetWorkload retrieves specific workload details by name.
 // It currently filters the results from ListWorkloads.
-func (c *MCPClient) GetWorkload(ctx context.Context, cluster, namespace, name string) (*models.Workload, error) {
-	// Reusing ListWorkloads and filtering for simplicity as we don't have direct Get URI construction logic for OSSMCP handy without more research.
-	// In production, we should construct the URI and call ReadResource if possible.
-	workloads, err := c.ListWorkloads(ctx, cluster, namespace)
+func (c *MCPClient) GetWorkload(ctx context.Context, project, location, cluster, namespace, name string) (*models.Workload, error) {
+	// Reusing ListWorkloads and filtering for simplicity
+	workloads, err := c.ListWorkloads(ctx, project, location, cluster, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -321,15 +475,20 @@ func (c *MCPClient) GetWorkload(ctx context.Context, cluster, namespace, name st
 }
 
 // ListPods retrieves pods for a specific workload.
-// It mimics filtering logic as the underlying MCP might return all resources.
-func (c *MCPClient) ListPods(ctx context.Context, cluster, namespace, workloadName string) ([]models.Pod, error) {
+func (c *MCPClient) ListPods(ctx context.Context, project, location, cluster, namespace, workloadName string) ([]models.Pod, error) {
+    if c.OneMCPSession != nil && project != "" && location != "" && cluster != "" {
+         parent := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", project, location, cluster)
+         // Assuming fetchPods helper
+         pods, err := c.fetchK8sPods(ctx, parent, namespace, workloadName)
+         if err == nil {
+             return pods, nil
+         }
+         log.Printf("Warning: Failed to fetch pods from OneMCP: %v", err)
+    }
+
 	if c.OSSMCPSession == nil {
 		return nil, fmt.Errorf("OSSMCP session is not available")
 	}
-	// Note: Ideally we filter by label selector matching the workload.
-	// For this demo/impl, we will ListResources (Pods) in the namespace and return them.
-	// We might not be able to easily filter by workload without more logic.
-	// We'll mimic fetching all pods in namespace.
 
 	key := fmt.Sprintf("pods:%s:%s", cluster, namespace)
 	if data, ok := c.getCached(key); ok {
@@ -337,16 +496,6 @@ func (c *MCPClient) ListPods(ctx context.Context, cluster, namespace, workloadNa
 	}
 
 	// Fetch from OSSMCP
-	// We assume there's a tool or resource list for Pods.
-	// If standard list lists all types, we'd filter.
-	// For now, let's assume ListResources returns Pods if we asked properly or just filter if they are mixed.
-	// Current mock OSSMCP implementation in test just returns "workloads" as resources from "ListResources".
-	// We might need to differentiate.
-	// For this implementation, we will just assume any resource ending in "-pod" or similar is a pod, OR
-	// strictly speaking, we rely on the upstream to give us Pods if we use a specific URI prefix or similar?
-	// The ListResourcesRequest can include specific URI templates/roots?
-	// We'll just list all and mock "Pods" in the test.
-
 	result, err := c.OSSMCPSession.ListResources(ctx, &mcp.ListResourcesParams{})
 	if err != nil {
 		return nil, err
@@ -366,6 +515,87 @@ func (c *MCPClient) ListPods(ctx context.Context, cluster, namespace, workloadNa
 
 	c.setCached(key, pods)
 	return pods, nil
+}
+
+func (c *MCPClient) fetchK8sPods(ctx context.Context, parent, namespace, workloadName string) ([]models.Pod, error) {
+    if c.OneMCPSession == nil {
+        return nil, fmt.Errorf("OneMCP session nil")
+    }
+
+    args := map[string]interface{}{
+		"parent":       parent,
+		"resourceType": "pods",
+        "namespace": namespace,
+        // labelSelector might be needed but for now filtering by name prefix or assuming we get all and filter
+        // Ideally: "labelSelector": "app="+workloadName
+    }
+
+	result, err := c.OneMCPSession.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "kube_get",
+		Arguments: args,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+    var yamlContent string
+    if len(result.Content) > 0 {
+        if text, ok := result.Content[0].(*mcp.TextContent); ok {
+			yamlContent = text.Text
+		}
+    }
+    if yamlContent == "" {
+        return nil, fmt.Errorf("empty response")
+    }
+
+    type K8sMetadata struct {
+        Name string `yaml:"name"`
+    }
+    type K8sStatus struct {
+        Phase string `yaml:"phase"`
+    }
+    type K8sItem struct {
+        Metadata K8sMetadata `yaml:"metadata"`
+        Status K8sStatus `yaml:"status"`
+    }
+    type K8sList struct {
+        Items []K8sItem `yaml:"items"`
+    }
+
+    var list K8sList
+
+	// OneMCP may return a JSON object with a list of YAML strings
+	type OneMCPResponse struct {
+		ResourcesYaml []string `json:"resourcesYaml"`
+	}
+	var resp OneMCPResponse
+	if err := json.Unmarshal([]byte(yamlContent), &resp); err == nil && len(resp.ResourcesYaml) > 0 {
+		for _, r := range resp.ResourcesYaml {
+			var item K8sItem
+			if err := yaml.Unmarshal([]byte(r), &item); err == nil {
+				list.Items = append(list.Items, item)
+			}
+		}
+	} else {
+		if err := yaml.Unmarshal([]byte(yamlContent), &list); err != nil {
+			return nil, fmt.Errorf("failed to parse: %w", err)
+		}
+	}
+
+    var pods []models.Pod
+    for _, item := range list.Items {
+        // Simple filter if not using label selector
+        // In reality, pods might handle different naming but usually start with workload if generated by it.
+        // Better to use label selector in future task.
+        if strings.HasPrefix(item.Metadata.Name, workloadName) {
+            pods = append(pods, models.Pod{
+                Name: item.Metadata.Name,
+                Status: item.Status.Phase,
+                Age: "1h",
+            })
+        }
+    }
+    return pods, nil
 }
 
 // ListTools returns a combined list of tools from all connected MCP servers (OneMCP and OSSMCP).

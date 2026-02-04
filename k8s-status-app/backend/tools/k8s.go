@@ -122,7 +122,7 @@ func (t *K8sTools) ListWorkloads(ctx tool.Context, args ListWorkloadsArgs) (a2ui
 		namespace = "default"
 	}
 
-	workloads, err := t.Client.ListWorkloads(context.Background(), args.Cluster, namespace)
+	workloads, err := t.Client.ListWorkloads(context.Background(), "", "", args.Cluster, namespace)
 	if err != nil {
 		return a2ui.Text("Error listing workloads"), fmt.Errorf("failed to list workloads: %w", err)
 	}

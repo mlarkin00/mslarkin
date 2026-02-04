@@ -132,10 +132,17 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 func handlePartialsWorkloads(w http.ResponseWriter, r *http.Request) {
 	cluster := r.URL.Query().Get("cluster")
 	namespace := r.URL.Query().Get("namespace")
-	log.Printf("DEBUG: Fetching workloads for cluster: %s, namespace: %s", cluster, namespace)
+	project := r.URL.Query().Get("project")
+	location := r.URL.Query().Get("location")
+	log.Printf("DEBUG: Fetching workloads for cluster: %s, namespace: %s, project: %s, location: %s", cluster, namespace, project, location)
 
 	client := &http.Client{Transport: &LogTransport{}}
-	resp, err := client.Get(fmt.Sprintf("%s/api/workloads?cluster=%s&namespace=%s", backendURL, url.QueryEscape(cluster), url.QueryEscape(namespace)))
+	resp, err := client.Get(fmt.Sprintf("%s/api/workloads?cluster=%s&namespace=%s&project=%s&location=%s",
+		backendURL,
+		url.QueryEscape(cluster),
+		url.QueryEscape(namespace),
+		url.QueryEscape(project),
+		url.QueryEscape(location)))
 	if err != nil {
 		http.Error(w, "Failed to connect to backend", http.StatusBadGateway)
 		return
