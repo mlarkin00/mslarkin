@@ -1,85 +1,72 @@
-// Package main is the entry point for the k8s-status-backend service.
-// It initializes the MCP client, Chat service, and starts the HTTP server.
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
-	"k8s-status-backend/api"
-	"k8s-status-backend/chat"
-	"k8s-status-backend/mcpclient"
-	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
+    gke "k8s-status-backend/pkg/gke"
+    k8s "k8s-status-backend/pkg/k8s"
+    status "k8s-status-backend/pkg/status"
 )
 
-// main is the application entry point. It sets up environment variables,
-// initializes the MCP client and Chat service, and starts the HTTP server.
 func main() {
-	ctx := context.Background()
-
-	// Environment variables
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	projectID, err := gcputils.GetProjectId(ctx)
-	if err != nil {
-		log.Printf("Warning: Failed to get project ID: %v. Using default.", err)
-		projectID = "mslarkin-ext" // Default
-	}
-	location := os.Getenv("GOOGLE_CLOUD_LOCATION")
-	if location == "" {
-		location = "us-west1"
-	}
-
-	// Initialize MCP Client
-	client, err := mcpclient.NewMCPClient(ctx)
-	if err != nil {
-		log.Printf("Warning: Failed to initialize MCP Client: %v", err)
-		// Proceeding might cause panic if client is nil.
-		// For development in sandbox without credentials, we might want to mock.
-		// But in production, this should likely fail.
-		// I'll exit for now.
-		// log.Fatal(err)
-        // Commented out fatal to allow build/test in sandbox if needed, but in real deploy it would crash or needs proper handling.
-        // Actually, let's keep it fatal to fail fast in production, unless we add a --mock flag.
-	}
-    if client != nil {
-	    defer client.Close()
+    ctx := context.Background()
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080"
     }
 
-	// Initialize Chat Service
-	chatService, err := chat.NewChatService(ctx, projectID, location, "", client)
-	if err != nil {
-		log.Printf("Warning: Failed to initialize Chat Service: %v", err)
-        // log.Fatal(err)
-	}
+    // Initialize Services
+    discovery, err := gke.NewDiscoveryClient(ctx)
+    if err != nil {
+        log.Fatalf("Failed to init GKE discovery: %v", err)
+    }
+    defer discovery.Close()
 
-	// Initialize Server
-	server := &api.Server{
-		MCPClient: client,
-		Chat:      chatService,
-	}
+    clientManager := k8s.NewClientManager()
+    aggregator := status.NewAggregator(clientManager)
 
-	// Router
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/projects", server.ListProjects)
-	mux.HandleFunc("GET /api/clusters", server.ListClusters)
-	mux.HandleFunc("GET /api/workloads", server.ListWorkloads)
-	mux.HandleFunc("GET /api/workload/{name}", server.GetWorkload)
-	mux.HandleFunc("GET /api/workload/{name}/pods", server.ListPods)
-	mux.HandleFunc("POST /api/chat", server.ChatHandler)
+    // Handlers
+    mux := http.NewServeMux()
 
-	// Health check
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
+    // CORS middleware
+    enableCORS := func(h http.HandlerFunc) http.HandlerFunc {
+        return func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all for demo
+            w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+            w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+            if r.Method == "OPTIONS" {
+                return
+            }
+            h(w, r)
+        }
+    }
 
-	log.Printf("Starting backend server on :%s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		log.Fatal(err)
-	}
+    mux.HandleFunc("GET /api/status", enableCORS(func(w http.ResponseWriter, r *http.Request) {
+        // Projects to monitor
+        projects := []string{"mslarkin-ext", "mslarkin-demo"}
+
+        clusters, err := discovery.ListClusters(r.Context(), projects)
+        if err != nil {
+            http.Error(w, "Failed to list clusters: "+err.Error(), http.StatusInternalServerError)
+            return
+        }
+
+        data := aggregator.FetchAll(r.Context(), clusters)
+
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(data)
+    }))
+
+    mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte("ok"))
+    })
+
+    log.Printf("Starting backend on :%s", port)
+    if err := http.ListenAndServe(":"+port, mux); err != nil {
+        log.Fatal(err)
+    }
 }
