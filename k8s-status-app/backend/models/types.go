@@ -17,3 +17,10 @@ type Workload struct {
 	Available string `json:"available"`
 	Age       string `json:"age"`
 }
+
+// Pod represents a Kubernetes Pod.
+type Pod struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	Age    string `json:"age"`
+}

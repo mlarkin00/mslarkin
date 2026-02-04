@@ -126,3 +126,46 @@ func (s *Server) ChatHandler(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 }
+
+// GetWorkload returns details for a specific workload.
+func (s *Server) GetWorkload(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	namespace := r.URL.Query().Get("namespace")
+	name := r.PathValue("name") // Go 1.22+ regex path match or just extracting from path manually if older.
+
+	// Check if r.PathValue is available (Go 1.22+). If not, we might need manual parsing or mux vars.
+	// Assuming Go 1.22+ since we used "GET /api/..." in mux matching.
+
+	if cluster == "" || namespace == "" || name == "" {
+		http.Error(w, "cluster, namespace, and name are required", http.StatusBadRequest)
+		return
+	}
+
+	workload, err := s.MCPClient.GetWorkload(r.Context(), cluster, namespace, name)
+	if err != nil {
+		log.Printf("Error getting workload: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(workload)
+}
+
+// ListPods returns pods for a specific workload.
+func (s *Server) ListPods(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	namespace := r.URL.Query().Get("namespace")
+	name := r.PathValue("name")
+
+	if cluster == "" || namespace == "" || name == "" {
+		http.Error(w, "cluster, namespace, and name are required", http.StatusBadRequest)
+		return
+	}
+
+	pods, err := s.MCPClient.ListPods(r.Context(), cluster, namespace, name)
+	if err != nil {
+		log.Printf("Error listing pods: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(pods)
+}

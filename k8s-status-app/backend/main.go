@@ -62,6 +62,8 @@ func main() {
 	mux.HandleFunc("GET /api/projects", server.ListProjects)
 	mux.HandleFunc("GET /api/clusters", server.ListClusters)
 	mux.HandleFunc("GET /api/workloads", server.ListWorkloads)
+	mux.HandleFunc("GET /api/workload/{name}", server.GetWorkload)
+	mux.HandleFunc("GET /api/workload/{name}/pods", server.ListPods)
 	mux.HandleFunc("POST /api/chat", server.ChatHandler)
 
 	// Health check

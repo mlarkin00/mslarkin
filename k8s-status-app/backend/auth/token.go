@@ -5,6 +5,9 @@ import (
 	"context"
 	"fmt"
 
+	"os/exec"
+	"strings"
+
 	"cloud.google.com/go/compute/metadata"
 	"google.golang.org/api/idtoken"
 	"golang.org/x/oauth2/google"
@@ -33,14 +36,22 @@ func GetIDToken(ctx context.Context, audience string) (string, error) {
 
 	// Local development fallback using ADC
 	ts, err := idtoken.NewTokenSource(ctx, audience)
-	if err != nil {
-		return "", fmt.Errorf("failed to create token source: %w", err)
+	if err == nil {
+		token, err := ts.Token()
+		if err == nil {
+			return token.AccessToken, nil
+		}
 	}
-	token, err := ts.Token()
+
+	// Fallback to gcloud if available (common for User Credentials)
+	// This is useful when running locally with 'gcloud auth login' but without SA key.
+	cmd := exec.CommandContext(ctx, "gcloud", "auth", "print-identity-token", "--audiences="+audience)
+	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get token: %w", err)
+		return "", fmt.Errorf("idtoken library failed and gcloud fallback failed: %w", err)
 	}
-	return token.AccessToken, nil
+	return strings.TrimSpace(string(out)), nil
+
 }
 
 // GetAccessToken fetches an OAuth2 access token with the cloud-platform scope.
