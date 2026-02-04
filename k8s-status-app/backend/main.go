@@ -61,6 +61,49 @@ func main() {
         json.NewEncoder(w).Encode(data)
     }))
 
+    mux.HandleFunc("GET /api/pods", enableCORS(func(w http.ResponseWriter, r *http.Request) {
+        // Required params: project, location, cluster, namespace, workload
+        project := r.URL.Query().Get("project")
+        location := r.URL.Query().Get("location")
+        clusterName := r.URL.Query().Get("cluster")
+        namespace := r.URL.Query().Get("namespace")
+        workload := r.URL.Query().Get("workload")
+
+        if project == "" || location == "" || clusterName == "" || namespace == "" || workload == "" {
+            http.Error(w, "Missing required parameters", http.StatusBadRequest)
+            return
+        }
+
+        // Fetch full cluster info to get Endpoint and CaCert
+        clusters, err := discovery.ListClusters(r.Context(), []string{project})
+        if err != nil {
+             http.Error(w, "Failed to list clusters: "+err.Error(), http.StatusInternalServerError)
+             return
+        }
+
+        var targetCluster *gke.ClusterInfo
+        for _, c := range clusters {
+            if c.Name == clusterName && c.Location == location {
+                targetCluster = &c
+                break
+            }
+        }
+
+        if targetCluster == nil {
+            http.Error(w, "Cluster not found", http.StatusNotFound)
+            return
+        }
+
+        pods, err := aggregator.GetWorkloadPods(r.Context(), *targetCluster, namespace, workload)
+        if err != nil {
+            http.Error(w, "Failed to get pods: "+err.Error(), http.StatusInternalServerError)
+            return
+        }
+
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(pods)
+    }))
+
     mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
         w.Write([]byte("ok"))
     })

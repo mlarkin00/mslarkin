@@ -10,6 +10,11 @@ const apiClient = axios.create({
 
 export default {
   getStatus() {
-    return apiClient.get('/status');
+    return apiClient.get("/status");
+  },
+  getPods(project, location, cluster, namespace, workload) {
+    return apiClient.get("/pods", {
+      params: { project, location, cluster, namespace, workload },
+    });
   },
 };

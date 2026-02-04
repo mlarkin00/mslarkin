@@ -81,7 +81,10 @@ onMounted(() => {
 
         <div class="workloads-section">
           <h4>Workloads</h4>
-          <WorkloadTable :workloads="activeCluster.workloads || []" />
+          <WorkloadTable
+            :workloads="activeCluster.workloads || []"
+            :clusterInfo="activeCluster"
+          />
         </div>
       </div>
     </div>

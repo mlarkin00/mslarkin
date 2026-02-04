@@ -124,3 +124,52 @@ func (a *Aggregator) GetClusterStatus(ctx context.Context, cluster gke.ClusterIn
 
     return status
 }
+
+type PodStatus struct {
+	Name   string `json:"name"`
+	Phase  string `json:"phase"`
+	IP     string `json:"pod_ip"`
+	Node   string `json:"node_name"`
+	Age    string `json:"age"`
+}
+
+func (a *Aggregator) GetWorkloadPods(ctx context.Context, cluster gke.ClusterInfo, namespace, workloadName string) ([]PodStatus, error) {
+	client, err := a.clients.GetClient(ctx, cluster)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %v", err)
+	}
+
+	// 1. Get Deployment to find selector
+	// Note: We are assuming Deployment for now as per previous logic.
+	// If we support Services/StatefulSets later we need generic logic or a switch.
+	dep, err := client.AppsV1().Deployments(namespace).Get(ctx, workloadName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment %s: %v", workloadName, err)
+	}
+
+	// 2. List Pods using selector
+	selector, err := metav1.LabelSelectorAsSelector(dep.Spec.Selector)
+	if err != nil {
+		return nil, fmt.Errorf("invalid selector: %v", err)
+	}
+
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: selector.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods: %v", err)
+	}
+
+	var results []PodStatus
+	for _, p := range pods.Items {
+		results = append(results, PodStatus{
+			Name:  p.Name,
+			Phase: string(p.Status.Phase),
+			IP:    p.Status.PodIP,
+			Node:  p.Spec.NodeName,
+			Age:   p.CreationTimestamp.String(), // Simplified age
+		})
+	}
+
+	return results, nil
+}
