@@ -12,7 +12,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"k8s-status-backend/models"
-	"mslarkin.com/gcputils"
+	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
 )
 
 // MCPSession defines the interface for an MCP client session.

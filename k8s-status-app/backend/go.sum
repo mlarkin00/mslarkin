@@ -52,8 +52,8 @@ github.com/googleapis/gax-go/v2 v2.16.0 h1:iHbQmKLLZrexmb0OSsNGTeSTS0HO4YvFOG8g5
 github.com/googleapis/gax-go/v2 v2.16.0/go.mod h1:o1vfQjjNZn4+dPnRdl/4ZD7S9414Y4xA+a/6Icj6l14=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20260204183252-61e7a9095d31 h1:z3b+aXvgyyWOX3m/jsqZOIpmIRVkOBqlTnrcgG13AfY=
-github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20260204183252-61e7a9095d31/go.mod h1:XlM0BKB9c83rUcnh5PhGML00pbQmvlG8YJOie66q2E8=
+github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20260204185726-1a93faf40cde h1:dRklX+YIS19ShVAJ8YLRmC4TCyTBrCkXcBwRW8WOm58=
+github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20260204185726-1a93faf40cde/go.mod h1:g2gm8fsXGv8SJ5++vrZY9l5Zbc5aLP99XUP4MlSgBrg=
 github.com/modelcontextprotocol/go-sdk v1.2.0 h1:Y23co09300CEk8iZ/tMxIX1dVmKZkzoSBZOpJwUnc/s=
 github.com/modelcontextprotocol/go-sdk v1.2.0/go.mod h1:6fM3LCm3yV7pAs8isnKLn07oKtB0MP9LHd3DfAcKw10=
 github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 h1:GFCKgmp0tecUJ0sJuv4pzYCqS9+RGSn52M3FUwPs+uo=

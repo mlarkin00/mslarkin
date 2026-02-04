@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"mslarkin.com/gcputils"
+	gcputils "github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils"
 )
 
 const (

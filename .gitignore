@@ -1,2 +1,3 @@
 frontend/a2ui_repo/
 k8s-status-app/frontend/static/js/
+k8s-status-app/backend/go.sum

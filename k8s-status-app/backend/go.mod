@@ -5,6 +5,7 @@ go 1.24.4
 toolchain go1.24.12
 
 require (
+	github.com/mlarkin00/mslarkin/go-mslarkin-utils/gcputils v0.0.0-20260204185726-1a93faf40cde
 	github.com/modelcontextprotocol/go-sdk v1.2.0
 	google.golang.org/adk v0.3.0
 	google.golang.org/genai v1.43.0
