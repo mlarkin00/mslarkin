@@ -26,4 +26,3 @@ export function create() {
         setCtor: SignalSet,
     });
 }
-//# sourceMappingURL=signal-model-processor.js.map

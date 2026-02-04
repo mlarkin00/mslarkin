@@ -11,9 +11,9 @@ func Layout(r *http.Request, title string, body Node) Node {
 	return HTML(
 		Head(
 			TitleEl(Text(title)),
-			Script(Attr("src", "https://unpkg.com/htmx.org@1.9.10")),
-			Link(Attr("rel", "stylesheet"), Attr("href", "https://cdn.jsdelivr.net/npm/daisyui@4.6.0/dist/full.min.css")),
-			Script(Attr("src", "https://cdn.tailwindcss.com")),
+			Script(Attr("src", ResolveURL(r, "/static/js/htmx.min.js"))),
+			Link(Attr("rel", "stylesheet"), Attr("href", ResolveURL(r, "/static/css/daisyui.min.css"))),
+			Script(Attr("src", ResolveURL(r, "/static/js/tailwindcss.js"))),
 			Script(Raw(`
                 window.APP_CONFIG = {
                     basePath: "`+BasePath+`"

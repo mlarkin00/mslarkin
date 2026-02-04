@@ -144,4 +144,3 @@ let Video = (() => {
     return Video = _classThis;
 })();
 export { Video };
-//# sourceMappingURL=video.js.map

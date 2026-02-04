@@ -210,4 +210,3 @@ let Slider = (() => {
     return Slider = _classThis;
 })();
 export { Slider };
-//# sourceMappingURL=slider.js.map

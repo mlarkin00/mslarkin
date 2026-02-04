@@ -16,4 +16,3 @@
 import { unsafeCSS } from "lit";
 import * as Styles from "@a2ui/web_core/styles/index";
 export const structuralStyles = unsafeCSS(Styles.structuralStyles);
-//# sourceMappingURL=styles.js.map

@@ -62,4 +62,3 @@ export function extractNumberValue(val, component, processor, surfaceId) {
     }
     return 0;
 }
-//# sourceMappingURL=utils.js.map

@@ -1,7 +1,10 @@
-import { Client } from './a2ui-core.js';
+console.log('Chat Widget: initializing...');
 import './a2ui-lit.js';
 
+console.log('Chat Widget: imports loaded');
+
 window.sendMessage = async function(event) {
+    console.log('Chat Widget: sendMessage called', event);
     event.preventDefault();
     const input = event.target.querySelector('input[name="message"]');
     const message = input.value;

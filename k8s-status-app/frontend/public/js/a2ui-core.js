@@ -8,4 +8,3 @@ import A2UIClientEventMessage from "./schemas/server_to_client_with_standard_cat
 export const Schemas = {
     A2UIClientEventMessage,
 };
-//# sourceMappingURL=index.js.map

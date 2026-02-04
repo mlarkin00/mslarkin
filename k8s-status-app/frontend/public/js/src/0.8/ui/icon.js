@@ -145,4 +145,3 @@ let Icon = (() => {
     return Icon = _classThis;
 })();
 export { Icon };
-//# sourceMappingURL=icon.js.map

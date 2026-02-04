@@ -13,7 +13,7 @@ func A2UIShell(r *http.Request, prompt string) Node {
         Div(ID("a2ui-root"), Class("min-h-screen p-4"),
             // Hidden input to store initial prompt if needed,
             // or we script it directly.
-            Script(Rawf(`
+            Script(Type("module"), Rawf(`
                 import { Client } from '/static/js/a2ui-core.js';
                 import '/static/js/a2ui-lit.js';
 

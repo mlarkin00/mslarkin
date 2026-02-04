@@ -177,4 +177,3 @@ let Tabs = (() => {
     return Tabs = _classThis;
 })();
 export { Tabs };
-//# sourceMappingURL=tabs.js.map
