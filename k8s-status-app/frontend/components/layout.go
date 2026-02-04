@@ -21,6 +21,7 @@ func Layout(r *http.Request, title string, body Node) Node {
                 };
             `)),
             Script(Type("module"), Attr("src", ResolveURL(r, "/static/js/chat-widget.js"))),
+			Script(Attr("src", ResolveURL(r, "/static/js/logging.js"))),
 		),
 		Body(
 			Class("bg-gray-100 min-h-screen"),

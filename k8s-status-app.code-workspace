@@ -8,9 +8,6 @@
     },
     {
       "path": "go-mslarkin-utils"
-    },
-    {
-      "path": "go-flexible-workload"
     }
   ]
 }

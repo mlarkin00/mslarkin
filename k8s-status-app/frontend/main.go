@@ -47,6 +47,7 @@ func main() {
 	apiMux.HandleFunc("GET /dashboard", handleDashboard)
 	apiMux.HandleFunc("GET /partials/workloads", handlePartialsWorkloads)
 	apiMux.HandleFunc("POST /chat/proxy", handleChatProxy)
+    apiMux.HandleFunc("POST /api/log", handleClientLog)
 	// Create a top-level mux to handle health checks and app logic
     topMux := http.NewServeMux()
     topMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -65,8 +66,18 @@ func main() {
 
     // Logging middleware to debug request paths
     logger := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        log.Printf("Request: %s %s", r.Method, r.URL.Path)
-        topMux.ServeHTTP(w, r)
+        recorder := &StatusRecorder{
+            ResponseWriter: w,
+            Status:         http.StatusOK, // Default to 200/OK if WriteHeader is not called
+        }
+        topMux.ServeHTTP(recorder, r)
+
+        // Skip logging if it's a successful health check
+        if r.URL.Path == "/healthz" && recorder.Status == http.StatusOK {
+            return
+        }
+
+        log.Printf("Request: %s %s [Status: %d]", r.Method, r.URL.Path, recorder.Status)
     })
 
 	log.Printf("Starting frontend on :%s (Backend: %s, BasePath: %s)", port, backendURL, basePath)
@@ -129,7 +140,8 @@ func handlePartialsWorkloads(w http.ResponseWriter, r *http.Request) {
 	namespace := r.URL.Query().Get("namespace")
 	log.Printf("DEBUG: Fetching workloads for cluster: %s, namespace: %s", cluster, namespace)
 
-	resp, err := http.Get(fmt.Sprintf("%s/api/workloads?cluster=%s&namespace=%s", backendURL, url.QueryEscape(cluster), url.QueryEscape(namespace)))
+	client := &http.Client{Transport: &LogTransport{}}
+	resp, err := client.Get(fmt.Sprintf("%s/api/workloads?cluster=%s&namespace=%s", backendURL, url.QueryEscape(cluster), url.QueryEscape(namespace)))
 	if err != nil {
 		http.Error(w, "Failed to connect to backend", http.StatusBadGateway)
 		return
@@ -163,7 +175,7 @@ func handleChatProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	proxyReq.Header = r.Header
 
-	client := &http.Client{}
+	client := &http.Client{Transport: &LogTransport{}}
 	resp, err := client.Do(proxyReq)
 	if err != nil {
 		log.Printf("ERROR: Failed to proxy chat: %v", err)
@@ -183,4 +195,54 @@ func handleChatProxy(w http.ResponseWriter, r *http.Request) {
     // But since backend returns "Transfer-Encoding: chunked" or SSE content type,
     // client.Do might buffer? No, Body is a stream.
 	io.Copy(w, resp.Body)
+}
+
+// handleClientLog receives client-side logs and prints them to stdout.
+func handleClientLog(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        log.Printf("ERROR: Failed to read client log body: %v", err)
+        http.Error(w, "Bad request", http.StatusBadRequest)
+        return
+    }
+    defer r.Body.Close()
+
+    // Just print the raw JSON for now, or decode if we want to structure it.
+    // Raw is fine for Cloud Logging to pick up.
+    log.Printf("CLIENT REQUEST: %s", string(body))
+    w.WriteHeader(http.StatusOK)
+}
+
+// LogTransport logs backend requests and responses.
+type LogTransport struct{}
+
+func (t *LogTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+    log.Printf("BACKEND REQUEST: %s %s", req.Method, req.URL)
+
+    // DefaultTransport is used if transport is nil in client, but here we wrapper.
+    // We should use http.DefaultTransport.
+    resp, err := http.DefaultTransport.RoundTrip(req)
+    if err != nil {
+        log.Printf("BACKEND ERROR: %s %s -> %v", req.Method, req.URL, err)
+        return nil, err
+    }
+
+    log.Printf("BACKEND RESPONSE: %s %s -> %s", req.Method, req.URL, resp.Status)
+    return resp, nil
+}
+
+// StatusRecorder wraps http.ResponseWriter to capture the status code.
+type StatusRecorder struct {
+    http.ResponseWriter
+    Status int
+}
+
+func (r *StatusRecorder) WriteHeader(status int) {
+    r.Status = status
+    r.ResponseWriter.WriteHeader(status)
 }
