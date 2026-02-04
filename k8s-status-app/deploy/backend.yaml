@@ -30,6 +30,8 @@ spec:
           value: "8080"
         - name: GOOGLE_CLOUD_PROJECT
           value: "mslarkin-ext"
+        - name: PROJECT_IDS
+          value: "mslarkin-ext,mslarkin-demo"
 ---
 apiVersion: v1
 kind: Service

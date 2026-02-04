@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 
 	"k8s-status-frontend/models"
 	"k8s-status-frontend/components"
@@ -50,38 +49,13 @@ func main() {
     })
 
 	// Mount the app handler at the internal base path.
+	// Mount the app handler at the internal base path.
     // The LB rewrites /k8s-status/* to /k8s-status-app/*
     internalPath := "/k8s-status-app"
 
-    // Clean path middleware for apiMux (handle potential double slashes)
-    cleaner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Only clean if it's not root (Clean("/") is / anyway)
-        // path.Clean removes trailing slash, which might affect /static/ redirect?
-        // ServeMux handles /path -> /path/ redirect if registered.
-        cleaned := path.Clean(r.URL.Path)
-        if cleaned == "." {
-            cleaned = "/"
-        }
-        // If original had trailing slash and cleaned doesn't, ServeMux might redirect.
-        // Let's just trust Clean for now as it fixed issues before.
-        r.URL.Path = cleaned
-        apiMux.ServeHTTP(w, r)
-    })
-
-    // Core handler with stripping
-    appHandler := http.StripPrefix(internalPath, cleaner)
-
-    // Handle the prefix with trailing slash (standard)
-    topMux.Handle(internalPath+"/", appHandler)
-
-    // Handle the prefix WITHOUT trailing slash explicitly to avoid 301 Redirect
-    topMux.HandleFunc(internalPath, func(w http.ResponseWriter, r *http.Request) {
-        // Log the trap
-        log.Printf("Trapped missing slash on internal path: %s", r.URL.Path)
-        // Internally add the slash so StripPrefix works as expected (stripping leaves /)
-        r.URL.Path = internalPath + "/"
-        appHandler.ServeHTTP(w, r)
-    })
+    // Simple StripPrefix.
+    // We register the stripped handler for the internal path prefix.
+    topMux.Handle(internalPath+"/", http.StripPrefix(internalPath, apiMux))
 
     // Logging middleware to debug request paths
     logger := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

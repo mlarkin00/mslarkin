@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"k8s-status-backend/chat"
 	"k8s-status-backend/mcpclient"
@@ -17,10 +20,16 @@ type Server struct {
 	Chat      *chat.ChatService
 }
 
-// ListProjects returns a hardcoded list of projects for the demo.
+// ListProjects returns a list of projects.
 func (s *Server) ListProjects(w http.ResponseWriter, r *http.Request) {
-	// Hardcoded for now as per demo
-	projects := []string{"mslarkin-ext", "mslarkin-demo"}
+	// Dynamically fetch projects from env or default
+	raw := os.Getenv("PROJECT_IDS")
+	var projects []string
+	if raw != "" {
+		projects = strings.Split(raw, ",")
+	} else {
+		projects = []string{"mslarkin-ext", "mslarkin-demo"}
+	}
 	json.NewEncoder(w).Encode(projects)
 }
 
@@ -35,7 +44,8 @@ func (s *Server) ListClusters(w http.ResponseWriter, r *http.Request) {
 
 	clusters, err := s.MCPClient.ListClusters(r.Context(), projectID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to list clusters: %v", err), http.StatusInternalServerError)
+		log.Printf("Error listing clusters: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(clusters)
@@ -53,7 +63,8 @@ func (s *Server) ListWorkloads(w http.ResponseWriter, r *http.Request) {
 
 	workloads, err := s.MCPClient.ListWorkloads(r.Context(), cluster, namespace)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to list workloads: %v", err), http.StatusInternalServerError)
+		log.Printf("Error listing workloads: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(workloads)
@@ -93,7 +104,8 @@ func (s *Server) ChatHandler(w http.ResponseWriter, r *http.Request) {
 
 	events, err := s.Chat.Chat(r.Context(), req.Session, req.Message)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to start chat: %v", err), http.StatusInternalServerError)
+		log.Printf("Error starting chat: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 

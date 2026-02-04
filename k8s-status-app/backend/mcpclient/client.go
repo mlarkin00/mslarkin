@@ -4,7 +4,6 @@ package mcpclient
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -102,10 +101,9 @@ func NewMCPClient(ctx context.Context) (*MCPClient, error) {
 	client.OneMCP = mcp.NewClient(&mcp.Implementation{Name: "k8s-status-backend-onemcp", Version: "1.0.0"}, nil)
 	oneSession, err := client.OneMCP.Connect(ctx, oneTrans, nil)
 	if err != nil {
-		log.Printf("Warning: Failed to connect to OneMCP: %v", err)
-	} else {
-		client.OneMCPSession = oneSession
+		return nil, fmt.Errorf("failed to connect to OneMCP: %w", err)
 	}
+	client.OneMCPSession = oneSession
 
 	// Initialize OSSMCP with ID Token (OIDC)
 	// Use the IAP Client ID as the audience for authentication.
@@ -120,10 +118,9 @@ func NewMCPClient(ctx context.Context) (*MCPClient, error) {
 	client.OSSMCP = mcp.NewClient(&mcp.Implementation{Name: "k8s-status-backend-ossmcp", Version: "1.0.0"}, nil)
 	ossSession, err := client.OSSMCP.Connect(ctx, ossTrans, nil)
 	if err != nil {
-		log.Printf("Warning: Failed to connect to OSSMCP: %v", err)
-	} else {
-		client.OSSMCPSession = ossSession
+		return nil, fmt.Errorf("failed to connect to OSSMCP: %w", err)
 	}
+	client.OSSMCPSession = ossSession
 
 	return client, nil
 }
@@ -210,14 +207,15 @@ func (c *MCPClient) ListWorkloads(ctx context.Context, cluster, namespace string
 
 	var workloads []models.Workload
 	for _, r := range result.Resources {
-        // Filter by namespace?
+        // Simple mock augmentation:
+        // In a real scenario, we might parse r.Annotations or call ReadResource + cache.
 		workloads = append(workloads, models.Workload{
 			Name:      r.Name,
 			Namespace: namespace,
-			Type:      "Deployment", // Mock type or infer from URI
-			Status:    "Ready",
-            Ready:     "1/1",
-            Age:       "1d",
+			Type:      "Deployment", // Defaulting to Deployment for demo (OSSMCP list didn't include type in this version)
+			Status:    "Ready",      // Mocked status
+            Ready:     "1/1",        // Mocked readiness
+            Age:       "1d",         // Mocked age
 		})
 	}
 
