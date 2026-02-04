@@ -20,6 +20,8 @@ type MCPSession interface {
 	ListResources(ctx context.Context, params *mcp.ListResourcesParams) (*mcp.ListResourcesResult, error)
 	CallTool(ctx context.Context, params *mcp.CallToolParams) (*mcp.CallToolResult, error)
 	ListTools(ctx context.Context, params *mcp.ListToolsParams) (*mcp.ListToolsResult, error)
+	ListPrompts(ctx context.Context, params *mcp.ListPromptsParams) (*mcp.ListPromptsResult, error)
+	InitializeResult() *mcp.InitializeResult
 	Close() error
 }
 
@@ -115,6 +117,14 @@ func NewMCPClient(ctx context.Context) (*MCPClient, error) {
 	}
 	log.Printf("[DEBUG] OneMCP: Connected successfully to %s", OneMCPEndpoint)
 	client.OneMCPSession = NewLoggingSession(oneSession, "OneMCP")
+	// Log Capabilities
+	if initRes := client.OneMCPSession.InitializeResult(); initRes != nil {
+		log.Printf("[INFO] OneMCP Capabilities: Tools=%v Prompts=%v Resources=%v",
+			initRes.Capabilities.Tools != nil,
+			initRes.Capabilities.Prompts != nil,
+			initRes.Capabilities.Resources != nil,
+		)
+	}
 
 	// Initialize OSSMCP with ID Token (OIDC)
 	// Use the IAP Client ID as the audience for authentication.
@@ -134,6 +144,14 @@ func NewMCPClient(ctx context.Context) (*MCPClient, error) {
 	} else {
 		log.Printf("[DEBUG] OSSMCP: Connected successfully to %s", OSSMCPEndpoint)
 		client.OSSMCPSession = NewLoggingSession(ossSession, "OSSMCP")
+		// Log Capabilities
+		if initRes := client.OSSMCPSession.InitializeResult(); initRes != nil {
+			log.Printf("[INFO] OSSMCP Capabilities: Tools=%v Prompts=%v Resources=%v",
+				initRes.Capabilities.Tools != nil,
+				initRes.Capabilities.Prompts != nil,
+				initRes.Capabilities.Resources != nil,
+			)
+		}
 	}
 
 	return client, nil
@@ -335,4 +353,131 @@ func (c *MCPClient) ListPods(ctx context.Context, cluster, namespace, workloadNa
 
 	c.setCached(key, pods)
 	return pods, nil
+}
+
+// ListTools returns a combined list of tools from all connected MCP servers.
+func (c *MCPClient) ListTools(ctx context.Context) ([]*mcp.Tool, error) {
+	var allTools []*mcp.Tool
+
+	// 1. OneMCP
+	if c.OneMCPSession != nil {
+		res, err := c.OneMCPSession.ListTools(ctx, &mcp.ListToolsParams{})
+		if err != nil {
+			log.Printf("Warning: Failed to list tools from OneMCP: %v", err)
+		} else {
+			allTools = append(allTools, res.Tools...)
+		}
+	}
+
+	// 2. OSSMCP
+	if c.OSSMCPSession != nil {
+		res, err := c.OSSMCPSession.ListTools(ctx, &mcp.ListToolsParams{})
+		if err != nil {
+			log.Printf("Warning: Failed to list tools from OSSMCP: %v", err)
+		} else {
+			allTools = append(allTools, res.Tools...)
+		}
+	}
+
+	return allTools, nil
+}
+
+// ListPrompts returns a combined list of prompts from all connected MCP servers.
+func (c *MCPClient) ListPrompts(ctx context.Context) ([]*mcp.Prompt, error) {
+	var allPrompts []*mcp.Prompt
+
+	// 1. OneMCP
+	if c.OneMCPSession != nil {
+		// Check capabilities
+		initRes := c.OneMCPSession.InitializeResult()
+		if initRes != nil && initRes.Capabilities != nil && initRes.Capabilities.Prompts != nil {
+			res, err := c.OneMCPSession.ListPrompts(ctx, &mcp.ListPromptsParams{})
+			if err != nil {
+				log.Printf("Debug: OneMCP ListPrompts: %v", err)
+			} else {
+				allPrompts = append(allPrompts, res.Prompts...)
+			}
+		}
+	}
+
+	// 2. OSSMCP
+	if c.OSSMCPSession != nil {
+		initRes := c.OSSMCPSession.InitializeResult()
+		if initRes != nil && initRes.Capabilities != nil && initRes.Capabilities.Prompts != nil {
+			res, err := c.OSSMCPSession.ListPrompts(ctx, &mcp.ListPromptsParams{})
+			if err != nil {
+				log.Printf("Warning: Failed to list prompts from OSSMCP: %v", err)
+			} else {
+				allPrompts = append(allPrompts, res.Prompts...)
+			}
+		}
+	}
+
+	return allPrompts, nil
+}
+
+// ListResources returns a combined list of resources from all connected MCP servers.
+func (c *MCPClient) ListResources(ctx context.Context) ([]*mcp.Resource, error) {
+	var allResources []*mcp.Resource
+
+	// 1. OneMCP
+	if c.OneMCPSession != nil {
+		initRes := c.OneMCPSession.InitializeResult()
+		if initRes != nil && initRes.Capabilities != nil && initRes.Capabilities.Resources != nil {
+			res, err := c.OneMCPSession.ListResources(ctx, &mcp.ListResourcesParams{})
+			if err != nil {
+				log.Printf("Debug: OneMCP ListResources: %v", err)
+			} else {
+				allResources = append(allResources, res.Resources...)
+			}
+		}
+	}
+
+	// 2. OSSMCP
+	if c.OSSMCPSession != nil {
+		initRes := c.OSSMCPSession.InitializeResult()
+		if initRes != nil && initRes.Capabilities != nil && initRes.Capabilities.Resources != nil {
+			res, err := c.OSSMCPSession.ListResources(ctx, &mcp.ListResourcesParams{})
+			if err != nil {
+				log.Printf("Warning: Failed to list resources from OSSMCP: %v", err)
+			} else {
+				allResources = append(allResources, res.Resources...)
+			}
+		}
+	}
+
+	return allResources, nil
+}
+
+// CallGenericTool calls a tool on the appropriate server.
+func (c *MCPClient) CallGenericTool(ctx context.Context, name string, args map[string]interface{}) (*mcp.CallToolResult, error) {
+	// Try OneMCP first
+	if c.OneMCPSession != nil {
+		res, err := c.OneMCPSession.CallTool(ctx, &mcp.CallToolParams{
+			Name:      name,
+			Arguments: args,
+		})
+		// If success, return. If error strictly implies tool not found, define logic?
+		// For now we assume if no error, it worked.
+		// If error is JSONRPC code -32601 (Method not found), we try next.
+		// But SDK might wrap error.
+		// Simple approach: Use ListTools to find where it is? No, expensive.
+		// Just try both? OneMCP is highly likely to contain GKE tools.
+		if err == nil {
+			return res, nil
+		}
+		// Check if error string contains "not found" or similar if possible.
+		// But for now, let's just Log and try OSSMCP if OneMCP fails.
+		// Actually, if OneMCP fails with "Internal Error" we shouldn't try OSSMCP?
+		// "StatelessServer" of OneMCP returns error if tool not found?
+	}
+
+	if c.OSSMCPSession != nil {
+		return c.OSSMCPSession.CallTool(ctx, &mcp.CallToolParams{
+			Name:      name,
+			Arguments: args,
+		})
+	}
+
+	return nil, fmt.Errorf("tool execution failed: no available session handled the request")
 }

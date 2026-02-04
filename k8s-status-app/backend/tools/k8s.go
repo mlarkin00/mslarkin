@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"encoding/json"
 	"google.golang.org/adk/tool"
 	"google.golang.org/adk/tool/functiontool"
 	"k8s-status-backend/a2ui"
@@ -29,7 +30,43 @@ func (t *K8sTools) GetTools() []tool.Tool {
 		Description: "List workloads in a cluster. Returns A2UI components.",
 	}, t.ListWorkloads)
 
-	return []tool.Tool{listClusters, listWorkloads}
+	callMCPTool, _ := functiontool.New(functiontool.Config{
+		Name:        "call_mcp_tool",
+		Description: "Call any available MCP tool by name.",
+	}, t.CallMCPTool)
+
+	return []tool.Tool{listClusters, listWorkloads, callMCPTool}
+}
+
+type CallMCPToolArgs struct {
+	Name      string                 `json:"name"`
+	Arguments map[string]interface{} `json:"arguments"`
+}
+
+func (t *K8sTools) CallMCPTool(ctx tool.Context, args CallMCPToolArgs) (a2ui.Component, error) {
+	if args.Name == "" {
+		return a2ui.Text("Tool name required"), fmt.Errorf("tool name required")
+	}
+
+	result, err := t.Client.CallGenericTool(context.Background(), args.Name, args.Arguments)
+	if err != nil {
+		return a2ui.Text(fmt.Sprintf("Error calling tool %s: %v", args.Name, err)), nil
+	}
+
+	// Format result
+	// If StructuredContent, dump as JSON
+	if result.StructuredContent != nil {
+		b, _ := json.MarshalIndent(result.StructuredContent, "", "  ")
+		return a2ui.Text(string(b)), nil
+	}
+	// If Content (Text), join them or dump JSON
+	if len(result.Content) > 0 {
+        // Fallback: just dump content as JSON to avoid type assertions if field access is tricky
+		b, _ := json.MarshalIndent(result.Content, "", "  ")
+		return a2ui.Text(string(b)), nil
+	}
+
+	return a2ui.Text("Tool returned no content"), nil
 }
 
 type ListClustersArgs struct {

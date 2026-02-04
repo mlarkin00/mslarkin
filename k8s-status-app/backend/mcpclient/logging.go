@@ -43,6 +43,17 @@ func (s *loggingSession) ListTools(ctx context.Context, params *mcp.ListToolsPar
 	return res, err
 }
 
+func (s *loggingSession) ListPrompts(ctx context.Context, params *mcp.ListPromptsParams) (*mcp.ListPromptsResult, error) {
+	s.logRequest("ListPrompts", params)
+	res, err := s.inner.ListPrompts(ctx, params)
+	s.logResponse("ListPrompts", res, err)
+	return res, err
+}
+
+func (s *loggingSession) InitializeResult() *mcp.InitializeResult {
+	return s.inner.InitializeResult()
+}
+
 func (s *loggingSession) Close() error {
 	log.Printf("[DEBUG] %s: Closing session", s.name)
 	return s.inner.Close()

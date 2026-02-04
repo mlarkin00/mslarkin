@@ -70,6 +70,21 @@ func (m *MockMCPSession) ListTools(ctx context.Context, params *mcp.ListToolsPar
 	return &mcp.ListToolsResult{}, nil
 }
 
+func (m *MockMCPSession) ListPrompts(ctx context.Context, params *mcp.ListPromptsParams) (*mcp.ListPromptsResult, error) {
+	return &mcp.ListPromptsResult{}, nil
+}
+
+func (m *MockMCPSession) InitializeResult() *mcp.InitializeResult {
+	// Mock basic capabilities
+	return &mcp.InitializeResult{
+		Capabilities: &mcp.ServerCapabilities{
+			Prompts:   &mcp.PromptCapabilities{},
+			Resources: &mcp.ResourceCapabilities{},
+			Tools:     &mcp.ToolCapabilities{},
+		},
+	}
+}
+
 func (m *MockMCPSession) Close() error {
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"k8s-status-backend/auth"
+	"mslarkin.com/gcputils"
 )
 
 const (
@@ -22,7 +22,7 @@ func main() {
 
 	// 1. Get ID Token
 	fmt.Printf("Getting ID Token for audience: %s\n", audience)
-	token, err := auth.GetIDToken(ctx, audience)
+	token, err := gcputils.GetIDToken(ctx, audience)
 	if err != nil {
 		fmt.Printf("Error getting ID token: %v\n", err)
 		os.Exit(1)
