@@ -34,7 +34,7 @@ spec:
         - name: BACKEND_URL
           value: "http://k8s-status-backend"
         - name: BASE_PATH
-          value: "/k8s-status"
+          value: "/"
 ---
 # Frontend Service (ClusterIP with NEG for Load Balancer)
 apiVersion: v1
