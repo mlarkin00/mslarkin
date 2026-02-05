@@ -19,9 +19,14 @@ const activeCluster = computed(() => {
 const namespaces = computed(() => {
   if (!activeCluster.value || !activeCluster.value.workloads) return [];
   const nsSet = new Set(activeCluster.value.workloads.map(w => w.namespace));
-  return Array.from(nsSet)
+  const filtered = Array.from(nsSet)
     .filter(ns => !ns.startsWith('kube-') && !ns.startsWith('gke-'))
     .sort();
+
+  if (filtered.length > 0) {
+    return ['All', ...filtered];
+  }
+  return [];
 });
 
 // Filter workloads based on active selection
@@ -29,8 +34,11 @@ const filteredWorkloads = computed(() => {
   if (!activeCluster.value || !activeCluster.value.workloads) return [];
 
   return activeCluster.value.workloads.filter(w => {
-    // Filter by Namespace
-    if (activeNamespace.value && w.namespace !== activeNamespace.value) return false;
+    // Filter System Namespaces always (unless we want a toggle for that later, but user said "all non-system")
+    if (w.namespace.startsWith('kube-') || w.namespace.startsWith('gke-')) return false;
+
+    // Filter by Namespace (if not "All")
+    if (activeNamespace.value && activeNamespace.value !== 'All' && w.namespace !== activeNamespace.value) return false;
 
     // Filter by Type (Kind)
     // Note: Backend sends "Deployment", "Service".
@@ -62,10 +70,10 @@ const fetchData = async () => {
   }
 };
 
-// Auto-select first namespace when cluster changes or data loads
+// Auto-select "All" when cluster changes or data loads
 watch([activeCluster, namespaces], ([newCluster, newNamespaces]) => {
   if (newNamespaces.length > 0 && (!activeNamespace.value || !newNamespaces.includes(activeNamespace.value))) {
-    activeNamespace.value = newNamespaces[0];
+    activeNamespace.value = 'All';
   }
 }, { immediate: true });
 
