@@ -3,6 +3,14 @@ kind: Namespace
 metadata:
   name: agent-ns
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: model-chat-sa
+  namespace: agent-ns
+  annotations:
+    iam.gke.io/gcp-service-account: model-chat-sa@mslarkin-ext.iam.gserviceaccount.com
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +28,7 @@ spec:
       labels:
         app: model-chat
     spec:
-      serviceAccountName: default # Ensure workload identity if needed, usually default is fine if annotated, or explicit SA
+      serviceAccountName: model-chat-sa
       containers:
       - name: model-chat
         image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/model-chat:latest

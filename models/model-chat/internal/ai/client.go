@@ -10,7 +10,7 @@ import (
 
 const (
 	ProjectID      = "mslarkin-ext"
-	DefaultRegion  = "us-west1"
+	DefaultRegion  = "us-central1"
 	FallbackRegion = "us-central1"
 )
 
@@ -76,6 +76,7 @@ func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.Cha
 		},
 	)
 	if err != nil {
+		fmt.Printf("Chat completion error for model %s in region %s: %v\n", modelID, c.region, err)
 		// Fallback logic could go here (e.g., try us-central1)
 		return "", fmt.Errorf("chat completion failed: %w", err)
 	}
