@@ -19,6 +19,31 @@ func Layout(title string, children ...Node) Node {
 			Link(Rel("preconnect"), Href("https://fonts.googleapis.com")),
 			Link(Rel("preconnect"), Href("https://fonts.gstatic.com"), Attr("crossorigin", "")),
 			Link(Rel("stylesheet"), Href("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap")),
+			Script(Raw(`
+				document.addEventListener('keydown', function(e) {
+					if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+						const form = document.querySelector('form');
+						if (form) htmx.trigger(form, 'submit');
+					}
+				});
+				document.addEventListener('htmx:beforeRequest', function(evt) {
+					if (evt.target.tagName === 'FORM') {
+						const history = document.getElementById('chat-history');
+						const thinkingDiv = document.createElement('div');
+						thinkingDiv.id = 'thinking-indicator';
+						thinkingDiv.className = 'message-wrapper ai';
+						thinkingDiv.innerHTML = '<div class="message-bubble animate-pulse text-slate-400">Thinking...</div>';
+						history.appendChild(thinkingDiv);
+						history.scrollTop = history.scrollHeight;
+					}
+				});
+				document.addEventListener('htmx:afterRequest', function(evt) {
+					if (evt.target.tagName === 'FORM') {
+						const thinking = document.getElementById('thinking-indicator');
+						if (thinking) thinking.remove();
+					}
+				});
+			`)),
 		),
 		Body(
 			Group(children),
