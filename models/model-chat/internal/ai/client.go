@@ -41,7 +41,15 @@ func NewClient() *Client {
 	}
 }
 
-func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.ChatCompletionMessage) (string, error) {
+// ChatResponse encapsulates the model response and metadata
+type ChatResponse struct {
+	Content        string
+	Usage          openai.Usage
+	Thinking       string // If available
+	CachedTokens   int    // If available separately
+}
+
+func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.ChatCompletionMessage) (*ChatResponse, error) {
 	// Determine region
 	region := c.region
 	for _, m := range SupportedModels {
@@ -54,11 +62,11 @@ func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.Cha
 	// Get ADC token
 	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
 	if err != nil {
-		return "", fmt.Errorf("failed to get application default credentials: %w", err)
+		return nil, fmt.Errorf("failed to get application default credentials: %w", err)
 	}
 	token, err := creds.TokenSource.Token()
 	if err != nil {
-		return "", fmt.Errorf("failed to get token: %w", err)
+		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
 
 	// Determine endpoint based on model (some might be regional restricted, we assume strictly us-west1 or fallback for now)
@@ -94,14 +102,17 @@ func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.Cha
 		},
 	)
 	if err != nil {
-		fmt.Printf("Chat completion error for model %s in region %s: %v\n", modelID, c.region, err)
+		fmt.Printf("Chat completion error for model %s in region %s: %v\n", modelID, region, err)
 		// Fallback logic could go here (e.g., try us-central1)
-		return "", fmt.Errorf("chat completion failed: %w", err)
+		return nil, fmt.Errorf("chat completion failed: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("no response choices")
+		return nil, fmt.Errorf("no response choices")
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	return &ChatResponse{
+		Content: resp.Choices[0].Message.Content,
+		Usage:   resp.Usage,
+	}, nil
 }

@@ -1,12 +1,8 @@
 {
   "folders": [
     {
-      "name": "gke-demo-agent",
-      "path": "gke-demo-agent"
-    },
-    {
       "name": "skills",
-      "path": "skills"
+      "path": "skills",
     },
     {
       "name": "gke-mcp",

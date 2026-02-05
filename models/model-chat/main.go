@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io" // Added for io.Writer in Render interface
+
+	"sync" // Added for parallel execution
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -28,59 +29,79 @@ func main() {
 	// Routes
 	e.GET("/", func(c echo.Context) error {
 		// Default to first model
-		defaultModel := ai.SupportedModels[0].ID
-		page := ui.Layout("Vertex AI Chat", ui.App(ai.SupportedModels, defaultModel))
+		defaultModelID := ai.SupportedModels[0].ID
+		page := ui.Layout("Vertex AI Chat", ui.App(ai.SupportedModels, []string{defaultModelID}))
 		c.Response().Header().Set("Content-Type", "text/html")
 		return page.Render(c.Response().Writer)
 	})
 
 	e.POST("/chat", func(c echo.Context) error {
+		// Parse input
 		msg := c.FormValue("message")
-		modelID := c.FormValue("model_id")
+		// Parse one or more model IDs.
+		// Note: Echo's c.FormValue returns only the first value. c.FormParams() returns map[string][]string.
+		FormParams, err := c.FormParams()
+		if err != nil {
+			return fmt.Errorf("failed to parse form params: %w", err)
+		}
+		modelIDs := FormParams["model_id"]
+
+		// Fallback if empty (shouldn't happen with UI defaults, but good for safety)
+		if len(modelIDs) == 0 {
+			// fallback to just one if passed via simpler means or default
+			if single := c.FormValue("model_id"); single != "" {
+				modelIDs = []string{single}
+			}
+		}
 
 		if msg == "" {
 			return nil
 		}
-
-		// Render User Message immediately (though HTMX handles the request/response cycle, usually we want to append BOTH user message and AI response,
-		// but standard HTMX swap replaces the target with the response.
-		// A common pattern is to return: UserMessage + generic "Loading..." indicator, then swap that out, OR just return UserMessage + AIMessage.
-		// For simplicity in this non-streaming version, we'll return both.
-
-		// In a real app we might use OOB swaps or streaming.
-		// Let's just return the User message and the AI message concatenated.
-
-		userMsgNode := ui.Message(true, msg)
-
-		// Call AI
-		// Note: existing history is not passed in this simple demo version, making it single-turn effectively.
-		// To support multi-turn, we'd need to store state or pass it back and forth.
-		// For this "simple app", let's start with single turn or just passed context if easy.
-		// We'll just send the current message for now to prove connectivity.
-
-		respContent, err := aiClient.Chat(c.Request().Context(), modelID, []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleUser, Content: msg},
-		})
-
-		var aiMsgNode interface {
-			Render(w io.Writer) error
+		if len(modelIDs) == 0 {
+			// Error or default
+			return nil
 		}
-		// gomponents.Node
 
-		if err != nil {
-			aiMsgNode = ui.Message(false, fmt.Sprintf("Error: %v", err))
-		} else {
-			aiMsgNode = ui.Message(false, respContent)
+		// Parallel execution
+		type result struct {
+			modelID string
+			resp    *ai.ChatResponse
+			err     error
 		}
+		resultsCh := make(chan result, len(modelIDs))
+		var wg sync.WaitGroup
+
+		for _, mid := range modelIDs {
+			wg.Add(1)
+			go func(id string) {
+				defer wg.Done()
+				resp, err := aiClient.Chat(c.Request().Context(), id, []openai.ChatCompletionMessage{
+					{Role: openai.ChatMessageRoleUser, Content: msg},
+				})
+				resultsCh <- result{modelID: id, resp: resp, err: err}
+			}(mid)
+		}
+
+		wg.Wait()
+		close(resultsCh)
+
+		// Aggregate
+		responses := make(map[string]*ai.ChatResponse)
+		errors := make(map[string]error)
+
+		for res := range resultsCh {
+			if res.err != nil {
+				errors[res.modelID] = res.err
+			} else {
+				responses[res.modelID] = res.resp
+			}
+		}
+
+		// Render Comparison View
+		compNode := ui.ComparisonView(msg, responses, errors)
 
 		c.Response().Header().Set("Content-Type", "text/html")
-		userMsgNode.Render(c.Response().Writer)
-		aiMsgNode.Render(c.Response().Writer)
-
-		// Wait, gomponents Node Render takes io.Writer.
-		// Echo Response Writer satisfies io.Writer.
-
-		return nil
+		return compNode.Render(c.Response().Writer)
 	})
 
 	// Fix strict typing for gomponents in the handler above
