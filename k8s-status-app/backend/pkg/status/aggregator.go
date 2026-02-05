@@ -5,6 +5,7 @@ import (
 	"fmt"
     "sync"
     "strings"
+    "time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
     gke "k8s-status-backend/pkg/gke"
@@ -19,6 +20,7 @@ type WorkloadStatus struct {
     Ready     int32  `json:"ready"`
     Status    string `json:"status"` // "Healthy", "Degraded", "Progressing"
     Message   string `json:"message"`
+    Age       string `json:"age"`
 }
 
 type ClusterStatus struct {
@@ -54,6 +56,23 @@ func (a *Aggregator) FetchAll(ctx context.Context, clusters []gke.ClusterInfo) [
     return results
 }
 
+func formatAge(t metav1.Time) string {
+    if t.IsZero() {
+        return ""
+    }
+    d := time.Since(t.Time)
+    if d.Hours() > 24 {
+        return fmt.Sprintf("%dd", int(d.Hours()/24))
+    }
+    if d.Hours() > 1 {
+        return fmt.Sprintf("%dh", int(d.Hours()))
+    }
+    if d.Minutes() > 1 {
+        return fmt.Sprintf("%dm", int(d.Minutes()))
+    }
+    return fmt.Sprintf("%ds", int(d.Seconds()))
+}
+
 func (a *Aggregator) GetClusterStatus(ctx context.Context, cluster gke.ClusterInfo) ClusterStatus {
     status := ClusterStatus{
         ClusterName: cluster.Name,
@@ -83,9 +102,7 @@ func (a *Aggregator) GetClusterStatus(ctx context.Context, cluster gke.ClusterIn
         }
     }
 
-    // Get Deployments (across all namespaces for now, or filter?)
-    // User requested "workload information".
-    // Let's list Deployments in all namespaces.
+    // Get Deployments
     deps, err := client.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
     if err == nil {
         for _, d := range deps.Items {
@@ -96,11 +113,9 @@ func (a *Aggregator) GetClusterStatus(ctx context.Context, cluster gke.ClusterIn
                 s = "Degraded"
                 msg = fmt.Sprintf("%d/%d ready", d.Status.ReadyReplicas, d.Status.Replicas)
             }
-            // Ignore kube-system? Maybe distinct?
-            // For status app, maybe show everything but filter in UI.
+            // Filter system namespaces if desired (currently keeping all as per logic)
             if strings.HasPrefix(d.Namespace, "kube-") {
-                continue // Skip system namespaces for cleaner view? OR keep?
-                // Let's keep system out for demo clarity unless requested.
+               continue
             }
 
             status.Workloads = append(status.Workloads, WorkloadStatus{
@@ -111,14 +126,54 @@ func (a *Aggregator) GetClusterStatus(ctx context.Context, cluster gke.ClusterIn
                 Ready:     d.Status.ReadyReplicas,
                 Status:    s,
                 Message:   msg,
+                Age:       formatAge(d.CreationTimestamp),
             })
         }
     } else {
-        // Just log/append error to msg
         if status.Error == "" {
              status.Error = fmt.Sprintf("Failed to list deployments: %v", err)
         } else {
              status.Error += fmt.Sprintf("; Failed to list deployments: %v", err)
+        }
+    }
+
+    // Get Services
+    svcs, err := client.CoreV1().Services("").List(ctx, metav1.ListOptions{})
+    if err == nil {
+        for _, svc := range svcs.Items {
+             // Filter system namespaces
+             if strings.HasPrefix(svc.Namespace, "kube-") {
+                continue
+             }
+
+             s := "Healthy"
+             msg := string(svc.Spec.Type)
+             // Simple service status check? (maybe LoadBalancer IP pending?)
+             if svc.Spec.Type == "LoadBalancer" {
+                 if len(svc.Status.LoadBalancer.Ingress) == 0 {
+                     s = "Progressing"
+                     msg += " (Pending IP)"
+                 } else {
+                     msg += fmt.Sprintf(" (%s)", svc.Status.LoadBalancer.Ingress[0].IP)
+                 }
+             }
+
+             status.Workloads = append(status.Workloads, WorkloadStatus{
+                Name:      svc.Name,
+                Namespace: svc.Namespace,
+                Kind:      "Service",
+                Desired:   1, // Service is always 1 logical entity?
+                Ready:     1,
+                Status:    s,
+                Message:   msg,
+                Age:       formatAge(svc.CreationTimestamp),
+            })
+        }
+    } else {
+        if status.Error == "" {
+             status.Error = fmt.Sprintf("Failed to list services: %v", err)
+        } else {
+             status.Error += fmt.Sprintf("; Failed to list services: %v", err)
         }
     }
 
@@ -167,7 +222,7 @@ func (a *Aggregator) GetWorkloadPods(ctx context.Context, cluster gke.ClusterInf
 			Phase: string(p.Status.Phase),
 			IP:    p.Status.PodIP,
 			Node:  p.Spec.NodeName,
-			Age:   p.CreationTimestamp.String(), // Simplified age
+			Age:   formatAge(p.CreationTimestamp),
 		})
 	}
 

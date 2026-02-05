@@ -8,9 +8,36 @@ const clusters = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const activeClusterName = ref(null);
+const activeNamespace = ref(null);
+const activeType = ref('Deployment');
 
 const activeCluster = computed(() => {
   return clusters.value.find(c => c.cluster_name === activeClusterName.value) || null;
+});
+
+// Extract unique namespaces from active cluster workloads
+const namespaces = computed(() => {
+  if (!activeCluster.value || !activeCluster.value.workloads) return [];
+  const nsSet = new Set(activeCluster.value.workloads.map(w => w.namespace));
+  return Array.from(nsSet)
+    .filter(ns => !ns.startsWith('kube-') && !ns.startsWith('gke-'))
+    .sort();
+});
+
+// Filter workloads based on active selection
+const filteredWorkloads = computed(() => {
+  if (!activeCluster.value || !activeCluster.value.workloads) return [];
+
+  return activeCluster.value.workloads.filter(w => {
+    // Filter by Namespace
+    if (activeNamespace.value && w.namespace !== activeNamespace.value) return false;
+
+    // Filter by Type (Kind)
+    // Note: Backend sends "Deployment", "Service".
+    if (activeType.value && w.kind !== activeType.value) return false;
+
+    return true;
+  });
 });
 
 const fetchData = async () => {
@@ -20,7 +47,7 @@ const fetchData = async () => {
     const response = await api.getStatus();
     clusters.value = response.data;
 
-    // Set default active cluster if none selected or current selection is gone
+    // Set default active cluster
     if (clusters.value.length > 0) {
       const currentExists = clusters.value.some(c => c.cluster_name === activeClusterName.value);
       if (!activeClusterName.value || !currentExists) {
@@ -34,6 +61,13 @@ const fetchData = async () => {
     loading.value = false;
   }
 };
+
+// Auto-select first namespace when cluster changes or data loads
+watch([activeCluster, namespaces], ([newCluster, newNamespaces]) => {
+  if (newNamespaces.length > 0 && (!activeNamespace.value || !newNamespaces.includes(activeNamespace.value))) {
+    activeNamespace.value = newNamespaces[0];
+  }
+}, { immediate: true });
 
 onMounted(() => {
   fetchData();
@@ -60,7 +94,8 @@ onMounted(() => {
     </div>
 
     <div v-else-if="clusters.length > 0" class="cluster-tabs-container">
-      <div class="tab-bar">
+      <!-- Cluster Tabs -->
+      <div class="tab-bar cluster-tabs">
         <button
           v-for="cluster in clusters"
           :key="cluster.cluster_name"
@@ -70,7 +105,7 @@ onMounted(() => {
         >
           {{ cluster.cluster_name }}
           <span
-            class="status-dot"
+            class="status-dot-small"
             :class="cluster.error ? 'error' : 'success'"
           ></span>
         </button>
@@ -81,8 +116,41 @@ onMounted(() => {
 
         <div class="workloads-section">
           <h4>Workloads</h4>
+
+          <!-- Namespace Tabs -->
+          <div class="tabs-row namespace-tabs" v-if="namespaces.length > 0">
+            <span class="tab-label">Namespace:</span>
+            <button
+              v-for="ns in namespaces"
+              :key="ns"
+              class="pill-btn"
+              :class="{ active: activeNamespace === ns }"
+              @click="activeNamespace = ns"
+            >
+              {{ ns }}
+            </button>
+          </div>
+
+          <!-- Type Tabs (Sub-tabs) -->
+          <div class="tabs-row type-tabs" v-if="activeNamespace">
+             <button
+              class="sub-tab-btn"
+              :class="{ active: activeType === 'Deployment' }"
+              @click="activeType = 'Deployment'"
+            >
+              Deployments
+            </button>
+            <button
+              class="sub-tab-btn"
+              :class="{ active: activeType === 'Service' }"
+              @click="activeType = 'Service'"
+            >
+              Services
+            </button>
+          </div>
+
           <WorkloadTable
-            :workloads="activeCluster.workloads || []"
+            :workloads="filteredWorkloads"
             :clusterInfo="activeCluster"
           />
         </div>
@@ -137,7 +205,7 @@ h1 {
   border: 1px solid #f6aea9;
 }
 
-/* Tab Styles */
+/* Cluster Tabs */
 .cluster-tabs-container {
   display: flex;
   flex-direction: column;
@@ -176,27 +244,21 @@ h1 {
   font-weight: 600;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
+.status-dot-small {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   display: inline-block;
 }
-
-.status-dot.success {
-  background-color: #1e8e3e;
-}
-
-.status-dot.error {
-  background-color: #c5221f;
-}
+.status-dot-small.success { background-color: #1e8e3e; }
+.status-dot-small.error { background-color: #c5221f; }
 
 .cluster-content {
   animation: fadeIn 0.3s ease;
 }
 
 .workloads-section {
-  margin-top: 1.5rem;
+  margin-top: 2rem;
   padding-left: 0.5rem;
 }
 
@@ -205,6 +267,81 @@ h4 {
   color: var(--color-heading);
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.5rem;
+}
+
+/* Namespace & Type Tabs */
+.tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.tab-label {
+  font-weight: 500;
+  color: var(--color-text-light);
+  margin-right: 0.5rem;
+}
+
+.pill-btn {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.pill-btn:hover {
+  background-color: var(--color-background-soft);
+  border-color: #1a73e8;
+}
+
+.pill-btn.active {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-color: #1a73e8;
+  font-weight: 500;
+}
+
+/* Dark mode pill adjustments */
+@media (prefers-color-scheme: dark) {
+  .pill-btn.active {
+    background-color: rgba(26, 115, 232, 0.2);
+  }
+}
+
+.type-tabs {
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0; /* Attach to table visually */
+  padding-left: 0.5rem;
+}
+
+.sub-tab-btn {
+  padding: 0.6rem 1.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.sub-tab-btn:hover {
+  color: var(--color-text);
+  background-color: var(--color-background-soft);
+}
+
+.sub-tab-btn.active {
+  color: #1a73e8;
+  border-bottom-color: #1a73e8;
+  font-weight: 500;
 }
 
 @keyframes fadeIn {
