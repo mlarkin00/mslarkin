@@ -24,8 +24,8 @@ type Model struct {
 
 var SupportedModels = []Model{
 	{ID: "qwen/qwen3-next-80b-a3b-thinking-maas", DisplayName: "Qwen 3 Next 80B (Thinking)", IsThinking: true, Region: "global"},
-	{ID: "qwen/qwen3-coder-480b-a35b-instruct-maas", DisplayName: "Qwen 3 Coder 480B (Instruct)", IsThinking: false, Region: "us-central1"},
-	{ID: "publishers/zai-org/models/glm-4.7:GLM-4.7-FP8", DisplayName: "GLM 4.7", IsThinking: false, Region: "us-central1"},
+	{ID: "qwen/qwen3-coder-480b-a35b-instruct-maas", DisplayName: "Qwen 3 Coder 480B (Instruct)", IsThinking: false, Region: "us-south1"},
+	{ID: "zai-org/glm-4.7-maas", DisplayName: "GLM 4.7", IsThinking: false, Region: "global"},
 	{ID: "minimaxai/minimax-m2-maas", DisplayName: "Minimax M2", IsThinking: false, Region: "global"},
 }
 
