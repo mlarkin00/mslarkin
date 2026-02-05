@@ -18,14 +18,15 @@ const (
 type Model struct {
 	ID          string
 	DisplayName string
-	IsThinking  bool // Some models might support thinking process
+	IsThinking  bool   // Some models might support thinking process
+	Region      string // Optional: specific region for this model
 }
 
 var SupportedModels = []Model{
-	{ID: "qwen/qwen3-next-80b-a3b-thinking-maas", DisplayName: "Qwen 3 Next 80B (Thinking)", IsThinking: true},
-	{ID: "qwen/qwen3-coder-480b-a35b-instruct-maas", DisplayName: "Qwen 3 Coder 480B (Instruct)", IsThinking: false},
-	{ID: "publishers/zai-org/models/glm-4.7:GLM-4.7-FP8", DisplayName: "GLM 4.7", IsThinking: false},
-	{ID: "publishers/minimaxai/models/minimax-m2-maas", DisplayName: "Minimax M2", IsThinking: false},
+	{ID: "qwen/qwen3-next-80b-a3b-thinking-maas", DisplayName: "Qwen 3 Next 80B (Thinking)", IsThinking: true, Region: "global"},
+	{ID: "qwen/qwen3-coder-480b-a35b-instruct-maas", DisplayName: "Qwen 3 Coder 480B (Instruct)", IsThinking: false, Region: "us-central1"},
+	{ID: "publishers/zai-org/models/glm-4.7:GLM-4.7-FP8", DisplayName: "GLM 4.7", IsThinking: false, Region: "us-central1"},
+	{ID: "minimaxai/minimax-m2-maas", DisplayName: "Minimax M2", IsThinking: false, Region: "global"},
 }
 
 type Client struct {
@@ -41,6 +42,15 @@ func NewClient() *Client {
 }
 
 func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.ChatCompletionMessage) (string, error) {
+	// Determine region
+	region := c.region
+	for _, m := range SupportedModels {
+		if m.ID == modelID && m.Region != "" {
+			region = m.Region
+			break
+		}
+	}
+
 	// Get ADC token
 	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
 	if err != nil {
@@ -55,7 +65,15 @@ func (c *Client) Chat(ctx context.Context, modelID string, messages []openai.Cha
 	// For simplicity, we use the client's configured region.
 	// Vertex AI OpenAI-compatible endpoint:
 	// https://{REGION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT}/locations/{REGION}/endpoints/openapi
-	baseURL := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1beta1/projects/%s/locations/%s/endpoints/openapi", c.region, c.projectID, c.region)
+
+	host := ""
+	if region == "global" {
+		host = "aiplatform.googleapis.com" // Use generic host for global location
+	} else {
+		host = fmt.Sprintf("%s-aiplatform.googleapis.com", region)
+	}
+
+	baseURL := fmt.Sprintf("https://%s/v1beta1/projects/%s/locations/%s/endpoints/openapi", host, c.projectID, region)
 
 	config := openai.DefaultConfig(token.AccessToken)
 	config.BaseURL = baseURL
