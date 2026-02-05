@@ -1,0 +1,30 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/model-chat:$BUILD_ID', '-t', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/model-chat:latest', '.']
+
+  # Push the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/model-chat:$BUILD_ID']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/model-chat:latest']
+
+  # Deploy to GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'k8s/manifests.yaml']
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=ai-auto-cluster'
+      - 'CLOUDSDK_CORE_PROJECT=mslarkin-ext'
+
+  # Set image to specific SHA to ensure we stick to the built version
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['set', 'image', 'deployment/model-chat', 'model-chat=us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/model-chat:$BUILD_ID', '-n', 'agent-ns']
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-west1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=ai-auto-cluster'
+      - 'CLOUDSDK_CORE_PROJECT=mslarkin-ext'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
