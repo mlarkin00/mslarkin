@@ -1,92 +1,222 @@
+# **Detailed Technical Design: mslarkin-ext Agent Ecosystem**
 
-# Goal:
-Create a Golang application that hosts several AI Agents, each backed by Vertex AI.  The Planning Agent will be accessible via OpenAI-compatible API.  The other agents will communicated via A2A, but are only available to the Planning Agent (and each other).
+## **1\. System Architecture**
 
-# Verification
-- Planning Agent accesible via https://model.ai.mslarkin.com (OpenAI-compatible API)
-- Other agents accessible to the Planning Agent and each other via A2A
+### **1.1 High-Level Topology**
 
-## Technical Stack:
-- Golang
-- Google ADK (https://github.com/google/adk-go)
-- GKE
-- Load Balancer: mslarkin-ext-lb
-- Domain: https://model.ai.mslarkin.com
+The application will be deployed as a distributed system on Google Kubernetes Engine (GKE).
 
-## Project:
-mslarkin-ext
+* **External Entry Point**: mslarkin-ext-lb (Global HTTPS Load Balancer).
+  * **Authentication**: Protected by **Identity-Aware Proxy (IAP)** or API Key validation middleware.
+  * **Target**: **Planning Agent** Service.
+* **Internal Network**: A private ClusterIP network where agents communicate via gRPC/REST.
+* **Persistence Layer**: **Cloud Memorystore (Redis)** instance mslarkin-redis for maintaining conversation state and agent-to-agent intermediate artifacts.
 
-## Regions:
-- us-west1 (preferred)
-- global (preferred)
-- us-central1 (fallback)
+### **1.2 Service Decomposition**
 
-## Models:
-- "qwen/qwen3-coder-480b-a35b-instruct-maas", DisplayName: "Qwen 3 Coder 480B (Instruct)", IsThinking: false, Region: "us-south1"
-- "qwen/qwen3-next-80b-a3b-thinking-maas", DisplayName: "Qwen 3 Next 80B (Thinking)", IsThinking: true, Region: "global"
-- "google/gemini-3.0-flash", DisplayName: "Gemini 3.0 Flash", IsThinking: true, Region: "global"
-- "google/gemini-3.0-pro", DisplayName: "Gemini 3.0 Pro", IsThinking: true, Region: "global"
-- "deepseek-ai/deepseek-r1", DisplayName: "DeepSeek R1", IsThinking: true, Region: "global"
-- "moonshot-ai/kimi-k2-thinking-maas", DisplayName: "Kimi K2 Thinking", IsThinking: true, Region: "global"
+While distinct agents, they will share a common Golang foundation (pkg/agent).
 
-## Agents
-### General instructions
-- All agents must send their responses to the Validation Agent for review and approval, before returning reponse to the Planning Agent.  If there is a conflict, disagreement, or uncertainty, all options being considered, including rationale, will be sent to the Review Agent, which will make the final decision.
-- All agents must include the token usage metrics and latency/time spent working in the response to the Planning Agent.
+1. **Gateway Service (Planning Agent)**:
+   * Publicly exposed.
+   * Implements POST /v1/chat/completions (OpenAI format).
+   * **Streaming Support**: Must implement Server-Sent Events (SSE) to stream partial "thoughts" and keep the connection alive during long multi-agent loops.
+   * Orchestrates the lifecycle of a request.
+2. **Internal Agent Services**:
+   * Code (Primary), Code (Secondary), Design, Ops, Validation, Review.
+   * Not exposed publicly.
+   * Accessible only via K8s DNS within the agent-ns namespace (e.g., http://agent-code-primary.agent-ns.svc.cluster.local).
 
-### Planning Agent
-- Model: deepseek-ai/deepseek-r1
-- Purpose: Understand the user's request, develop a plan to implement, and route requests to the appropriate agents, depending on the task.
-- Mandatory instructions
-  - Receive responses from Code, Design, and Validation Agents, including token usage metrics and latency/time spent working.
-  - Send necessary artifacts to the Ops Agent for actuation (ie. deployment)
+## **2\. Go Application Design**
 
-### Code Agents
-- Purpose: Generate code based on the user's request.
-- MCP Servers: Context7, docs-onemcp (Google Cloud documentation)
-- Mandatory instructions
-  - Reference the Context7 MCP to verify proper formatting and usage.
-  - Reference the docs-onemcp MCP to verify proper formatting and usage related to Google Cloud products and services.
+### **2.1 Dependency Injection & Configuration**
 
-#### Code Agent (Primary)
-- Model: qwen/qwen3-coder-480b-a35b-instruct-maas
-- Mandatory instructions
-  - Generate 3 options for the code, including rationale.
-  - Send the options to the secondary code agent for review.
-  - If there is a conflict, disagreement, or uncertainty, all options being considered, including rationale, will be sent to the Validation Agent, which will make the final decision.
+The application uses google/adk-go as the wrapper for Vertex AI interactions.
 
-#### Code Agent (Secondary)
-- Model: moonshot-ai/kimi-k2-thinking-maas
-- Mandatory instructions
-  - Review the options being considered, including rationale.
-  - Send the options to the Validation Agent for review and approval, before returning reponse to the Planning Agent.  If there is a conflict, disagreement, or uncertainty, all options being considered, including rationale, will be sent to the Review Agent, which will make the final decision.
+**Configuration Structure (config.yaml):**
 
-### Ops Agent
-- Model: google/gemini-3.0-flash
-- Purpose: Execute operations based on the user's request, including deploying generated code and configurations.
-- MCP Servers: gke-onemcp (GKE tools), gke-oss-mcp (install locally: https://github.com/GoogleCloudPlatform/gke-mcp)
-- Mandatory instructions
-  - Prefer using gke-onemcp, with gke-oss-mcp as a fallback.
+models:
+  code\_primary:
+    model\_id: "qwen/qwen3-coder-480b-a35b-instruct-maas"
+    location: "us-south1"
+    is\_thinking: false
+  code\_secondary:
+    model\_id: "moonshot-ai/kimi-k2-thinking-maas"
+    location: "global"
+    is\_thinking: true
+  planning:
+    model\_id: "deepseek-ai/deepseek-r1"
+    location: "global"
+    is\_thinking: true
+  ops:
+    model\_id: "google/gemini-3.0-flash"
+    location: "global"
+  design:
+    model\_id: "google/gemini-3.0-pro"
+    location: "global"
+  validation:
+    model\_id: "qwen/qwen3-next-80b-a3b-thinking-maas"
+    location: "global"
+  review:
+    model\_id: "google/gemini-3.0-pro"
+    location: "global"
 
-## Design Agent
-- Model: google/gemini-3.0-pro
-- Purpose: Generate configurations necessary to implement the user's request. For example, generating the necessary kubernetes manifests.
-- MCP Servers: gke-onemcp (GKE tools), gke-oss-mcp (install locally: https://github.com/GoogleCloudPlatform/gke-mcp)
-- Mandatory instructions
-  - Prefer using gke-onemcp, with gke-oss-mcp as a fallback.
+storage:
+  redis:
+    \# Managed Memorystore Instance: mslarkin-redis
+    \# Host IP is injected via environment variable or secret
+    host: "${REDIS\_HOST}"
+    port: 6379
 
-### Validation Agent
-- Model: qwen/qwen3-next-80b-a3b-thinking-maas
-- Purpose: Validate the generated code/configurations. Provide feedback to the generating agent for iteration/improvement.
-- Mandatory instructions
-  - If the Validation Agent and the generating agent cannot find agreement, the Validation Agent will send the options being considered, including rationale, to the Review Agent, which will make the final decision.
+mcp\_clients:
+  context7:
+    endpoint: "\[https://mcp.context7.com/mcp\](https://mcp.context7.com/mcp)"
+    auth\_type: "custom\_header"
+    header\_key: "CONTEXT7\_API\_KEY"
+  docs\_onemcp:
+    endpoint: "\[https://developerknowledge.googleapis.com/mcp\](https://developerknowledge.googleapis.com/mcp)"
+    auth\_type: "google\_oauth"
+    user\_project\_override: "mslarkin-ext"
+  gke\_onemcp:
+    endpoint: "\[https://container.googleapis.com/mcp\](https://container.googleapis.com/mcp)"
+    auth\_type: "google\_oauth"
+    user\_project\_override: "mslarkin-ext"
+  gke\_oss:
+    endpoint: "http://localhost:8080/mcp" \# UPDATED: Latest release uses /mcp for Streamable HTTP
 
-### Review Agent
-- Model: google/gemini-3.0-pro
-- Purpose: Review the generated code/configurations. Provide final approval or rejection.  Also acts as final reviewer once the task is complete, validating it is working as expected.
-- MCP Servers: Context7, docs-onemcp (Google Cloud documentation)
-- Mandatory instructions
-  - Reference the Context7 MCP to verify proper formatting and usage.
-  - Reference the docs-onemcp MCP to verify proper formatting and usage related to Google Cloud products and services.
-  - Always web search for official documentation and references to verify proper formatting and usage (if not available via MCP)
-  - Use whatever tools are necessary to verify that the user's request was completed successfully.  This includes curl, gcloud, kubectl, browser, etc.
+### **2.2 The Agent Interface**
+
+All agents must implement the standard Agent interface to allow the Planning Agent to treat them polymorphically.
+
+type AgentInput struct {
+    Task        string            \`json:"task"\`
+    Context     \[\]Message         \`json:"context"\` // Chat history
+    Artifacts   map\[string\]string \`json:"artifacts"\` // Previous code/manifests
+    Constraints \[\]string          \`json:"constraints"\`
+}
+
+type AgentResponse struct {
+    Content     string        \`json:"content"\`
+    Rationale   string        \`json:"rationale"\` // For thinking models
+    TokenUsage  TokenMetrics  \`json:"token\_usage"\`
+    Latency     time.Duration \`json:"latency"\`
+    Status      StatusEnum    \`json:"status"\` // PENDING\_REVIEW, APPROVED, REJECTED
+}
+
+type Agent interface {
+    Process(ctx context.Context, input AgentInput) (\*AgentResponse, error)
+    // StreamProcess allows real-time token streaming from the agent back to the orchestrator
+    StreamProcess(ctx context.Context, input AgentInput, outputChan chan\<- AgentStreamUpdate) error
+}
+
+type AgentStreamUpdate struct {
+    PartialContent string
+    Step           string // e.g., "Drafting Code", "Running Validation"
+}
+
+### **2.3 Observability & Distributed Tracing**
+
+To visualize the complex multi-agent workflows, the application must implement **Distributed Tracing** using **Google Cloud Trace**.
+
+* **Instrumentation**: Use the OpenTelemetry Go SDK (go.opentelemetry.io/otel).
+* **Exporter**: Configure the texporter (Google Cloud Trace Exporter) to send spans to the GCP project.
+* **Context Propagation**:
+  * The **Planning Agent** initiates the root span upon receiving the external OpenAI request.
+  * Trace Context (Trace ID, Span ID) must be propagated to downstream agents (Code, Design, Validation) via HTTP headers (W3C Trace Context standard).
+  * **Vertex AI Integration**: Spans must be created for every call to the Vertex AI API (Gemini/Qwen models) to track token generation latency.
+  * **MCP Integration**: Spans must track the execution time of tool calls to sidecar and remote MCP servers.
+* **Sampling**: Set to 100% in development/staging; adaptive in production.
+
+## **3\. Workflow Logic & State Machines**
+
+### **3.1 The "Planning" Orchestrator**
+
+The Planning Agent acts as the router. Upon receiving an OpenAI-compatible request:
+
+1. **Auth Check**: Verify API Key or IAP Header.
+2. **Parse**: Analyze intent using deepseek-r1.
+3. **Route & Stream**:
+   * Initiate the specific pipeline (Coding/Design/Ops).
+   * **Crucial**: If stream=true, immediately flush HTTP 200 headers.
+   * As internal agents change state (e.g., "Primary finished", "Validation started"), emit a specially formatted "Reasoning Content" chunk to the client so the user sees progress.
+4. **Aggregate**: Collect metrics and content.
+5. **Respond**: Finalize the stream or return JSON body.
+
+### **3.2 The Code Generation Pipeline (Complex Flow)**
+
+This specific logic must be implemented in the pkg/pipelines/code.go controller.
+
+1. **Step 1: Generation (Code Primary)**
+   * *Input*: User prompt.
+   * *Constraint*: Must generate exactly 3 distinct options.
+   * *Output*: Option A, Option B, Option C \+ Rationale.
+2. **Step 2: Peer Review & Iteration (Code Secondary)**
+   * *Input*: The 3 options from Primary.
+   * *Action*: Analyze security, performance, and adherence to Context7 MCP.
+   * *Decision Logic*:
+     * **Refinement Needed**: If the review finds flaws or missed requirements, return feedback to **Code Primary** (Re-trigger Step 1 with critique). *Limit: 3 Iterations*.
+     * **Proceed**: If satisfied, select the preferred option.
+   * *Output*: Preferred Option recommendation \+ Rationale.
+3. **Step 3: Validation (Validation Agent)**
+   * *Input*: Secondary's final recommendation \+ Primary's original options.
+   * *Action*: Final correctness check.
+   * *Branch*:
+     * *If Agreed*: Return Code.
+     * *If Conflict*: Forward entire context to **Review Agent**.
+4. **Step 4: Arbitration (Review Agent \- Only if Conflict)**
+   * *Action*: Uses docs-onemcp and Web Search to break the tie.
+   * *Output*: Final Binding Decision.
+
+## **4\. MCP (Model Context Protocol) Integration**
+
+The system uses a hybrid deployment model for MCP servers: **Sidecars** for local tools and **Remote Servers** for shared knowledge bases.
+
+### **4.1 Deployment Strategy**
+
+| MCP Server | Type | Access Method | Auth Mechanism | Headers |
+| :---- | :---- | :---- | :---- | :---- |
+| **gke-oss** | Sidecar | http://localhost:8080/mcp | None (Localhost trust) | N/A |
+| **Context7** | Remote (Public) | https://mcp.context7.com/mcp | **Custom Key** | CONTEXT7\_API\_KEY: \<key\> |
+| **docs-onemcp** | Remote (Google) | https://developerknowledge.googleapis.com/mcp | **OAuth2** (ADC) | X-goog-user-project: mslarkin-ext |
+| **gke-onemcp** | Remote (Google) | https://container.googleapis.com/mcp | **OAuth2** (ADC) | X-goog-user-project: mslarkin-ext |
+
+### **4.2 Pod Definition Example (Ops Agent)**
+
+The Ops Agent pod includes the gke-oss sidecar, but accesses others remotely.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: agent-ops
+  namespace: agent-ns
+spec:
+  serviceAccountName: agent-ksa \# Kubernetes Service Account
+  containers:
+    \- name: agent-app
+      image: gcr.io/mslarkin-ext/agent:latest
+      env:
+        \# Remote MCP Configuration
+        \- name: MCP\_CONTEXT7\_URL
+          value: "\[https://mcp.context7.com/mcp\](https://mcp.context7.com/mcp)"
+        \- name: MCP\_CONTEXT7\_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mcp-secrets
+              key: context7-api-key
+        \- name: MCP\_DOCS\_URL
+          value: "\[https://developerknowledge.googleapis.com/mcp\](https://developerknowledge.googleapis.com/mcp)"
+        \# Local Sidecar Configuration
+        \- name: MCP\_GKE\_OSS\_URL
+          value: "http://localhost:8080/mcp"
+        \- name: GOOGLE\_CLOUD\_PROJECT
+          value: "mslarkin-ext"
+        \# Persistence Configuration
+        \- name: REDIS\_HOST
+          value: "10.0.0.5" \# Example IP of mslarkin-redis
+    \# Sidecar for GKE OSS
+    \- name: mcp-sidecar-gke-oss
+      image: gcr.io/mslarkin-ext/gke-oss-mcp:latest
+      ports:
+        \- containerPort: 8080
+      \# Use compiled binary in HTTP mode (required for remote access/sidecar)
+      command: \["gke-mcp"\]
+      args: \["--server-mode", "http", "--server-port", "8080"\]  
