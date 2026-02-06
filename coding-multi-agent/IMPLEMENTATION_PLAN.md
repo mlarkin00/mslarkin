@@ -52,27 +52,27 @@ The goal is to build a distributed multi-agent system on GKE where a **Planning 
 
 8.  **Planning Agent (`internal/planning`)**:
     *   Implement the orchestration logic.
-    *   **Router**: Analyze user input (using `deepseek-r1`) to decide which pipeline to trigger.
+    *   **Router**: Analyze user input (using `deepseek-ai/deepseek-r1-0528-maas` [Region: `us-central1`]) to decide which pipeline to trigger.
     *   **Streaming**: Implement SSE (Server-Sent Events) to stream status updates to the client.
 
 9.  **Code Agent - Primary (`internal/code/primary.go`)**:
-    *   Default Model: `qwen/qwen3-coder-480b-a35b-instruct-maas`.
+    *   Default Model: `qwen/qwen3-coder-480b-a35b-instruct-maas` [Region: `us-south1`].
     *   Logic: Generate 3 distinct code options based on input.
 
 10. **Code Agent - Secondary (`internal/code/secondary.go`)**:
-    *   Default Model: `moonshot-ai/kimi-k2-thinking-maas`.
+    *   Default Model: `moonshotai/kimi-k2-thinking-maas` [Region: `global`].
     *   Logic: Review the 3 options from Primary. Critique or select the best one.
 
 11. **Validation Agent (`internal/validation`)**:
-    *   Default Model: `qwen/qwen3-next-80b-a3b-thinking-maas`.
+    *   Default Model: `qwen/qwen3-next-80b-a3b-thinking-maas` [Region: `global`].
     *   Logic: Validate the selected option. If valid, approve. If not, reject or escalate.
 
 12. **Review Agent (`internal/review`)**:
-    *   Default Model: `google/gemini-3.0-pro`.
+    *   Default Model: `google/gemini-3-pro-preview` [Region: `global`].
     *   Logic: Final arbiter in case of conflict. Uses `Context7`, `docs-onemcp` and web search to verify.
 
 13. **Design & Ops Agents**:
-    *   Implement `internal/design` and `internal/ops` using their respective models (`gemini-3.0-pro`, `gemini-3.0-flash`).
+    *   Implement `internal/design` and `internal/ops` using their respective models (`google/gemini-3-pro-preview` [Region: `global`], `google/gemini-3-flash-preview` [Region: `global`]).
     *   Ops Agent must prefer `gke-onemcp` tool, with `gke-oss-mcp` (https://github.com/GoogleCloudPlatform/gke-mcp) as a fallback.
 
 ## **Phase 4: API & Entrypoint**
