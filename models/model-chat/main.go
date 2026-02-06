@@ -97,6 +97,10 @@ func main() {
 			}
 		}
 
+		// Log aggregated results for debugging
+		fmt.Printf("DEBUG: Responses: %+v\n", responses)
+		fmt.Printf("DEBUG: Errors: %+v\n", errors)
+
 		// Render Comparison View
 		compNode := ui.ComparisonView(msg, responses, errors)
 

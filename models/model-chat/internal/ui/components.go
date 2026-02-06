@@ -6,6 +6,7 @@ import (
 	. "maragu.dev/gomponents/html"
 	hx "maragu.dev/gomponents-htmx"
 	"github.com/mslarkin/models/model-chat/internal/ai"
+	"github.com/sashabaranov/go-openai"
 )
 
 func Layout(title string, children ...Node) Node {
@@ -64,7 +65,7 @@ func App(models []ai.Model, selectedModelIDs []string) Node {
 				),
 				Div(
 					Class("external-links"),
-					A(Href("#"), Class("nav-link"), Text("Google ADK Dev UI"), Target("_blank")), // Placeholder URL
+					A(Href("https://github.com/GoogleCloudPlatform/agent-development-kit"), Class("nav-link"), Text("Google ADK Dev UI"), Target("_blank")), // Updated Link
 				),
 			),
 
@@ -90,6 +91,7 @@ func App(models []ai.Model, selectedModelIDs []string) Node {
 					hx.Target("#chat-history"),
 					hx.Swap("beforeend"),
 					hx.On("htmx:afterRequest", "this.reset()"), // Reset form after send
+					hx.Include("input[name='model_id']"),       // Include selected models
 					Class("chat-form"),
 					// Hidden inputs for model_ids are now handled by the checkboxes having the name "model_id" directly
 					Input(
@@ -143,27 +145,36 @@ func Message(isUser bool, sender string, content string, metrics *ai.ChatRespons
 		wrapperClass = "message-wrapper user"
 	}
 
+	var metricsNodes Node
+	if metrics != nil && metrics.Usage != (openai.Usage{}) {
+		inTokens := fmt.Sprintf("In: %d", metrics.Usage.PromptTokens)
+		outTokens := fmt.Sprintf("Out: %d", metrics.Usage.CompletionTokens)
+		totalTokens := fmt.Sprintf("Total: %d", metrics.Usage.TotalTokens)
+
+		metricsNodes = Div(Class("message-metrics"),
+			Span(Text(inTokens)),
+			Span(Text("|")),
+			Span(Text(outTokens)),
+			Span(Text("|")),
+			Span(Text(totalTokens)),
+			If(metrics.Thinking != "", Group([]Node{
+				Span(Text("|")),
+				Span(Text("Think: Yes")),
+			})),
+		)
+	} else {
+		metricsNodes = Group(nil) // Render nothing if no metrics
+	}
+
 	return Div(
 		Class(wrapperClass),
 		Div(
 			Class("message-bubble"),
 			Div(Class("message-sender"), Text(sender)),
 			Div(Class("message-content"), Text(content)),
-			If(metrics != nil,
-				Div(Class("message-metrics"),
-					Span(Text(fmt.Sprintf("In: %d", metrics.Usage.PromptTokens))),
-					Span(Text("|")),
-					Span(Text(fmt.Sprintf("Out: %d", metrics.Usage.CompletionTokens))),
-					Span(Text("|")),
-					Span(Text(fmt.Sprintf("Total: %d", metrics.Usage.TotalTokens))),
-					If(metrics.Thinking != "", Group([]Node{
-						Span(Text("|")),
-						Span(Text("Think: Yes")),
-					})),
-				),
-			),
-		),
-	)
+			metricsNodes,
+		), // Close of message-bubble Div
+	) // Close of wrapperClass Div
 }
 
 func ComparisonView(userMsg string, responses map[string]*ai.ChatResponse, errors map[string]error) Node {
@@ -177,6 +188,9 @@ func ComparisonView(userMsg string, responses map[string]*ai.ChatResponse, error
 			Style("display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;"),
 			MapKeys(responses, func(modelID string) Node {
 				resp := responses[modelID]
+				if resp == nil {
+					return Message(false, modelID, "No response (nil)", nil)
+				}
 				return Message(false, modelID, resp.Content, resp)
 			}),
 			MapKeys(errors, func(modelID string) Node {
