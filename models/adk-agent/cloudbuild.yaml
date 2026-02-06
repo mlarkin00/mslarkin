@@ -1,0 +1,23 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:$BUILD_ID', '-t', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:$BUILD_ID']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest']
+
+- name: 'gcr.io/cloud-builders/kubectl'
+  args:
+  - 'apply'
+  - '-f'
+  - 'k8s/adk-agent.yaml'
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=us-west1'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=ai-auto-cluster'
+  - 'CLOUDSDK_CORE_PROJECT=mslarkin-ext'
+
+images:
+- 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:$BUILD_ID'
+- 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest'

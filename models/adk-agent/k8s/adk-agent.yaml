@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: model-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adk-agent
+  namespace: model-ns
+  labels:
+    app: adk-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adk-agent
+  template:
+    metadata:
+      labels:
+        app: adk-agent
+    spec:
+      containers:
+      # 1. Main Agent Server
+      - name: agent-server
+        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest
+        command: ["/server"]
+        env:
+        - name: PROJECT_ID
+          value: "mslarkin-ext"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # 2. UI Sidecar
+      - name: adk-ui
+        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest
+        command: ["/adk-web", "-port", "8000", "webui", "-api_server_address", "https://model.ai.mslarkin.com/api"]
+        # Note: If accessing remotely via browser, this needs to be the public URL.
+        # However, for internal cluster access or port forwarding, localhost might work if the UI is server-side rendered?
+        # Wait, the ADK UI is usually a React/SPA app or server-side rendered Go app?
+        # If it's SPA, the API address must be reachable from browser.
+        # If it's server-side rendered, localhost is fine.
+        # The KI says: "The adk-ui container must be configured to point to the public API endpoint via -api_server_address."
+        # If we use localhost, it assumes the browser connects to localhost which is only true for port-forwarding.
+        # Let's use a dummy public address or relative path if supported.
+        # Actually, if we serve UI and API on same domain via Ingress, we can use relative path "/api".
+        # Let's try relative path.
+        # If not supported, we might need a real DNS name.
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        ports:
+        - containerPort: 8000
+      serviceAccountName: model-ksa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adk-agent
+  namespace: model-ns
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports": {"80":{"name": "adk-agent-neg"}, "8000":{"name": "adk-agent-ui-neg"}}}'
+spec:
+  selector:
+    app: adk-agent
+  ports:
+  - name: api
+    port: 80
+    targetPort: 8080
+  - name: ui
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
