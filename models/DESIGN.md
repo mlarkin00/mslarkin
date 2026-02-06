@@ -220,3 +220,39 @@ spec:
       \# Use compiled binary in HTTP mode (required for remote access/sidecar)
       command: \["gke-mcp"\]
       args: \["--server-mode", "http", "--server-port", "8080"\]  
+
+## **5. Annotated Implementation Plan**
+
+### **5.1 Single Binary, Multiple Roles**
+To simplify development and deployment, the "Internal Agent Services" and "Gateway Service" should be implemented as a **single Go binary** capable of assuming different roles.
+*   **Implementation**: Use configuration parameters:
+    *   `AGENT_ROLE` (env var): Determines if the instance starts as `planning`, `code-primary`, `ops`, etc.
+    *   `AGENT_MODEL` (env var): Specifies the Vertex AI Model ID to use (e.g., `gemini-3.0-pro`, `deepseek-r1`). This allows overriding the default model for any role.
+*   **Benefit**: Shared codebase, simpler CI/CD (one container image), easier local testing, and flexibility to swap models without code changes.
+
+### **5.2 Inter-Agent Communication (A2A)**
+The internal communication between agents should use standard HTTP/JSON (REST) to reduce complexity compared to gRPC, unless strict schema enforcement is critical.
+*   **Protocol**: HTTP/1.1 or HTTP/2.
+*   **Discovery**: Kubernetes DNS (e.g., `http://agent-code-primary.agent-ns.svc.cluster.local:8080`).
+*   **Data Format**: JSON using the `AgentInput` and `AgentResponse` structs defined in section 2.2.
+
+### **5.3 MCP Client Implementation**
+The MCP client must handle both **Sidecar (Localhost)** and **Remote (Auth-protected)** connections transparently.
+*   **Sidecar**: Connect to `http://localhost:<port>/mcp`. No auth required.
+*   **Remote (Public)**: Connect to HTTPS URL. Inject `CONTEXT7_API_KEY` header.
+*   **Remote (Google)**: Connect to HTTPS URL. Generate OIDC token via `google.golang.org/api/idtoken` or standard `golang.org/x/oauth2/google` ADC and inject as `Authorization: Bearer ...`.
+
+### **5.4 Directory Structure Suggestion**
+Refactor `models/adk-agent` to:
+*   `cmd/agent/main.go`: Entry point, parses config, initializes specific agent role.
+*   `pkg/agent/`: Core `Agent` interface, `AgentInput/Response` types.
+*   `pkg/config/`: Configuration loading (Env vars + YAML).
+*   `pkg/mcp/`: MCP client implementation (handling auth and transport).
+*   `pkg/telemetry/`: OpenTelemetry setup.
+*   `internal/planning/`: Planning agent logic (HTTP server, routing).
+*   `internal/worker/`: Generic worker logic for Code, Design, Ops agents.
+*   `k8s/`: Kubernetes manifests (Deployment, Service, Ingress).
+
+### **5.5 State Management**
+*   **Redis**: Use `go-redis/v9` for the client.
+*   **Schema**: Store conversation history with a key pattern like `session:{session_id}:history` (List) and artifacts as `session:{session_id}:artifacts:{artifact_id}` (Hash).
