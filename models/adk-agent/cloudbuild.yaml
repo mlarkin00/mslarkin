@@ -8,6 +8,9 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest']
 
+- name: 'ubuntu'
+  args: ['sed', '-i', 's|image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:.*|image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:$BUILD_ID|g', 'k8s/adk-agent.yaml']
+
 - name: 'gcr.io/cloud-builders/kubectl'
   args:
   - 'apply'

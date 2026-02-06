@@ -1,48 +1,53 @@
 {
   "folders": [
     {
+      "name": "coding-multi-agent",
+      "path": "coding-multi-agent",
+    },
+    {
+      "name": "models",
+      "path": "models",
+    },
+    {
+      "name": "go-flexible-workload",
+      "path": "go-flexible-workload",
+    },
+    {
       "name": "skills",
       "path": "skills",
     },
     {
-      "name": "models",
-      "path": "models"
-    },
-    {
-      "name": "go-flexible-workload",
-      "path": "go-flexible-workload"
-    },
-    {
       "name": "go-test",
-      "path": "go-test"
+      "path": "go-test",
     },
     {
       "name": "online-shop-demo",
-      "path": "online-shop-demo"
+      "path": "online-shop-demo",
     },
     {
       "name": "microservices-demo-main",
-      "path": "microservices-demo-main"
+      "path": "microservices-demo-main",
     },
     {
       "name": "go-mslarkin-utils",
-      "path": "go-mslarkin-utils"
+      "path": "go-mslarkin-utils",
     },
     {
       "name": "local_tools",
-      "path": "../local_tools"
+      "path": "../local_tools",
     },
     {
       "name": "config",
-      "path": "config"
+      "path": "config",
     },
     {
       "name": "gke-testing",
-      "path": "../gke-testing"
+      "path": "../gke-testing",
     },
     {
-      "path": "k8s-status-app"
-    }
+      "name": "k8s-status-app",
+      "path": "k8s-status-app",
+    },
   ],
   "settings": {
     "java.compile.nullAnalysis.mode": "automatic",
