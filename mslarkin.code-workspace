@@ -5,10 +5,6 @@
       "path": "skills",
     },
     {
-      "name": "gke-mcp",
-      "path": "../gke-mcp"
-    },
-    {
       "name": "models",
       "path": "models"
     },

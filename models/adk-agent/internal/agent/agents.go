@@ -18,8 +18,8 @@ type ModelConfig struct {
 var SupportedModels = []ModelConfig{
 	{ID: "qwen/qwen3-coder-480b-a35b-instruct-maas", DisplayName: "Qwen 3 Coder 480B (Instruct)", IsThinking: false, Region: "us-south1"},
 	{ID: "qwen/qwen3-next-80b-a3b-thinking-maas", DisplayName: "Qwen 3 Next 80B (Thinking)", IsThinking: true, Region: "global"},
-	{ID: "google/gemini-3.0-flash", DisplayName: "Gemini 3.0 Flash", IsThinking: true, Region: "global"},
-	{ID: "google/gemini-3.0-pro", DisplayName: "Gemini 3.0 Pro", IsThinking: true, Region: "global"},
+	{ID: "gemini-1.5-flash-002", DisplayName: "Gemini 1.5 Flash", IsThinking: true, Region: "us-central1"},
+	{ID: "gemini-1.5-pro-002", DisplayName: "Gemini 1.5 Pro", IsThinking: true, Region: "us-central1"},
 	{ID: "deepseek-ai/deepseek-r1", DisplayName: "DeepSeek R1", IsThinking: true, Region: "global"},
 	{ID: "moonshot-ai/kimi-k2-thinking-maas", DisplayName: "Kimi K2 Thinking", IsThinking: true, Region: "global"},
 }

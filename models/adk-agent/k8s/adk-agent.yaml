@@ -23,7 +23,8 @@ spec:
       containers:
       # 1. Main Agent Server
       - name: agent-server
-        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest
+        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:debug
+        imagePullPolicy: Always
         command: ["/server"]
         env:
         - name: PROJECT_ID
@@ -43,7 +44,8 @@ spec:
 
       # 2. UI Sidecar
       - name: adk-ui
-        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:latest
+        image: us-west1-docker.pkg.dev/mslarkin-ext/mslarkin-docker/adk-agent:debug
+        imagePullPolicy: Always
         command: ["/adk-web", "-port", "8000", "webui", "-api_server_address", "https://model.ai.mslarkin.com/api"]
         # Note: If accessing remotely via browser, this needs to be the public URL.
         # However, for internal cluster access or port forwarding, localhost might work if the UI is server-side rendered?

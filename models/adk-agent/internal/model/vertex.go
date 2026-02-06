@@ -57,7 +57,18 @@ func (m *VertexLLM) Name() string { return m.name }
 
 func (m *VertexLLM) GenerateContent(ctx context.Context, req *model.LLMRequest, stream bool) iter.Seq2[*model.LLMResponse, error] {
 	return func(yield func(*model.LLMResponse, error) bool) {
+		fmt.Printf("VertexLLM: received request with %d contents\n", len(req.Contents))
+		for i, c := range req.Contents {
+			fmt.Printf("  Content[%d]: Role=%s, Parts=%d\n", i, c.Role, len(c.Parts))
+			for j, p := range c.Parts {
+				fmt.Printf("    Part[%d]: Text=%q\n", j, p.Text)
+			}
+		}
+
 		messages := convertToOpenAIMessages(req.Contents)
+		if messages == nil {
+			messages = []openai.ChatCompletionMessage{}
+		}
 
 		// Basic stream support
 		if stream {

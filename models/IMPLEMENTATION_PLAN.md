@@ -1,6 +1,4 @@
-# Implementation Plan: mslarkin-ext Agent Ecosystem
-
-This document outlines the step-by-step plan to implement the multi-agent system described in `models/DESIGN.md` and `models/PLAN.md`.
+# Implementation Plan: mslarkin-ext Coding Agent Ecosystem
 
 ## **Overview**
 The goal is to build a distributed multi-agent system on GKE where a **Planning Agent** orchestrates tasks by delegating to specialized agents (**Code**, **Design**, **Ops**, **Validation**, **Review**). All agents share a common Go codebase but run as distinct services.
@@ -22,7 +20,7 @@ The goal is to build a distributed multi-agent system on GKE where a **Planning 
 
 3.  **Configuration Loading (`pkg/config`)**:
     *   Create `pkg/config/config.go`.
-    *   Implement loading from `config.yaml` (embed or read from file) and environment variables (`AGENT_ROLE`, `PORT`, `REDIS_HOST`, `PROJECT_ID`).
+    *   Implement loading from `config.yaml` (embed or read from file) and environment variables (`AGENT_ROLE`, `AGENT_MODEL`, `PORT`, `REDIS_HOST`, `PROJECT_ID`).
     *   Define the `Config` struct to hold model IDs, locations, and MCP endpoints.
 
 4.  **Telemetry Setup (`pkg/telemetry`)**:
@@ -58,30 +56,31 @@ The goal is to build a distributed multi-agent system on GKE where a **Planning 
     *   **Streaming**: Implement SSE (Server-Sent Events) to stream status updates to the client.
 
 9.  **Code Agent - Primary (`internal/code/primary.go`)**:
-    *   Model: `qwen/qwen3-coder-480b-a35b-instruct-maas`.
+    *   Default Model: `qwen/qwen3-coder-480b-a35b-instruct-maas`.
     *   Logic: Generate 3 distinct code options based on input.
 
 10. **Code Agent - Secondary (`internal/code/secondary.go`)**:
-    *   Model: `moonshot-ai/kimi-k2-thinking-maas`.
+    *   Default Model: `moonshot-ai/kimi-k2-thinking-maas`.
     *   Logic: Review the 3 options from Primary. Critique or select the best one.
 
 11. **Validation Agent (`internal/validation`)**:
-    *   Model: `qwen/qwen3-next-80b-a3b-thinking-maas`.
+    *   Default Model: `qwen/qwen3-next-80b-a3b-thinking-maas`.
     *   Logic: Validate the selected option. If valid, approve. If not, reject or escalate.
 
 12. **Review Agent (`internal/review`)**:
-    *   Model: `google/gemini-3.0-pro`.
-    *   Logic: Final arbiter in case of conflict. Uses `docs-onemcp` and web search to verify.
+    *   Default Model: `google/gemini-3.0-pro`.
+    *   Logic: Final arbiter in case of conflict. Uses `Context7`, `docs-onemcp` and web search to verify.
 
 13. **Design & Ops Agents**:
     *   Implement `internal/design` and `internal/ops` using their respective models (`gemini-3.0-pro`, `gemini-3.0-flash`).
-    *   Ops Agent must prefer `gke-onemcp` tool.
+    *   Ops Agent must prefer `gke-onemcp` tool, with `gke-oss-mcp` (https://github.com/GoogleCloudPlatform/gke-mcp) as a fallback.
 
 ## **Phase 4: API & Entrypoint**
 
 14. **Main Entrypoint (`cmd/agent/main.go`)**:
     *   Parse `AGENT_ROLE` env var.
-    *   Initialize the specific agent implementation based on the role.
+    *   Parse `AGENT_MODEL` env var.
+    *   Initialize the specific agent implementation based on the role and selected model.
     *   Start the HTTP server.
 
 15. **HTTP Server & Routing**:
