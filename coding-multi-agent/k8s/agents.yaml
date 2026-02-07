@@ -1,0 +1,205 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-ns
+---
+# Redis (Simple)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: agent-ns
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: agent-ns
+spec:
+  ports:
+  - port: 6379
+  selector:
+    app: redis
+---
+# Planning Agent
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-planning
+  namespace: agent-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-planning
+  template:
+    metadata:
+      labels:
+        app: agent-planning
+    spec:
+      serviceAccountName: agent-ksa
+      containers:
+      - name: agent
+        image: gcr.io/mslarkin-ext/agent:latest
+        env:
+        - name: AGENT_ROLE
+          value: "planning"
+        - name: REDIS_HOST
+          value: "redis"
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-planning
+  namespace: agent-ns
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+  selector:
+    app: agent-planning
+---
+# Code Primary Agent
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-code-primary
+  namespace: agent-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-code-primary
+  template:
+    metadata:
+      labels:
+        app: agent-code-primary
+    spec:
+      serviceAccountName: agent-ksa
+      containers:
+      - name: agent
+        image: gcr.io/mslarkin-ext/agent:latest
+        env:
+        - name: AGENT_ROLE
+          value: "code_primary"
+        - name: REDIS_HOST
+          value: "redis"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-code-primary
+  namespace: agent-ns
+spec:
+  ports:
+  - port: 8080
+  selector:
+    app: agent-code-primary
+---
+# Code Secondary Agent
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-code-secondary
+  namespace: agent-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-code-secondary
+  template:
+    metadata:
+      labels:
+        app: agent-code-secondary
+    spec:
+      serviceAccountName: agent-ksa
+      containers:
+      - name: agent
+        image: gcr.io/mslarkin-ext/agent:latest
+        env:
+        - name: AGENT_ROLE
+          value: "code_secondary"
+        - name: REDIS_HOST
+          value: "redis"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-code-secondary
+  namespace: agent-ns
+spec:
+  ports:
+  - port: 8080
+  selector:
+    app: agent-code-secondary
+---
+# Ops Agent (with Sidecar)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-ops
+  namespace: agent-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-ops
+  template:
+    metadata:
+      labels:
+        app: agent-ops
+    spec:
+      serviceAccountName: agent-ksa
+      containers:
+      - name: agent
+        image: gcr.io/mslarkin-ext/agent:latest
+        env:
+        - name: AGENT_ROLE
+          value: "ops"
+        - name: REDIS_HOST
+          value: "redis"
+        - name: MCP_GKE_OSS_URL
+          value: "http://localhost:8081/mcp"
+        ports:
+        - containerPort: 8080
+      - name: mcp-sidecar-gke-oss
+        image: gcr.io/mslarkin-ext/gke-oss-mcp:latest
+        ports:
+        - containerPort: 8081
+        command: ["gke-mcp"]
+        args: ["--server-mode", "http", "--server-port", "8081"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-ops
+  namespace: agent-ns
+spec:
+  ports:
+  - port: 8080
+  selector:
+    app: agent-ops
